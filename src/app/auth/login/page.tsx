@@ -18,8 +18,9 @@ import {
   CreditCard,
   KeyRound,
   RotateCcw,
+  ShieldAlert,
 } from "lucide-react";
-import { useAuthStore } from "@/lib/store/authStore";
+import { useAuthStore, checkRemoteSession } from "@/lib/store/authStore";
 import { ReCaptchaWidget } from "@/components/common/ReCaptchaWidget";
 
 function LoginContent() {
@@ -53,6 +54,11 @@ function LoginContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sessionConflict, setSessionConflict] = useState<{
+    email: string;
+    activeDevice: string;
+    lastSeenMinutesAgo?: number;
+  } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -60,10 +66,11 @@ function LoginContent() {
     }
   }, [isAuthenticated, isAdmin, redirectUrl, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e?: React.FormEvent, forceOverride: boolean = false) => {
+    if (e) e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
+    if (!forceOverride) setSessionConflict(null);
 
     if (!captchaChecked) {
       setCaptchaError(true);
@@ -73,16 +80,38 @@ function LoginContent() {
     setCaptchaError(false);
 
     setIsSubmitting(true);
-    const res = login(loginEmail, loginPassword);
-    setIsSubmitting(false);
+    try {
+      // 1. Single Active Device Session Check (Anti-concurrencia)
+      const sessionCheck = await checkRemoteSession(loginEmail, forceOverride);
+      if (!sessionCheck.allowed) {
+        setSessionConflict({
+          email: loginEmail,
+          activeDevice: sessionCheck.activeDevice || "Otro Dispositivo / Navegador",
+          lastSeenMinutesAgo: sessionCheck.lastSeenMinutesAgo,
+        });
+        setErrorMessage(
+          sessionCheck.message ||
+            "Esta cuenta ya tiene una sesión activa en otro dispositivo. El usuario debe cerrar sesión en ese dispositivo antes de ingresar."
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (res.success) {
-      setSuccessMessage(res.message);
-      setTimeout(() => {
-        router.push(redirectUrl);
-      }, 500);
-    } else {
-      setErrorMessage(res.message);
+      // 2. Perform credentials verification
+      const res = login(loginEmail, loginPassword);
+      if (res.success) {
+        setSessionConflict(null);
+        setSuccessMessage(res.message);
+        setTimeout(() => {
+          router.push(redirectUrl);
+        }, 500);
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Error al verificar la sesión.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -123,14 +152,33 @@ function LoginContent() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (forceOverride: boolean = false) => {
     setErrorMessage(null);
     setSuccessMessage(null);
+    if (!forceOverride) setSessionConflict(null);
     setIsSubmitting(true);
 
     try {
       const res = await loginWithGoogle();
-      if (res.success) {
+      if (res.success && res.user) {
+        // Single session verification for Google account
+        const sessionCheck = await checkRemoteSession(res.user.email, forceOverride);
+        if (!sessionCheck.allowed) {
+          const { logout } = useAuthStore.getState();
+          logout();
+          setSessionConflict({
+            email: res.user.email,
+            activeDevice: sessionCheck.activeDevice || "Otro Dispositivo / Navegador",
+            lastSeenMinutesAgo: sessionCheck.lastSeenMinutesAgo,
+          });
+          setErrorMessage(
+            sessionCheck.message ||
+              "Esta cuenta ya tiene una sesión activa en otro dispositivo. El usuario debe cerrar sesión en ese dispositivo antes de ingresar."
+          );
+          return;
+        }
+
+        setSessionConflict(null);
         setSuccessMessage(res.message);
         setTimeout(() => {
           const store = useAuthStore.getState();
@@ -181,7 +229,41 @@ function LoginContent() {
       </div>
 
       {/* Alerts */}
-      {errorMessage && (
+      {sessionConflict && (
+        <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-400 text-amber-900 text-xs shadow-md space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-amber-950 flex items-center gap-1.5">
+                <span>Sesión Activa en Otro Dispositivo Detectada</span>
+              </h3>
+              <p className="text-amber-850 leading-relaxed">
+                La cuenta <strong className="text-amber-950 font-mono">{sessionConflict.email}</strong> ya está siendo utilizada activamente en <strong className="text-amber-950">{sessionConflict.activeDevice}</strong> {sessionConflict.lastSeenMinutesAgo ? `(actividad hace ${sessionConflict.lastSeenMinutesAgo} min)` : ""}.
+              </p>
+              <p className="text-amber-750 text-[11px]">
+                Por política de concurrencia y para evitar colisión o duplicidad de eventos entre dos usuarios usando la misma cuenta, se debe cerrar la sesión en el dispositivo anterior antes de ingresar aquí.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2.5 border-t border-amber-200 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-[11px] text-amber-800 font-medium">
+              ¿Olvidaste cerrar sesión en tu otro dispositivo o eres administrador?
+            </span>
+            <button
+              type="button"
+              onClick={() => handleLogin(undefined, true)}
+              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm flex items-center gap-1.5"
+            >
+              <span>⚡ Forzar Cierre de Sesión Remota e Ingresar Aquí</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {errorMessage && !sessionConflict && (
         <div className="p-4 rounded-xl bg-red-50 border border-[#D64545]/30 text-[#D64545] text-xs flex items-center gap-2 shadow-sm">
           <AlertCircle className="w-4 h-4 text-[#D64545] shrink-0" />
           <span>{errorMessage}</span>
@@ -311,7 +393,7 @@ function LoginContent() {
                 <p className="text-xs text-[#666666]">O inicia sesión de forma instantánea:</p>
                 <button
                   type="button"
-                  onClick={handleGoogleLogin}
+                  onClick={() => handleGoogleLogin(false)}
                   disabled={isSubmitting}
                   className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#F7F7F5] border border-[#E5E5E5] hover:border-[#FF6B35]/40 text-xs font-bold text-[#1A1A1A] transition flex items-center justify-center gap-2.5 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
@@ -502,7 +584,7 @@ function LoginContent() {
 
               <button
                 type="button"
-                onClick={handleGoogleLogin}
+                onClick={() => handleGoogleLogin(false)}
                 disabled={isSubmitting}
                 className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white border border-[#E5E5E5] hover:bg-[#F7F7F5] hover:border-[#FF6B35]/40 text-xs font-bold text-[#1A1A1A] transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >

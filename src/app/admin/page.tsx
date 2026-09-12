@@ -23,6 +23,10 @@ import {
   FileDown,
   ShieldCheck,
   Calendar,
+  Search,
+  Filter,
+  Hourglass,
+  Pencil,
 } from "lucide-react";
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
@@ -186,12 +190,16 @@ export default function AdminDashboardPage() {
       .sort((a, b) => a.stockAvailable - b.stockAvailable);
   }, [products]);
 
-  // Export orders to CSV
+  // Export orders to CSV (ordered chronologically descending)
   const handleExportCSV = () => {
     if (orders.length === 0) {
       alert("No hay pedidos registrados para exportar.");
       return;
     }
+
+    const sortedOrders = [...orders].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
 
     const headers = [
       "Numero_Pedido",
@@ -211,18 +219,18 @@ export default function AdminDashboardPage() {
       "Estado",
     ];
 
-    const rows = orders.map((o) => [
+    const rows = sortedOrders.map((o) => [
       `"${o.orderNumber || o.id}"`,
       `"${new Date(o.createdAt).toLocaleDateString("es-CL")}"`,
-      `"${o.customer?.fullName || ""}"`,
-      `"${o.customer?.email || ""}"`,
-      `"${o.customer?.phone || ""}"`,
-      `"${o.customer?.rut || ""}"`,
-      `"${o.customer?.region || ""}"`,
-      `"${o.customer?.comuna || ""}"`,
-      `"${o.customer?.address || ""}"`,
-      `"${o.shippingMethod?.name || "Starken"}"`,
-      `"${o.shippingMethod?.trackingNumber || ""}"`,
+      `"${(o.customer?.fullName || "").replace(/"/g, '""')}"`,
+      `"${(o.customer?.email || "").replace(/"/g, '""')}"`,
+      `"${(o.customer?.phone || "").replace(/"/g, '""')}"`,
+      `"${(o.customer?.rut || "").replace(/"/g, '""')}"`,
+      `"${(o.customer?.region || "").replace(/"/g, '""')}"`,
+      `"${(o.customer?.comuna || "").replace(/"/g, '""')}"`,
+      `"${(o.customer?.address || "").replace(/"/g, '""')}"`,
+      `"${(o.shippingMethod?.name || "Starken").replace(/"/g, '""')}"`,
+      `"${(o.shippingMethod?.trackingNumber || "").replace(/"/g, '""')}"`,
       o.totalChargedNow,
       o.remainingBalanceLater || 0,
       o.balancePaid ? "SI" : "NO",
@@ -234,7 +242,127 @@ export default function AdminDashboardPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `omnicollector_pedidos_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `omnicollector_pedidos_ordenados_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Slow-moving / Unsold Products Audit Logic
+  const [stagnantDaysMin, setStagnantDaysMin] = useState<number>(0);
+  const [stagnantCategory, setStagnantCategory] = useState<string>("ALL");
+  const [stagnantSearch, setStagnantSearch] = useState<string>("");
+
+  const stagnantProductsData = useMemo(() => {
+    const now = Date.now();
+
+    const list = products
+      .filter((p) => (p.stockAvailable || 0) > 0)
+      .map((p) => {
+        // Find matching orders
+        const matchingOrders = orders.filter((o) =>
+          (o.status || "").toUpperCase() !== "CANCELLED" &&
+          (o.items || []).some((it) => it.productId === p.id || it.sku === p.sku)
+        );
+
+        let lastSaleDate: Date | null = null;
+        let unitsSold = 0;
+
+        if (matchingOrders.length > 0) {
+          matchingOrders.sort(
+            (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+          lastSaleDate = new Date(matchingOrders[0].createdAt || 0);
+          matchingOrders.forEach((o) => {
+            const it = o.items.find((item) => item.productId === p.id || item.sku === p.sku);
+            if (it) unitsSold += it.quantity;
+          });
+        }
+
+        const creationDate = p.createdAt ? new Date(p.createdAt) : new Date(now - 45 * 24 * 60 * 60 * 1000);
+        const referenceDate = lastSaleDate || creationDate;
+        const daysWithoutSales = Math.max(
+          0,
+          Math.floor((now - referenceDate.getTime()) / (1000 * 60 * 60 * 24))
+        );
+        const capitalTiedUp = (p.costPrice || 0) * (p.stockAvailable || 0);
+
+        return {
+          product: p,
+          creationDate,
+          lastSaleDate,
+          unitsSold,
+          daysWithoutSales,
+          capitalTiedUp,
+        };
+      });
+
+    // Default order: highest days without sale first (most stagnant at top)
+    list.sort((a, b) => b.daysWithoutSales - a.daysWithoutSales);
+    return list;
+  }, [products, orders]);
+
+  const filteredStagnantProducts = useMemo(() => {
+    return stagnantProductsData.filter((item) => {
+      if (stagnantDaysMin > 0 && item.daysWithoutSales < stagnantDaysMin) return false;
+      if (stagnantCategory !== "ALL" && item.product.type !== stagnantCategory) return false;
+      if (stagnantSearch.trim()) {
+        const q = stagnantSearch.toLowerCase().trim();
+        return (
+          item.product.name.toLowerCase().includes(q) ||
+          item.product.sku.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [stagnantProductsData, stagnantDaysMin, stagnantCategory, stagnantSearch]);
+
+  const totalCapitalTiedUp = useMemo(() => {
+    return filteredStagnantProducts.reduce((sum, item) => sum + item.capitalTiedUp, 0);
+  }, [filteredStagnantProducts]);
+
+  const totalStagnantStock = useMemo(() => {
+    return filteredStagnantProducts.reduce((sum, item) => sum + (item.product.stockAvailable || 0), 0);
+  }, [filteredStagnantProducts]);
+
+  const handleExportStagnantCSV = () => {
+    if (filteredStagnantProducts.length === 0) {
+      alert("No hay productos en el reporte de rotación para exportar.");
+      return;
+    }
+
+    const headers = [
+      "SKU",
+      "Nombre_Producto",
+      "Categoria",
+      "Fecha_Ingreso",
+      "Ultima_Venta",
+      "Dias_Sin_Vender",
+      "Stock_Disponible",
+      "Costo_Unitario_CLP",
+      "Precio_Venta_CLP",
+      "Capital_Inmovilizado_CLP",
+    ];
+
+    const rows = filteredStagnantProducts.map((item) => [
+      `"${item.product.sku}"`,
+      `"${item.product.name.replace(/"/g, '""')}"`,
+      `"${item.product.type}"`,
+      `"${item.creationDate.toLocaleDateString("es-CL")}"`,
+      item.lastSaleDate ? `"${item.lastSaleDate.toLocaleDateString("es-CL")}"` : `"NUNCA VENDIDO"`,
+      item.daysWithoutSales,
+      item.product.stockAvailable,
+      item.product.costPrice,
+      item.product.price,
+      item.capitalTiedUp,
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `omnicollector_auditoria_stock_sin_vender_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -760,6 +888,261 @@ export default function AdminDashboardPage() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Dead Stock & Slow-Moving Products Audit Table */}
+      <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-center shrink-0">
+              <Hourglass className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-[#1A1A1A] tracking-tight">
+                  Auditoría de Rotación: Productos con Más Tiempo Sin Vender
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-mono text-[10px] font-bold">
+                  {filteredStagnantProducts.length} en evaluación
+                </span>
+              </div>
+              <p className="text-xs text-[#666666] mt-0.5">
+                Calcula automáticamente la inmovilización de inventario desde la fecha de ingreso o última venta registrada.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportStagnantCSV}
+              className="px-4 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] text-white text-xs font-bold transition inline-flex items-center gap-2 shadow-sm"
+              title="Descargar reporte detallado de productos estancados en CSV ordenado"
+            >
+              <FileDown className="w-3.5 h-3.5 text-[#FF6B35]" />
+              <span>Exportar Reporte Rotación (CSV)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Stagnant KPI Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 rounded-2xl bg-[#F7F7F5] border border-[#E5E5E5] space-y-1">
+            <span className="text-[11px] font-semibold text-[#666666] uppercase block">Productos con Stock Estancado</span>
+            <span className="text-2xl font-black text-[#1A1A1A] font-mono block">
+              {filteredStagnantProducts.length}
+            </span>
+            <span className="text-[10px] text-[#666666]">Artículos con unidades disponibles</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#F7F7F5] border border-[#E5E5E5] space-y-1">
+            <span className="text-[11px] font-semibold text-[#666666] uppercase block">Unidades Físicas Inmovilizadas</span>
+            <span className="text-2xl font-black text-amber-600 font-mono block">
+              {totalStagnantStock} uds
+            </span>
+            <span className="text-[10px] text-[#666666]">Stock en bodega sin movimiento</span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#F7F7F5] border border-[#E5E5E5] space-y-1">
+            <span className="text-[11px] font-semibold text-[#666666] uppercase block">Capital Inmovilizado Retenido</span>
+            <span className="text-2xl font-black text-[#D64545] font-mono block">
+              {formatCLP(totalCapitalTiedUp)}
+            </span>
+            <span className="text-[10px] text-[#666666]">Cálculo según costo unitario de adquisición</span>
+          </div>
+        </div>
+
+        {/* Filters and Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#F7F7F5] border border-[#E5E5E5]">
+          <div className="relative w-full md:w-72">
+            <Search className="w-4 h-4 text-[#666666] absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Buscar por SKU o nombre..."
+              value={stagnantSearch}
+              onChange={(e) => setStagnantSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#999999] focus:outline-none focus:border-[#FF6B35]"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 bg-white border border-[#E5E5E5] rounded-xl p-1 text-xs">
+              <span className="text-[10px] font-bold text-[#666666] px-2">Antigüedad:</span>
+              {[
+                { days: 0, label: "Todos" },
+                { days: 15, label: "> 15 d" },
+                { days: 30, label: "> 30 d" },
+                { days: 60, label: "> 60 d" },
+              ].map((d) => (
+                <button
+                  key={d.days}
+                  type="button"
+                  onClick={() => setStagnantDaysMin(d.days)}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                    stagnantDaysMin === d.days
+                      ? "bg-[#FF6B35] text-white shadow-sm"
+                      : "text-[#666666] hover:text-[#1A1A1A] hover:bg-[#F7F7F5]"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1 bg-white border border-[#E5E5E5] rounded-xl p-1 text-xs">
+              <span className="text-[10px] font-bold text-[#666666] px-2">Categoría:</span>
+              {[
+                { id: "ALL", label: "Todas" },
+                { id: "FIGURE", label: "Figuras" },
+                { id: "VIDEO_GAME", label: "Juegos" },
+                { id: "COLLECTIBLE", label: "TCG" },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setStagnantCategory(cat.id)}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition ${
+                    stagnantCategory === cat.id
+                      ? "bg-[#1F3A5F] text-white shadow-sm"
+                      : "text-[#666666] hover:text-[#1A1A1A] hover:bg-[#F7F7F5]"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Stagnant Products Table */}
+        {filteredStagnantProducts.length === 0 ? (
+          <div className="p-12 text-center text-xs text-[#666666] bg-[#F7F7F5] rounded-2xl space-y-2">
+            <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto" />
+            <p className="font-bold text-[#1A1A1A] text-sm">¡Excelente rotación de catálogo!</p>
+            <p>No se encontraron productos con stock inmovilizado bajo los filtros seleccionados.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#F7F7F5] text-[#666666] uppercase text-[10px] font-bold tracking-wider">
+                <tr>
+                  <th className="py-3 px-4 rounded-l-xl">SKU / Producto</th>
+                  <th className="py-3 px-4">Categoría</th>
+                  <th className="py-3 px-4">Ingreso Catálogo</th>
+                  <th className="py-3 px-4">Última Venta</th>
+                  <th className="py-3 px-4 text-center">Tiempo Sin Vender</th>
+                  <th className="py-3 px-4 text-center">Stock</th>
+                  <th className="py-3 px-4 text-right">Capital Inmovilizado</th>
+                  <th className="py-3 px-4 text-right rounded-r-xl">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E5E5E5]">
+                {filteredStagnantProducts.slice(0, 10).map((item) => {
+                  const p = item.product;
+                  const isCriticallySlow = item.daysWithoutSales >= 60;
+                  const isModeratelySlow = item.daysWithoutSales >= 30;
+
+                  return (
+                    <tr key={p.id} className="hover:bg-amber-50/20 transition">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          {p.imageUrl ? (
+                            <img
+                              src={p.imageUrl}
+                              alt=""
+                              className="w-10 h-10 rounded-lg object-cover border border-[#E5E5E5] shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-[#F7F7F5] border border-[#E5E5E5] flex items-center justify-center text-[#666666] shrink-0">
+                              <Package className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-mono text-[#FF6B35] text-[10px] font-bold block">
+                              {p.sku}
+                            </span>
+                            <span className="font-bold text-[#1A1A1A] line-clamp-1 block">
+                              {p.name}
+                            </span>
+                            <span className="text-[10px] text-[#666666]">
+                              PVP: {formatCLP(p.price)} • Costo: {formatCLP(p.costPrice)}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded-full bg-[#1F3A5F]/10 text-[#1F3A5F] font-bold text-[10px]">
+                          {p.type}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-[#666666] whitespace-nowrap">
+                        {item.creationDate.toLocaleDateString("es-CL")}
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {item.lastSaleDate ? (
+                          <div className="space-y-0.5">
+                            <span className="font-mono text-[11px] text-[#1A1A1A] font-medium block">
+                              {item.lastSaleDate.toLocaleDateString("es-CL")}
+                            </span>
+                            <span className="text-[10px] text-emerald-700 font-semibold block">
+                              {item.unitsSold} uds vendidas históricamente
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[10px] inline-block">
+                            Sin ventas registradas
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 font-mono font-black px-2.5 py-1 rounded-full text-xs ${
+                            isCriticallySlow
+                              ? "bg-rose-100 text-rose-800 border border-rose-200"
+                              : isModeratelySlow
+                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          <Clock className="w-3 h-3" />
+                          {item.daysWithoutSales} días
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-[#1A1A1A] whitespace-nowrap">
+                        {p.stockAvailable} uds
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right font-mono whitespace-nowrap">
+                        <span className="font-black text-[#D64545] block">
+                          {formatCLP(item.capitalTiedUp)}
+                        </span>
+                        <span className="text-[10px] text-[#666666]">
+                          {formatCLP(p.costPrice)} c/u
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                        <Link
+                          href={`/admin/products/${p.id}/edit`}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#F7F7F5] hover:bg-[#FF6B35] text-[#1F3A5F] hover:text-white font-bold text-xs transition inline-flex items-center gap-1 border border-[#E5E5E5] hover:border-[#FF6B35]"
+                          title="Ajustar precio o crear descuento"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          <span>Oferta / Editar</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

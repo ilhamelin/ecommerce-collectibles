@@ -118,6 +118,7 @@ export interface ProductDomainEntity {
   aggregateMarginPercent?: number;
   nominalSumOfItems?: number;
   bundleDetails?: any;
+  createdAt?: string;
 }
 
 export interface PreOrderDepositEntity {

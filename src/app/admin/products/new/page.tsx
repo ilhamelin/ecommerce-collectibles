@@ -28,6 +28,7 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 import { ProductDomainEntity, ProductType, FigureScale, FigureManufacturer, GamePlatform, GameEdition, CollectibleCategory, CollectibleCondition, Authenticator } from "@/lib/types/domain";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
+import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 
 export default function NewProductAdminPage() {
   // Available existing products for bundle composition
@@ -575,7 +576,14 @@ export default function NewProductAdminPage() {
         }
         setErrorMsg(data.error || "Ocurrió un error al registrar el producto");
       } else {
-        setCreatedProduct(data.data.product);
+        const prod = data.data.product;
+        // Background client sync to Firestore if not confirmed by server
+        if (!data.data?.syncedToFirestore) {
+          saveProductToFirestoreClient(prod).catch((e) =>
+            console.warn("[Client Firestore Sync]", e)
+          );
+        }
+        setCreatedProduct(prod);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch (err: any) {

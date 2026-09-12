@@ -55,7 +55,7 @@ interface AuthState {
 
   // Actions
   login: (email: string, password: string) => { success: boolean; message: string };
-  loginWithGoogle: () => Promise<{ success: boolean; message: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; message: string; user?: UserAccount }>;
   register: (data: {
     fullName: string;
     email: string;
@@ -241,6 +241,77 @@ const safeStorage = {
   },
 };
 
+export function getOrCreateDeviceId(): string {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      let id = window.localStorage.getItem("omni_device_id");
+      if (!id) {
+        id = `dev-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        window.localStorage.setItem("omni_device_id", id);
+      }
+      return id;
+    } catch {
+      return "dev-local-fallback";
+    }
+  }
+  return "dev-server-fallback";
+}
+
+export function getDeviceName(): string {
+  if (typeof window !== "undefined" && window.navigator) {
+    const ua = window.navigator.userAgent;
+    if (ua.includes("Windows")) return "PC Windows";
+    if (ua.includes("Macintosh") || ua.includes("Mac OS")) return "Apple Mac";
+    if (ua.includes("Android")) return "Móvil Android";
+    if (ua.includes("iPhone") || ua.includes("iPad")) return "iPhone / iPad";
+    return "Navegador Web";
+  }
+  return "Navegador Web";
+}
+
+export async function checkRemoteSession(email: string, forceOverride: boolean = false): Promise<{
+  allowed: boolean;
+  code?: string;
+  message?: string;
+  activeDevice?: string;
+  lastSeenMinutesAgo?: number;
+}> {
+  if (typeof window === "undefined" || process.env.NODE_ENV === "test") {
+    return { allowed: true };
+  }
+
+  try {
+    const deviceId = getOrCreateDeviceId();
+    const deviceName = getDeviceName();
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: forceOverride ? "FORCE_LOGOUT" : "LOGIN_CHECK",
+        email: email.trim().toLowerCase(),
+        deviceId,
+        deviceName,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      if (data.code === "ACTIVE_SESSION_EXISTS") {
+        return {
+          allowed: false,
+          code: "ACTIVE_SESSION_EXISTS",
+          message: data.error || "Esta cuenta ya tiene una sesión activa en otro dispositivo.",
+          activeDevice: data.activeDevice,
+          lastSeenMinutesAgo: data.lastSeenMinutesAgo,
+        };
+      }
+    }
+    return { allowed: true };
+  } catch (err) {
+    console.warn("[Session API Client Warning]", err);
+    return { allowed: true };
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -348,6 +419,7 @@ export const useAuthStore = create<AuthState>()(
         return {
           success: true,
           message: result.message,
+          user,
         };
       },
 
@@ -412,6 +484,21 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        const current = get().currentUser;
+        if (current && typeof window !== "undefined") {
+          try {
+            const deviceId = getOrCreateDeviceId();
+            fetch("/api/auth/session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "LOGOUT",
+                email: current.email,
+                deviceId,
+              }),
+            }).catch(() => {});
+          } catch {}
+        }
         signOutFirebase().catch(() => {});
         set({
           currentUser: null,

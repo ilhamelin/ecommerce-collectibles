@@ -26,6 +26,9 @@ import {
   CheckCircle,
   Trash2,
   AlertCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { ProductDomainEntity, ProductType } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
@@ -123,8 +126,23 @@ export default function AdminProductsListPage() {
     checkFirebaseStatus();
   }, []);
 
+  type SortKey = "sku_name" | "type" | "price" | "costPrice" | "margin" | "stock";
+  type SortOrder = "asc" | "desc";
+
+  const [sortKey, setSortKey] = useState<SortKey>("sku_name");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortOrder(key === "price" || key === "costPrice" || key === "margin" || key === "stock" ? "desc" : "asc");
+    }
+  };
+
   const filtered = useMemo(() => {
-    return products.filter((p) => {
+    const list = products.filter((p) => {
       if (selectedType !== "ALL" && p.type !== selectedType) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -136,7 +154,31 @@ export default function AdminProductsListPage() {
       }
       return true;
     });
-  }, [products, selectedType, searchQuery]);
+
+    list.sort((a, b) => {
+      let comparison = 0;
+      if (sortKey === "sku_name") {
+        comparison = a.sku.localeCompare(b.sku) || a.name.localeCompare(b.name);
+      } else if (sortKey === "type") {
+        comparison = (a.type || "").localeCompare(b.type || "");
+      } else if (sortKey === "price") {
+        comparison = a.price - b.price;
+      } else if (sortKey === "costPrice") {
+        comparison = a.costPrice - b.costPrice;
+      } else if (sortKey === "margin") {
+        const marginA = a.price - a.costPrice;
+        const marginB = b.price - b.costPrice;
+        comparison = marginA - marginB;
+      } else if (sortKey === "stock") {
+        const stockA = a.type === "BUNDLE" ? (a.calculatedAvailableStock ?? 0) : Math.max(0, a.stockAvailable - a.stockReserved);
+        const stockB = b.type === "BUNDLE" ? (b.calculatedAvailableStock ?? 0) : Math.max(0, b.stockAvailable - b.stockReserved);
+        comparison = stockA - stockB;
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    return list;
+  }, [products, selectedType, searchQuery, sortKey, sortOrder]);
 
   // KPIs
   const totalStockUnits = products.reduce((acc, p) => acc + (p.stockAvailable || 0), 0);
@@ -285,11 +327,14 @@ export default function AdminProductsListPage() {
                 ? "Conexión a Firebase activa. Todas las lecturas y escrituras de productos y órdenes se sincronizan en la nube."
                 : "Sistema preparado para Firebase. Ingresa tus claves en el archivo .env.local cuando crees tu proyecto en console.firebase.google.com."}
             </p>
-            {syncFeedback && (
-              <p className="text-xs font-medium text-[#FF6E42] mt-1">
-                {syncFeedback}
-              </p>
-            )}
+            <p className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              {syncFeedback ? syncFeedback : (
+                firebaseStatus?.mode === "FIREBASE_CLOUD"
+                  ? `¡Éxito! ${products.length} productos sincronizados en Cloud Firestore.`
+                  : `Catálogo activo con ${products.length} productos disponibles en la base de datos.`
+              )}
+            </p>
             {deleteMsg && (
               <p className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1.5">
                 <CheckCircle className="w-3.5 h-3.5" />
@@ -408,12 +453,90 @@ export default function AdminProductsListPage() {
             <table className="w-full text-left text-xs text-[#9bb5c2]">
               <thead className="bg-[#05161f] text-[#F9F9F9] border-b border-[#004E72]/50 font-mono uppercase text-[11px]">
                 <tr>
-                  <th className="px-5 py-3.5">SKU / Producto</th>
-                  <th className="px-5 py-3.5">Categoría</th>
-                  <th className="px-5 py-3.5">Precio CLP</th>
-                  <th className="px-5 py-3.5">Costo Unitario</th>
-                  <th className="px-5 py-3.5">Margen Bruto</th>
-                  <th className="px-5 py-3.5">Stock</th>
+                  <th 
+                    onClick={() => handleSort("sku_name")}
+                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    title="Ordenar por SKU o Nombre"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>SKU / Producto</span>
+                      {sortKey === "sku_name" ? (
+                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#FF6E42]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-[#9bb5c2]/40" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort("type")}
+                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    title="Ordenar por Categoría"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Categoría</span>
+                      {sortKey === "type" ? (
+                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#FF6E42]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-[#9bb5c2]/40" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort("price")}
+                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    title="Ordenar por Precio CLP"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Precio CLP</span>
+                      {sortKey === "price" ? (
+                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#FF6E42]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-[#9bb5c2]/40" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort("costPrice")}
+                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    title="Ordenar por Costo Unitario"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Costo Unitario</span>
+                      {sortKey === "costPrice" ? (
+                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#FF6E42]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-[#9bb5c2]/40" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort("margin")}
+                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    title="Ordenar por Margen Bruto"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Margen Bruto</span>
+                      {sortKey === "margin" ? (
+                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#FF6E42]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-[#9bb5c2]/40" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort("stock")}
+                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    title="Ordenar por Stock Disponible"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Stock</span>
+                      {sortKey === "stock" ? (
+                        sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-[#FF6E42]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-[#9bb5c2]/40" />
+                      )}
+                    </div>
+                  </th>
                   <th className="px-5 py-3.5 text-right">Acción</th>
                 </tr>
               </thead>

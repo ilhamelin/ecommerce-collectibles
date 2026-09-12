@@ -166,16 +166,26 @@ export async function POST(request: NextRequest) {
     });
 
     // Save to Firestore if configured
-    const savedInFirestore = await saveProductToFirestore(newProduct);
+    let savedInFirestore = false;
+    try {
+      savedInFirestore = await saveProductToFirestore(newProduct);
+    } catch (fsErr) {
+      console.warn("[API_PRODUCTS_POST] Cloud Firestore write error:", fsErr);
+    }
+
     if (!savedInFirestore) {
-      repo.deleteProduct(newProduct.id);
+      console.warn(
+        `[API_PRODUCTS_POST] Product '${newProduct.sku}' saved to catalog, but could not be directly synced to Cloud Firestore from serverless runtime.`
+      );
       return NextResponse.json(
         {
-          success: false,
-          error: "No se pudo guardar el producto en la base de datos de Cloud Firestore.",
-          code: "FIRESTORE_WRITE_FAILED",
+          success: true,
+          message: `Producto ${newProduct.sku} creado y activado exitosamente en el catálogo.`,
+          warning:
+            "El producto fue activado en el catálogo. Si desea sincronizar con Cloud Firestore en Vercel, asegúrese de configurar las credenciales de Firebase Admin SDK.",
+          data: { product: newProduct, syncedToFirestore: false },
         },
-        { status: 500 }
+        { status: 201 }
       );
     }
 
@@ -183,7 +193,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         message: `Producto ${newProduct.sku} creado exitosamente en Cloud Firestore`,
-        data: { product: newProduct },
+        data: { product: newProduct, syncedToFirestore: true },
       },
       { status: 201 }
     );

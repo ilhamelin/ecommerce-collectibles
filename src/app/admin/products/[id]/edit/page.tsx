@@ -41,6 +41,7 @@ import {
 } from "@/lib/types/domain";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
+import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
 
 export default function EditProductAdminPage() {
   const params = useParams();
@@ -128,9 +129,13 @@ export default function EditProductAdminPage() {
     try {
       const res = await fetch(`/api/products?id=${encodeURIComponent(productId)}`, {
         method: "DELETE",
+        headers: getAdminHeaders(),
       });
       const data = await res.json();
       if (data.success) {
+        deleteProductFromFirestoreClient(productId).catch((e) =>
+          console.warn("[Client Delete Sync]", e)
+        );
         alert(`¡Producto ${sku} eliminado con éxito de Cloud Firestore!`);
         router.push("/admin/products");
       } else {
@@ -507,6 +512,12 @@ export default function EditProductAdminPage() {
 
       if (!res.ok || !data.success) {
         throw new Error(data.error || "No se pudo actualizar el producto.");
+      }
+
+      if (data.data?.product && !data.data?.syncedToFirestore) {
+        saveProductToFirestoreClient(data.data.product).catch((e) =>
+          console.warn("[Client Edit Firestore Sync]", e)
+        );
       }
 
       setSuccessMsg(`¡Producto ${sku} actualizado con éxito! Los cambios ya están disponibles en el catálogo.`);

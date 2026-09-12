@@ -96,6 +96,7 @@ export class CatalogRepository {
       stockReserved: 0,
       price: Math.round(productData.price),
       costPrice: Math.round(productData.costPrice),
+      createdAt: productData.createdAt || new Date().toISOString(),
     };
 
     this.store.products.set(id, newProduct);

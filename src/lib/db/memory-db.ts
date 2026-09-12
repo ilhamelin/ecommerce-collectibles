@@ -168,8 +168,16 @@ export class MemoryTransactionalStore {
   }
 
   public seedDefaultProducts(): void {
+    const now = Date.now();
+    let index = 0;
     for (const raw of BASE_PRODUCTS) {
       const prod = JSON.parse(JSON.stringify(raw));
+      if (!prod.createdAt) {
+        // Stagger default dates from 15 to 120 days ago for realistic slow-moving stock analysis
+        const daysAgo = 15 + ((index * 17) % 105);
+        prod.createdAt = new Date(now - daysAgo * 24 * 60 * 60 * 1000).toISOString();
+      }
+      index++;
       if (prod.type === "BUNDLE") {
         if (prod.id === "prod-bun-01") {
           this.products.set(prod.id, {

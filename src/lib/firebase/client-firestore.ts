@@ -91,3 +91,22 @@ export async function deleteProductFromFirestoreClient(
     return false;
   }
 }
+
+/**
+ * Save or update a product in Cloud Firestore using the Client SDK.
+ * Used as a fallback when the server runtime does not have Firebase Admin keys configured.
+ */
+export async function saveProductToFirestoreClient(
+  product: any
+): Promise<boolean> {
+  try {
+    if (!db || !isFirebaseConfigured()) return false;
+    // Strip undefined values to prevent Firestore unsupported field errors
+    const cleanProduct = JSON.parse(JSON.stringify(product));
+    await setDoc(doc(db, COLLECTIONS.PRODUCTS, product.id), cleanProduct, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn("[Firebase Client] Error syncing product to Cloud Firestore:", err);
+    return false;
+  }
+}

@@ -7,6 +7,7 @@ import {
   deleteUserFromFirestoreClient,
   getUserFromFirestoreClient,
 } from "@/lib/firebase/client-firestore";
+import { signInWithGoogle, signOutFirebase } from "@/lib/firebase/client-auth";
 
 export type UserRole = "CUSTOMER" | "ADMIN";
 
@@ -54,7 +55,7 @@ interface AuthState {
 
   // Actions
   login: (email: string, password: string) => { success: boolean; message: string };
-  loginWithGoogle: () => { success: boolean; message: string };
+  loginWithGoogle: () => Promise<{ success: boolean; message: string }>;
   register: (data: {
     fullName: string;
     email: string;
@@ -298,43 +299,55 @@ export const useAuthStore = create<AuthState>()(
         };
       },
 
-      loginWithGoogle: () => {
+      loginWithGoogle: async () => {
         const guestWishlist = get().guestWishlist || [];
-        const googleUser: UserAccount = {
-          id: `usr-google-${Date.now()}`,
-          email: "usuario.google@gmail.com",
-          fullName: "Usuario Verificado Google",
-          phone: "+56 9 9876 5432",
-          role: "CUSTOMER",
-          addresses: [
-            {
-              id: "addr-google-01",
-              label: "Casa Principal",
-              fullName: "Usuario Verificado Google",
-              phone: "+56 9 9876 5432",
-              region: "Región Metropolitana de Santiago",
-              comuna: "Santiago",
-              address: "Av. Libertador Bernardo O'Higgins 1050",
-              apartment: "Depto 203",
-              isDefault: true,
-            },
-          ],
-          paymentMethods: [],
-          orders: [],
-          wishlist: guestWishlist,
-          createdAt: new Date().toISOString(),
-        };
+        const result = await signInWithGoogle();
+
+        if (!result.success || !result.user) {
+          return {
+            success: false,
+            message: result.message,
+          };
+        }
+
+        const user = result.user;
+        const mergedWishlist = Array.from(new Set([...(user.wishlist || []), ...guestWishlist]));
+        user.wishlist = mergedWishlist;
+
+        // Persist wishlist sync if merged
+        if (guestWishlist.length > 0) {
+          syncUserProfileToFirestore(user).catch(() => {});
+        }
+
+        // Add to default users for session persistence
+        const existingIdx = DEFAULT_USERS.findIndex(
+          (u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
+        );
+        if (existingIdx >= 0) {
+          DEFAULT_USERS[existingIdx] = { ...DEFAULT_USERS[existingIdx], ...user };
+        } else {
+          DEFAULT_USERS.push(user);
+        }
+
+        // Also sync to /api/users to maintain server-side cache
+        if (typeof window !== "undefined") {
+          fetch("/api/users", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user),
+          }).catch(() => {});
+        }
 
         set({
-          currentUser: googleUser,
+          currentUser: user,
           guestWishlist: [],
           isAuthenticated: true,
-          isAdmin: false,
+          isAdmin: user.role === "ADMIN",
         });
 
         return {
           success: true,
-          message: "¡Sesión iniciada con éxito mediante Google!",
+          message: result.message,
         };
       },
 
@@ -399,6 +412,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        signOutFirebase().catch(() => {});
         set({
           currentUser: null,
           isAuthenticated: false,

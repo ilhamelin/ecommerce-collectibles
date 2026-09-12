@@ -44,4 +44,19 @@ if (typeof window !== "undefined" || process.env.NODE_ENV !== "test") {
   }
 }
 
+export function getFirebaseAuth(): Auth | null {
+  if (auth) return auth;
+  if (typeof window !== "undefined" && isFirebaseConfigured()) {
+    try {
+      app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      return auth;
+    } catch (err) {
+      console.warn("[Firebase Client] Error getting Firebase Auth instance:", err);
+      return null;
+    }
+  }
+  return null;
+}
+
 export { app, db, auth, storage };

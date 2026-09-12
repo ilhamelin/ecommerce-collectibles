@@ -62,9 +62,9 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(state.currentUser).toBeNull();
     });
 
-    it("allows Google OAuth simulation as a CUSTOMER", () => {
+    it("allows Google OAuth simulation as a CUSTOMER", async () => {
       const store = useAuthStore.getState();
-      const res = store.loginWithGoogle();
+      const res = await store.loginWithGoogle();
       expect(res.success).toBe(true);
 
       const state = useAuthStore.getState();

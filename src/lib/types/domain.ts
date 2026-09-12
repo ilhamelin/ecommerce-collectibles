@@ -219,6 +219,12 @@ export interface ConfirmedOrderEntity {
   totalChargedNow: number;
   remainingBalanceLater: number;
   reservationIds: string[];
+  balancePaid?: boolean;
+  balancePaidAt?: string;
+  balancePaymentTransactionId?: string;
+  preOrderWarehouseArrivalNotified?: boolean;
+  preOrderWarehouseNotifiedAt?: string;
+  deliveredAt?: string;
 }
 
 export interface CheckoutResult {

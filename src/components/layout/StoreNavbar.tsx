@@ -42,6 +42,10 @@ function StoreNavbarContent() {
     setMounted(true);
   }, []);
 
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   const navLinks = [
     { href: "/", label: "Inicio" },
     { href: "/catalog", label: "Catálogo" },

@@ -35,6 +35,8 @@ import {
   DollarSign,
   FileText,
   BadgeAlert,
+  Navigation,
+  Lock,
 } from "lucide-react";
 import { useAuthStore, UserAddress, SavedPaymentMethod } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -56,6 +58,8 @@ function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab");
+  const settledParam = searchParams?.get("settled");
+  const settledOrderId = searchParams?.get("orderId");
 
   const {
     currentUser,
@@ -87,16 +91,16 @@ function AccountContent() {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [refreshSuccessMsg, setRefreshSuccessMsg] = useState(false);
 
-  // Auto-switch tab if query param ?tab= is present
+  // Auto-switch tab if query param ?tab= or ?settled= is present
   useEffect(() => {
-    if (tabParam === "wishlist") {
-      setActiveTab("WISHLIST");
-    } else if (tabParam === "orders") {
+    if (settledParam === "true" || tabParam === "orders") {
       setActiveTab("ORDERS");
+    } else if (tabParam === "wishlist") {
+      setActiveTab("WISHLIST");
     } else if (tabParam === "profile") {
       setActiveTab("PROFILE");
     }
-  }, [tabParam]);
+  }, [tabParam, settledParam]);
 
   // Load latest products from server to resolve any newly created items
   useEffect(() => {
@@ -338,7 +342,7 @@ function AccountContent() {
         };
       case "PREPARING":
         return {
-          label: "En Preparación en Bodega",
+          label: "En Bodega (Distribuidor)",
           bg: "bg-amber-50 text-amber-800 border-amber-200",
           icon: Clock,
         };
@@ -514,6 +518,24 @@ function AccountContent() {
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>¡Historial sincronizado con la base de datos de pedidos de OmniCollector!</span>
+                </div>
+              )}
+
+              {settledParam === "true" && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 text-emerald-950 text-xs flex items-start sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-emerald-900">
+                        ¡Saldo de Pre-Venta Liquidado Exitosamente!
+                      </h4>
+                      <p className="text-emerald-800 text-xs mt-0.5">
+                        Tu pago fue acreditado. El pedido {settledOrderId ? <strong>#{settledOrderId}</strong> : ""} quedó 100% pagado y nuestro equipo de bodega lo está preparando para despacho asegurado.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -707,6 +729,37 @@ function AccountContent() {
                                   )}
                                 </button>
 
+                                {step < 2 ? (
+                                  <div className="relative group">
+                                    <button
+                                      disabled
+                                      className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-400 text-[11px] font-bold flex items-center gap-1 cursor-not-allowed border border-gray-200"
+                                    >
+                                      <Lock className="w-3 h-3 text-gray-400" />
+                                      <span>Mapa (Bloqueado)</span>
+                                    </button>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl text-center z-20 pointer-events-none">
+                                      Disponible cuando el distribuidor recepcione el bulto en bodega
+                                    </div>
+                                  </div>
+                                ) : step === 4 ? (
+                                  <Link
+                                    href={`/tracking/${ord.orderNumber || ord.id}`}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
+                                  >
+                                    <CheckCircle2 className="w-3 h-3 text-white" />
+                                    <span>Ver Entrega</span>
+                                  </Link>
+                                ) : (
+                                  <Link
+                                    href={`/tracking/${ord.orderNumber || ord.id}`}
+                                    className="px-2.5 py-1 rounded-lg bg-[#009EE3] hover:bg-[#0087c2] text-white text-[11px] font-bold transition flex items-center gap-1 shadow-sm animate-pulse"
+                                  >
+                                    <Navigation className="w-3 h-3 text-white" />
+                                    <span>Mapa en Vivo</span>
+                                  </Link>
+                                )}
+
                                 <a
                                   href={`https://www.google.com/search?q=seguimiento+${encodeURIComponent(trackingCode)}`}
                                   target="_blank"
@@ -838,6 +891,52 @@ function AccountContent() {
                         </div>
                       )}
 
+                      {/* Pre-Order Balance Callout & Pay Button */}
+                      {ord.remainingBalanceLater > 0 && !ord.balancePaid && (
+                        <div className="p-4 mx-5 my-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-full bg-[#FF6B35] text-white font-black text-[10px] uppercase tracking-wider">
+                                {ord.preOrderWarehouseArrivalNotified ? "¡Llegó a Bodega!" : "Saldo Pre-Venta"}
+                              </span>
+                              <span className="font-bold text-xs text-[#1A1A1A]">
+                                {ord.preOrderWarehouseArrivalNotified
+                                  ? "Mercadería lista en Santiago • Cobro habilitado"
+                                  : "Pie del 20% pagado • Saldo pendiente"}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[#666666]">
+                              {ord.preOrderWarehouseArrivalNotified
+                                ? `Tu pre-venta llegó a bodega. Liquida los ${formatCLP(ord.remainingBalanceLater)} restantes para autorizar su empaque y despacho inmediato.`
+                                : `Saldo restante de pre-orden: ${formatCLP(ord.remainingBalanceLater)}. Puedes pagarlo ahora con Webpay/Tarjetas para dejar tu pedido 100% saldado.`}
+                            </p>
+                          </div>
+
+                          <Link
+                            href={`/checkout/sandbox-payment?orderId=${encodeURIComponent(ord.id || ord.orderNumber)}&amount=${ord.remainingBalanceLater}&mode=balance_settlement`}
+                            className="shrink-0 px-4 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#ff5517] text-white font-black text-xs transition flex items-center gap-2 shadow-md hover:scale-[1.02] active:scale-95"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            <span>Pagar Saldo {formatCLP(ord.remainingBalanceLater)}</span>
+                          </Link>
+                        </div>
+                      )}
+
+                      {ord.balancePaid && (
+                        <div className="p-3 mx-5 my-2 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2 text-xs text-emerald-800">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>
+                              <strong>Saldo 100% Liquidado</strong>
+                              {ord.balancePaidAt ? ` el ${new Date(ord.balancePaidAt).toLocaleDateString("es-CL")}` : ""}. No hay saldos pendientes.
+                            </span>
+                          </div>
+                          <span className="font-mono text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                            PAGADO COMPLETO
+                          </span>
+                        </div>
+                      )}
+
                       {/* Card Footer Actions */}
                       <div className="p-4 bg-white border-t border-[#E5E5E5] flex flex-wrap items-center justify-between gap-3">
                         <div className="text-[11px] text-[#666666]">
@@ -845,6 +944,37 @@ function AccountContent() {
                         </div>
 
                         <div className="flex items-center gap-2 flex-wrap">
+                          {step < 2 ? (
+                            <div className="relative group">
+                              <button
+                                disabled
+                                className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-400 font-bold text-xs flex items-center gap-1.5 cursor-not-allowed border border-gray-200"
+                              >
+                                <Lock className="w-3.5 h-3.5 text-gray-400" />
+                                <span>Rastrear en Vivo (En espera de bodega)</span>
+                              </button>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-52 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl text-center z-20 pointer-events-none">
+                                🔒 El rastreo satelital se activará en cuanto el paquete sea recepcionado en bodega por el distribuidor.
+                              </div>
+                            </div>
+                          ) : step === 4 ? (
+                            <Link
+                              href={`/tracking/${ord.orderNumber || ord.id}`}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                              <span>Ver Comprobante de Entrega</span>
+                            </Link>
+                          ) : (
+                            <Link
+                              href={`/tracking/${ord.orderNumber || ord.id}`}
+                              className="px-3 py-1.5 rounded-xl bg-[#009EE3] hover:bg-[#0087c2] text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95 animate-pulse"
+                            >
+                              <Truck className="w-3.5 h-3.5 text-white" />
+                              <span>Rastrear en Vivo (Mapa)</span>
+                            </Link>
+                          )}
+
                           <a
                             href={`https://wa.me/56987654321?text=Hola%20OmniCollector,%20tengo%20una%20consulta%20sobre%20mi%20pedido%20${ord.orderNumber}`}
                             target="_blank"

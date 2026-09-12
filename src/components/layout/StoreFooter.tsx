@@ -1,8 +1,17 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShieldCheck, Clock, Award, Sparkles, Cpu, Truck, CreditCard } from "lucide-react";
 
 export function StoreFooter() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <footer className="mt-20">
       {/* Trust & Guarantee Strip */}
@@ -125,14 +134,6 @@ export function StoreFooter() {
               <p className="text-[11px] text-slate-400">
                 Despachos diarios desde nuestra bodega en Santiago a todas las regiones de Chile.
               </p>
-              <div className="pt-2">
-                <Link
-                  href="/admin/products"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#152842] hover:bg-[#2D5180] text-slate-200 hover:text-white transition text-[11px] border border-[#2D5180] font-medium"
-                >
-                  <span>Acceso Administración</span>
-                </Link>
-              </div>
             </div>
           </div>
         </div>

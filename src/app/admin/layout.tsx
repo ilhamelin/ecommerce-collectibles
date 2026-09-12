@@ -11,6 +11,7 @@ import {
   Sparkles,
   ArrowUpRight,
   Sliders,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -22,10 +23,16 @@ export default function AdminLayout({
 
   const navItems = [
     {
+      href: "/admin",
+      label: "Métricas & KPI",
+      icon: LayoutDashboard,
+      active: pathname === "/admin",
+    },
+    {
       href: "/admin/products",
       label: "Catálogo & Inventario",
       icon: Package,
-      active: pathname === "/admin/products" || pathname === "/admin",
+      active: pathname === "/admin/products",
     },
     {
       href: "/admin/products/new",

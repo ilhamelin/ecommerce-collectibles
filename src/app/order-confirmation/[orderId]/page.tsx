@@ -348,6 +348,15 @@ function OrderConfirmationContent() {
             </a>
           </div>
 
+          {/* Live Map Tracking Button */}
+          <Link
+            href={`/tracking/${displayOrder.orderNumber || displayOrder.id}`}
+            className="w-full py-3.5 px-4 rounded-2xl bg-[#009EE3] hover:bg-[#0087c2] text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-98"
+          >
+            <Truck className="w-4 h-4 text-white" />
+            <span>Ver Seguimiento en Vivo en Mapa (GPS)</span>
+          </Link>
+
           {/* Action Buttons */}
           <div className="flex gap-3">
             <button

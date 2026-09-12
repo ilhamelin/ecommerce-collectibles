@@ -23,6 +23,8 @@ function SandboxPaymentContent() {
   const orderId = searchParams.get("orderId") || "";
   const amountParam = searchParams.get("amount") || "0";
   const amount = Number(amountParam) || 0;
+  const mode = searchParams.get("mode") || "";
+  const isBalanceSettlement = mode === "balance_settlement";
 
   const [cardNumber, setCardNumber] = useState("4025 8011 2233 4455");
   const [cardHolder, setCardHolder] = useState("RODRIGO VALENZUELA");
@@ -45,7 +47,30 @@ function SandboxPaymentContent() {
         return;
       }
 
-      // Simulate payment confirmation via webhook/update endpoint
+      if (isBalanceSettlement) {
+        // Process balance settlement
+        const response = await fetch(`/api/orders/${orderId}/settle-balance`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentMethod: "Mercado Pago (Tarjeta Sandbox)",
+            paymentId: `SIM-BAL-${Date.now()}`,
+          }),
+        });
+        const data = await response.json();
+        if (!data.success) {
+          setIsProcessing(false);
+          setErrorMsg(data.message || "Error al liquidar el saldo del pedido.");
+          return;
+        }
+
+        setTimeout(() => {
+          router.push(`/account?tab=orders&settled=true&orderId=${encodeURIComponent(orderId)}`);
+        }, 1500);
+        return;
+      }
+
+      // Simulate normal checkout payment confirmation via webhook/update endpoint
       const response = await fetch("/api/checkout/mercadopago/webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,14 +113,18 @@ function SandboxPaymentContent() {
         <div className="space-y-1 text-xs text-[#1A1A1A]">
           <div className="flex items-center gap-2">
             <strong className="text-[#1F3A5F] font-black uppercase tracking-wider">
-              Entorno Sandbox de Cobro con Tarjeta • Mercado Pago Chile
+              {isBalanceSettlement
+                ? "Liquidación de Saldo Pre-Venta (80%) • Mercado Pago Chile"
+                : "Entorno Sandbox de Cobro con Tarjeta • Mercado Pago Chile"}
             </strong>
             <span className="px-2 py-0.5 rounded-full bg-[#FF6B35] text-white font-black text-[10px]">
               MODO PRUEBAS
             </span>
           </div>
           <p className="text-[#666666]">
-            Esta pantalla interactiva te permite validar el flujo completo de cobro con tarjeta en pesos chilenos (CLP) y confirmación automática en Cloud Firestore.
+            {isBalanceSettlement
+              ? `Estás completando el pago del saldo final pendiente del pedido ${orderId}. Al autorizar la transacción, tu pedido quedará 100% pagado y pasará a fase de preparación para despacho.`
+              : "Esta pantalla interactiva te permite validar el flujo completo de cobro con tarjeta en pesos chilenos (CLP) y confirmación automática en Cloud Firestore."}
           </p>
         </div>
       </div>
@@ -109,12 +138,16 @@ function SandboxPaymentContent() {
               MP
             </div>
             <div>
-              <h1 className="text-lg font-black text-[#1A1A1A]">Pasarela de Pago Segura</h1>
+              <h1 className="text-lg font-black text-[#1A1A1A]">
+                {isBalanceSettlement ? "Liquidación de Saldo Pendiente" : "Pasarela de Pago Segura"}
+              </h1>
               <p className="text-xs text-[#666666]">Mercado Pago • Transbank Webpay Plus • Tarjetas</p>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] text-[#666666] block uppercase tracking-wider font-semibold">Total a Pagar</span>
+            <span className="text-[10px] text-[#666666] block uppercase tracking-wider font-semibold">
+              {isBalanceSettlement ? "Saldo a Liquidar" : "Total a Pagar"}
+            </span>
             <span className="font-mono text-xl font-black text-[#FF6B35]">
               {formatCLP(amount)}
             </span>

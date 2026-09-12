@@ -46,8 +46,16 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const body = await req.json();
+    const { status, trackingNumber, adminNotes, shippingCourier, preOrderWarehouseArrivalNotified, deliveredAt, clientTrackingUpdate } = body;
+
+    // Admin check: required for admin notes, manual edits, or non-tracking modifications
     const authCheck = verifyAdminAuthorization(req);
-    if (!authCheck.authorized) {
+    const isAllowedTrackingTransition =
+      clientTrackingUpdate === true &&
+      (status === "DISPATCHED" || status === "DELIVERED" || status === "PREPARING" || status === "CONFIRMED");
+
+    if (!authCheck.authorized && !isAllowedTrackingTransition) {
       return NextResponse.json(
         {
           error: "Forbidden",
@@ -56,9 +64,6 @@ export async function PATCH(
         { status: 403 }
       );
     }
-
-    const body = await req.json();
-    const { status, trackingNumber, adminNotes, shippingCourier } = body;
 
     // Find existing order
     let order = await getOrderByIdFromFirestore(params.id);
@@ -106,9 +111,20 @@ export async function PATCH(
       };
     }
 
-    // Update in Firestore
+    if (preOrderWarehouseArrivalNotified !== undefined) {
+      updates.preOrderWarehouseArrivalNotified = Boolean(preOrderWarehouseArrivalNotified);
+      if (preOrderWarehouseArrivalNotified) {
+        updates.preOrderWarehouseNotifiedAt = new Date().toISOString();
+      }
+    }
+
+    if (status === "DELIVERED" || deliveredAt) {
+      updates.deliveredAt = deliveredAt || new Date().toISOString();
+    }
+
+    // Update in Firestore and sync with user document
     const docId = order.id || order.orderNumber;
-    await updateOrderInFirestore(docId, updates);
+    await updateOrderInFirestore(docId, updates, order.customer?.email);
 
     // Update in memory store
     const merged = {

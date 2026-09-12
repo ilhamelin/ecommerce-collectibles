@@ -411,7 +411,8 @@ export async function getAllOrdersFromFirestore(): Promise<ConfirmedOrderEntity[
  */
 export async function updateOrderInFirestore(
   orderId: string,
-  updates: Partial<ConfirmedOrderEntity>
+  updates: Partial<ConfirmedOrderEntity>,
+  customerEmail?: string
 ): Promise<boolean> {
   try {
     const cleanUpdates = cleanFirestoreData({
@@ -421,17 +422,102 @@ export async function updateOrderInFirestore(
 
     if (typeof window === "undefined" && adminDb) {
       await adminDb.collection(COLLECTIONS.ORDERS).doc(orderId).set(cleanUpdates, { merge: true });
+      // Sincronizar simultáneamente en la colección de usuarios si aplica
+      await updateOrderInUserAccount(orderId, cleanUpdates, customerEmail);
       return true;
     }
 
     if (db && isFirebaseConfigured()) {
       await updateDoc(doc(db, COLLECTIONS.ORDERS, orderId), cleanUpdates);
+      await updateOrderInUserAccount(orderId, cleanUpdates, customerEmail);
       return true;
     }
 
     return false;
   } catch (err) {
     console.warn("[Firestore] Error updating order in Firestore:", err);
+    return false;
+  }
+}
+
+/**
+ * Update an order's data inside the user's document in the 'users' collection
+ */
+export async function updateOrderInUserAccount(
+  orderId: string,
+  updates: Partial<ConfirmedOrderEntity>,
+  customerEmail?: string
+): Promise<boolean> {
+  try {
+    const cleanUpdates = cleanFirestoreData(updates);
+
+    // 1. Server Admin SDK
+    if (typeof window === "undefined" && adminDb) {
+      let userDocRef: any = null;
+      let userData: any = null;
+
+      if (customerEmail) {
+        const snap = await adminDb
+          .collection(COLLECTIONS.USERS)
+          .where("email", "==", customerEmail.toLowerCase().trim())
+          .limit(1)
+          .get();
+        if (!snap.empty) {
+          userDocRef = snap.docs[0].ref;
+          userData = snap.docs[0].data();
+        }
+      }
+
+      if (!userDocRef) {
+        const allUsersSnap = await adminDb.collection(COLLECTIONS.USERS).get();
+        for (const d of allUsersSnap.docs) {
+          const u = d.data();
+          if (Array.isArray(u.orders) && u.orders.some((o: any) => o.id === orderId || o.orderNumber === orderId)) {
+            userDocRef = d.ref;
+            userData = u;
+            break;
+          }
+        }
+      }
+
+      if (userDocRef && userData && Array.isArray(userData.orders)) {
+        const updatedOrders = userData.orders.map((ord: any) => {
+          if (ord.id === orderId || ord.orderNumber === orderId) {
+            return { ...ord, ...cleanUpdates, updatedAt: new Date().toISOString() };
+          }
+          return ord;
+        });
+        await userDocRef.update({ orders: updatedOrders });
+        return true;
+      }
+    }
+
+    // 2. Client SDK
+    if (db && isFirebaseConfigured() && customerEmail) {
+      const q = query(
+        collection(db, COLLECTIONS.USERS),
+        where("email", "==", customerEmail.toLowerCase().trim())
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const userDoc = snap.docs[0];
+        const u = userDoc.data();
+        if (Array.isArray(u.orders)) {
+          const updatedOrders = u.orders.map((ord: any) => {
+            if (ord.id === orderId || ord.orderNumber === orderId) {
+              return { ...ord, ...cleanUpdates, updatedAt: new Date().toISOString() };
+            }
+            return ord;
+          });
+          await updateDoc(doc(db, COLLECTIONS.USERS, userDoc.id), { orders: updatedOrders });
+          return true;
+        }
+      }
+    }
+
+    return false;
+  } catch (err) {
+    console.warn("[Firestore] Error updating order in user document:", err);
     return false;
   }
 }

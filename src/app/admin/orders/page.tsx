@@ -159,6 +159,36 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleToggleWarehouseArrival = async (order: ConfirmedOrderEntity) => {
+    try {
+      setIsSaving(true);
+      const newValue = !order.preOrderWarehouseArrivalNotified;
+      const res = await fetch(`/api/orders/${order.id || order.orderNumber}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        body: JSON.stringify({ preOrderWarehouseArrivalNotified: newValue }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders((prev) =>
+          prev.map((ord) => (ord.id === order.id ? data.data : ord))
+        );
+        if (selectedOrder?.id === order.id) {
+          setSelectedOrder(data.data);
+        }
+        showToast(
+          newValue
+            ? "¡Arribo a bodega registrado! Cobro del 80% restante habilitado para el cliente."
+            : "Notificación de arribo a bodega desactivada."
+        );
+      }
+    } catch (err) {
+      console.error("Error al actualizar estado de arribo:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const showToast = (msg: string) => {
     setActionSuccessMsg(msg);
     setTimeout(() => setActionSuccessMsg(null), 3500);
@@ -226,25 +256,25 @@ export default function AdminOrdersPage() {
       case "PAID":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#2E9E5B]/10 text-[#2E9E5B] border border-[#2E9E5B]/30">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Pagado / Confirmado
+            <CheckCircle2 className="w-3.5 h-3.5" /> 1. Confirmado
           </span>
         );
       case "PREPARING":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#1F3A5F]/10 text-[#1F3A5F] border border-[#1F3A5F]/20">
-            <Package className="w-3.5 h-3.5" /> En Preparación
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#1F3A5F]/10 text-[#1F3A5F] border border-[#1F3A5F]/30">
+            <Package className="w-3.5 h-3.5 text-[#FF6B35]" /> 2. En Bodega (Distribuidor)
           </span>
         );
       case "DISPATCHED":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#009EE3]/10 text-[#009EE3] border border-[#009EE3]/30">
-            <Truck className="w-3.5 h-3.5" /> Despachado (En Tránsito)
+            <Truck className="w-3.5 h-3.5" /> 3. En Camino (Courier)
           </span>
         );
       case "DELIVERED":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Entregado
+            <CheckCircle2 className="w-3.5 h-3.5" /> 4. Entregado
           </span>
         );
       case "CANCELLED":
@@ -266,13 +296,13 @@ export default function AdminOrdersPage() {
     switch (status?.toUpperCase()) {
       case "CONFIRMED":
       case "PAID":
-        return "Pagado / Confirmado";
+        return "1. Confirmado (Pago Procesado)";
       case "PREPARING":
-        return "En Preparación";
+        return "2. En Bodega (Recibido por Distribuidor)";
       case "DISPATCHED":
-        return "Despachado";
+        return "3. En Camino (Courier en Tránsito)";
       case "DELIVERED":
-        return "Entregado";
+        return "4. Entregado en Destino";
       case "CANCELLED":
         return "Cancelado";
       default:
@@ -558,10 +588,26 @@ export default function AdminOrdersPage() {
                             ? "Webpay Plus"
                             : "Transferencia"}
                         </div>
-                        {order.remainingBalanceLater > 0 && (
-                          <div className="text-[10px] text-[#FF6B35] font-semibold">
-                            Saldo diferido: {formatCLP(order.remainingBalanceLater)}
+                        {order.remainingBalanceLater > 0 && !order.balancePaid && (
+                          <div className="text-[10px] space-y-0.5">
+                            <span className="text-amber-700 font-bold block">
+                              Saldo: {formatCLP(order.remainingBalanceLater)}
+                            </span>
+                            {order.preOrderWarehouseArrivalNotified ? (
+                              <span className="inline-block px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold text-[9px]">
+                                Bodega (Cobro Activo)
+                              </span>
+                            ) : (
+                              <span className="inline-block px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold text-[9px]">
+                                Pre-Venta en espera
+                              </span>
+                            )}
                           </div>
+                        )}
+                        {order.balancePaid && (
+                          <span className="inline-block px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[9px]">
+                            ✓ Saldo 100% Pagado
+                          </span>
                         )}
                       </td>
 
@@ -574,11 +620,11 @@ export default function AdminOrdersPage() {
                           disabled={isSaving}
                           className="text-[11px] py-1 px-2 rounded-lg bg-[#F7F7F5] border border-[#E5E5E5] text-[#1A1A1A] font-semibold cursor-pointer focus:outline-none focus:border-[#FF6B35]"
                         >
-                          <option value="CONFIRMED">Confirmado / Pagado</option>
-                          <option value="PREPARING">En Preparación</option>
-                          <option value="DISPATCHED">Despachado</option>
-                          <option value="DELIVERED">Entregado</option>
-                          <option value="CANCELLED">Cancelado</option>
+                          <option value="CONFIRMED">1. Confirmado (Pago Procesado)</option>
+                          <option value="PREPARING">2. En Bodega (Recibido por Distribuidor)</option>
+                          <option value="DISPATCHED">3. En Camino (Courier en Tránsito)</option>
+                          <option value="DELIVERED">4. Entregado en Destino</option>
+                          <option value="CANCELLED">Cancelado / Reembolsado</option>
                         </select>
                       </td>
 
@@ -783,6 +829,65 @@ export default function AdminOrdersPage() {
                 </div>
               )}
             </div>
+
+            {/* Pre-Order Balance Management Card */}
+            {(selectedOrder.remainingBalanceLater > 0 || selectedOrder.balancePaid) && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-300 text-xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-[#FF6B35] text-white font-black text-[10px]">
+                      GESTIÓN DE PRE-VENTA
+                    </span>
+                    <strong className="text-[#1A1A1A]">
+                      {selectedOrder.balancePaid
+                        ? "Saldo Completamente Liquidado"
+                        : `Saldo Pendiente: ${formatCLP(selectedOrder.remainingBalanceLater)}`}
+                    </strong>
+                  </div>
+                  {selectedOrder.balancePaid ? (
+                    <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded text-[11px]">
+                      ✓ Pagado Completo
+                    </span>
+                  ) : selectedOrder.preOrderWarehouseArrivalNotified ? (
+                    <span className="text-blue-700 font-bold bg-blue-100 px-2 py-0.5 rounded text-[11px]">
+                      En Bodega (Cobro Habilitado)
+                    </span>
+                  ) : (
+                    <span className="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded text-[11px]">
+                      En Tránsito Internacional
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[#666666] text-[11px]">
+                  {selectedOrder.balancePaid
+                    ? `El cliente liquidó el 80% restante el ${new Date(selectedOrder.balancePaidAt || "").toLocaleDateString("es-CL")}. Listo para empaque y despacho.`
+                    : selectedOrder.preOrderWarehouseArrivalNotified
+                    ? "La mercadería ya fue registrada en bodega. El cliente tiene habilitado el botón de pago de saldo en su panel de cuenta."
+                    : "Al marcar 'Mercadería en Bodega', se notificará al cliente y se habilitará el botón para que liquide el 80% restante con Webpay/Tarjetas."}
+                </p>
+
+                {!selectedOrder.balancePaid && (
+                  <button
+                    type="button"
+                    disabled={isSaving}
+                    onClick={() => handleToggleWarehouseArrival(selectedOrder)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50 ${
+                      selectedOrder.preOrderWarehouseArrivalNotified
+                        ? "bg-gray-200 text-[#1A1A1A] hover:bg-gray-300"
+                        : "bg-[#FF6B35] text-white hover:bg-[#ff5517]"
+                    }`}
+                  >
+                    <Package className="w-3.5 h-3.5" />
+                    <span>
+                      {selectedOrder.preOrderWarehouseArrivalNotified
+                        ? "Desactivar Notificación de Bodega"
+                        : "✓ Marcar Mercadería en Bodega & Habilitar Cobro"}
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Admin Notes */}
             {selectedOrder.adminNotes && (

@@ -131,19 +131,6 @@ function LoginContent() {
     setErrorMessage(null);
   };
 
-  const quickFillClient = () => {
-    setLoginEmail("cliente@omnicollector.cl");
-    setLoginPassword("cliente123");
-    setCaptchaChecked(true);
-    setErrorMessage(null);
-  };
-
-  const quickFillAdmin = () => {
-    setLoginEmail("admin@omnicollector.cl");
-    setLoginPassword("admin123");
-    setCaptchaChecked(true);
-    setErrorMessage(null);
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -182,32 +169,6 @@ function LoginContent() {
         </div>
       )}
 
-      {/* Demo Quick Access Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
-        <div className="text-xs text-[#666666] text-center sm:text-left">
-          <strong className="text-[#1A1A1A] block sm:inline">Accesos de Prueba Rápida: </strong>
-          Prueba el rol de Cliente Común o Administrador con un solo clic.
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={quickFillClient}
-            className="px-3.5 py-1.5 rounded-lg bg-[#1F3A5F] hover:bg-[#152842] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
-          >
-            <User className="w-3.5 h-3.5 text-[#FF6B35]" />
-            <span>Cliente Común</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={quickFillAdmin}
-            className="px-3.5 py-1.5 rounded-lg bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-black transition flex items-center gap-1.5 shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Administrador</span>
-          </button>
-        </div>
-      </div>
 
       {/* RETAIL SPLIT SCREEN VIEW */}
       {mode === "LOGIN" && (

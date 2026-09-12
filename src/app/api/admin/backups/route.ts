@@ -78,6 +78,21 @@ export async function GET(request: NextRequest) {
       } catch (dbErr) {
         console.warn("[BACKUPS_GET] Firestore read warning:", dbErr);
       }
+    } else if (db && isFirebaseConfigured()) {
+      try {
+        if (type !== "kpi") {
+          const colRef = collection(db, COLLECTIONS.CSV_BACKUPS);
+          const snap = await getDocs(colRef);
+          firestoreBackups = snap.docs.map((d) => d.data() as CsvBackupRecord);
+        }
+        if (type !== "csv") {
+          const colRef = collection(db, COLLECTIONS.KPI_SNAPSHOTS);
+          const snap = await getDocs(colRef);
+          firestoreSnapshots = snap.docs.map((d) => d.data() as KpiSnapshotRecord);
+        }
+      } catch (dbErr) {
+        console.warn("[BACKUPS_GET] Client Firestore read warning:", dbErr);
+      }
     }
 
     const backups = firestoreBackups.length > 0 ? firestoreBackups : inMemoryBackups;
@@ -88,7 +103,7 @@ export async function GET(request: NextRequest) {
       data: {
         backups,
         snapshots,
-        source: firestoreBackups.length > 0 ? "FIRESTORE_CLOUD" : "LOCAL_FALLBACK",
+        source: firestoreBackups.length > 0 || firestoreSnapshots.length > 0 ? "FIRESTORE_CLOUD" : "LOCAL_FALLBACK",
       },
     });
   } catch (err: any) {
@@ -117,18 +132,24 @@ export async function POST(request: NextRequest) {
 
       inMemoryBackups.unshift(backup);
 
-      // Persist in Firestore
+      // Persist in Cloud Firestore (Admin SDK or Client SDK)
       if (typeof window === "undefined" && adminDb) {
         try {
           await adminDb.collection(COLLECTIONS.CSV_BACKUPS).doc(backup.id).set(backup);
         } catch (fsErr) {
-          console.warn("[BACKUPS_POST] Firestore write warning:", fsErr);
+          console.warn("[BACKUPS_POST] Firestore Admin write warning:", fsErr);
+        }
+      } else if (db && isFirebaseConfigured()) {
+        try {
+          await setDoc(doc(db, COLLECTIONS.CSV_BACKUPS, backup.id), backup);
+        } catch (fsErr) {
+          console.warn("[BACKUPS_POST] Firestore Client write warning:", fsErr);
         }
       }
 
       return NextResponse.json({
         success: true,
-        message: "Respaldo CSV guardado exitosamente en la base de datos.",
+        message: "Respaldo CSV guardado exitosamente en Cloud Firestore.",
         data: { backup },
       });
     }
@@ -149,17 +170,24 @@ export async function POST(request: NextRequest) {
 
       inMemorySnapshots.unshift(snapshot);
 
+      // Persist in Cloud Firestore (Admin SDK or Client SDK)
       if (typeof window === "undefined" && adminDb) {
         try {
           await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc(snapshot.id).set(snapshot);
         } catch (fsErr) {
-          console.warn("[KPI_SNAPSHOT_POST] Firestore write warning:", fsErr);
+          console.warn("[KPI_SNAPSHOT_POST] Firestore Admin write warning:", fsErr);
+        }
+      } else if (db && isFirebaseConfigured()) {
+        try {
+          await setDoc(doc(db, COLLECTIONS.KPI_SNAPSHOTS, snapshot.id), snapshot);
+        } catch (fsErr) {
+          console.warn("[KPI_SNAPSHOT_POST] Firestore Client write warning:", fsErr);
         }
       }
 
       return NextResponse.json({
         success: true,
-        message: "Snapshot de Métricas & KPIs guardado exitosamente en Firestore.",
+        message: "Snapshot de Métricas & KPIs guardado exitosamente en Cloud Firestore.",
         data: { snapshot },
       });
     }

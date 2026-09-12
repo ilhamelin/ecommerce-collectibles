@@ -1,0 +1,315 @@
+// Prisma Schema for Specialized Video Game, Licensed Figure & Collectible E-Commerce Architecture
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ProductType {
+  VIDEO_GAME
+  FIGURE
+  COLLECTIBLE
+  BUNDLE
+}
+
+enum PreOrderState {
+  ANNOUNCED
+  PREORDER_OPEN
+  MANUFACTURING
+  IN_TRANSIT_CUSTOMS
+  WAREHOUSE_RECEIVED
+  FULFILLED
+}
+
+enum FigureScale {
+  SCALE_1_7
+  SCALE_1_4
+  SCALE_1_8
+  NENDOROID
+  POP_UP_PARADE
+  ACTION_FIGURE
+}
+
+enum FigureManufacturer {
+  GOOD_SMILE_COMPANY
+  BANPRESTO
+  KOTOBUKIYA
+  ALTER
+  MEGAHOUSE
+  MAX_FACTORY
+}
+
+enum GamePlatform {
+  PS5
+  XBOX_SERIES
+  NINTENDO_SWITCH
+  PC
+}
+
+enum GameEdition {
+  STANDARD
+  DELUXE
+  COLLECTORS
+}
+
+enum CollectibleCategory {
+  TCG
+  REPLICA
+  STATUE
+  MEMORABILIA
+}
+
+enum CollectibleCondition {
+  GEM_MINT_10
+  MINT_9
+  NEAR_MINT_8
+  EXCELLENT_7
+}
+
+enum Authenticator {
+  PSA
+  BGS
+  CGC
+  NONE
+}
+
+enum PreOrderDepositStatus {
+  PENDING
+  PARTIALLY_PAID
+  BALANCE_DUE
+  PAID_IN_FULL
+  FORFEITED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  RELEASED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+  MERCADO_PAGO
+  WEBPAY
+}
+
+enum PaymentTransactionType {
+  FULL_PAYMENT
+  PREORDER_DEPOSIT
+  PREORDER_BALANCE_SETTLEMENT
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model Product {
+  id               String         @id @default(uuid())
+  sku              String         @unique
+  name             String
+  description      String
+  type             ProductType
+  price            Decimal        @db.Decimal(10, 2)
+  costPrice        Decimal        @db.Decimal(10, 2)
+  stockAvailable   Int            @default(0)
+  stockReserved    Int            @default(0)
+  isPreOrder       Boolean        @default(false)
+  preOrderState    PreOrderState?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  // Specialized polymorphic 1:1 metadata tables
+  gameMetadata        GameMetadata?
+  figureMetadata      FigureMetadata?
+  collectibleMetadata CollectibleMetadata?
+
+  // Composite Pattern: Bundle relationships (N:M)
+  bundleComponents BundleItem[] @relation("BundleToItems")
+  partOfBundles    BundleItem[] @relation("ComponentToBundle")
+
+  // Operational tracking
+  reservations     StockReservation[]
+  preOrderDeposits PreOrderDeposit[]
+  orderItems       OrderItem[]
+
+  @@index([sku])
+  @@index([type])
+  @@index([preOrderState])
+}
+
+model GameMetadata {
+  id          String       @id @default(uuid())
+  productId   String       @unique
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform    GamePlatform
+  edition     GameEdition
+  isDigital   Boolean      @default(false)
+  publisher   String
+}
+
+model FigureMetadata {
+  id                     String             @id @default(uuid())
+  productId              String             @unique
+  product                Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  scale                  FigureScale
+  manufacturer           FigureManufacturer
+  estimatedArrivalDate   DateTime
+  allowsPartialDeposit   Boolean            @default(true)
+  minimumDepositPercent  Decimal            @default(0.20) @db.Decimal(3, 2) // e.g. 0.20 = 20%
+}
+
+model CollectibleMetadata {
+  id                  String               @id @default(uuid())
+  productId           String               @unique
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category            CollectibleCategory
+  condition           CollectibleCondition
+  cardLanguage        String?              // e.g., "Japanese", "English"
+  authenticationBody  Authenticator        @default(NONE)
+  serialNumber        String?
+}
+
+// Composite pattern: Bundle aggregates atomic SKUs with required quantities
+model BundleItem {
+  id                 String   @id @default(uuid())
+  bundleId           String
+  componentProductId String
+  quantity           Int      @default(1)
+
+  bundle             Product  @relation("BundleToItems", fields: [bundleId], references: [id], onDelete: Cascade)
+  component          Product  @relation("ComponentToBundle", fields: [componentProductId], references: [id], onDelete: Restrict)
+
+  @@unique([bundleId, componentProductId])
+  @@index([bundleId])
+  @@index([componentProductId])
+}
+
+model StockReservation {
+  id            String            @id @default(uuid())
+  cartSessionId String
+  productId     String
+  quantity      Int
+  expiresAt     DateTime          // 15-minute TTL
+  status        ReservationStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  product       Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([cartSessionId])
+  @@index([productId, status])
+  @@index([expiresAt, status])
+}
+
+model PreOrderDeposit {
+  id                          String                @id @default(uuid())
+  orderId                     String
+  productId                   String
+  userId                      String
+  totalProductPrice           Decimal               @db.Decimal(10, 2)
+  depositAmountPaid           Decimal               @db.Decimal(10, 2)
+  remainingBalance            Decimal               @db.Decimal(10, 2)
+  status                      PreOrderDepositStatus @default(PENDING)
+  dueDate                     DateTime?
+  warehouseArrivalNotifiedAt  DateTime?
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+
+  product                     Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
+  order                       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Order {
+  id               String            @id @default(uuid())
+  orderNumber      String            @unique
+  userId           String
+  status           OrderStatus       @default(PENDING)
+  totalAmount      Decimal           @db.Decimal(10, 2)
+  depositTotal     Decimal           @default(0.00) @db.Decimal(10, 2)
+  remainingTotal   Decimal           @default(0.00) @db.Decimal(10, 2)
+  idempotencyKey   String?           @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  items            OrderItem[]
+  preOrderDeposits PreOrderDeposit[]
+  transactions     PaymentTransaction[]
+
+  @@index([userId])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id               String   @id @default(uuid())
+  orderId          String
+  productId        String
+  quantity         Int
+  unitPrice        Decimal  @db.Decimal(10, 2)
+  isPreOrder       Boolean  @default(false)
+  depositAmount    Decimal  @default(0.00) @db.Decimal(10, 2)
+  remainingBalance Decimal  @default(0.00) @db.Decimal(10, 2)
+
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model PaymentTransaction {
+  id                     String                   @id @default(uuid())
+  orderId                String
+  provider               PaymentProvider
+  providerTransactionId  String                   @unique
+  amount                 Decimal                  @db.Decimal(10, 2)
+  status                 PaymentTransactionStatus @default(PENDING)
+  transactionType        PaymentTransactionType
+  signatureVerified      Boolean                  @default(false)
+  rawPayload             Json?
+  createdAt              DateTime                 @default(now())
+
+  order                  Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([providerTransactionId])
+}
+
+model IdempotencyRecord {
+  id                 String            @id @default(uuid())
+  idempotencyKey     String            @unique
+  endpointPath       String
+  requestHash        String
+  status             IdempotencyStatus @default(IN_PROGRESS)
+  responseStatusCode Int?
+  responseBody       String?           @db.Text
+  expiresAt          DateTime
+  createdAt          DateTime          @default(now())
+
+  @@index([idempotencyKey])
+  @@index([expiresAt])
+}

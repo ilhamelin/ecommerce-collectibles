@@ -1,0 +1,582 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import {
+  Package,
+  PlusCircle,
+  Search,
+  Filter,
+  ArrowUpRight,
+  Sparkles,
+  Gamepad2,
+  Trophy,
+  Layers,
+  Clock,
+  Boxes,
+  TrendingUp,
+  DollarSign,
+  RefreshCw,
+  Pencil,
+  ShieldAlert,
+  ShieldCheck,
+  UserCheck,
+  Cloud,
+  Database,
+  CheckCircle,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
+import { ProductDomainEntity, ProductType } from "@/lib/types/domain";
+import { formatCLP } from "@/lib/utils/currency";
+import { useAuthStore } from "@/lib/store/authStore";
+
+export default function AdminProductsListPage() {
+  const { currentUser, login } = useAuthStore();
+  const [products, setProducts] = useState<ProductDomainEntity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState<string>("ALL");
+  const [firebaseStatus, setFirebaseStatus] = useState<{
+    mode: "FIREBASE_CLOUD" | "LOCAL_FALLBACK";
+    message: string;
+    firebaseClientConfigured: boolean;
+    firebaseAdminConfigured: boolean;
+  } | null>(null);
+  const [syncingFirebase, setSyncingFirebase] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  // Delete State
+  const [productToDelete, setProductToDelete] = useState<ProductDomainEntity | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteMsg, setDeleteMsg] = useState<string | null>(null);
+
+  const handleDeleteProduct = async (product: ProductDomainEntity) => {
+    setDeletingId(product.id);
+    try {
+      const res = await fetch(`/api/products?id=${encodeURIComponent(product.id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDeleteMsg(`¡Producto ${product.sku} eliminado con éxito de Cloud Firestore!`);
+        setTimeout(() => setDeleteMsg(null), 4000);
+        loadProducts();
+      } else {
+        alert(data.error || "No se pudo eliminar el producto.");
+      }
+    } catch (err) {
+      alert("Error de conexión al eliminar el producto de Firestore.");
+    } finally {
+      setDeletingId(null);
+      setProductToDelete(null);
+    }
+  };
+
+  const loadProducts = () => {
+    setLoading(true);
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data?.products)) {
+          setProducts(data.data.products);
+        }
+      })
+      .catch((err) => console.error("Error cargando productos:", err))
+      .finally(() => setLoading(false));
+  };
+
+  const checkFirebaseStatus = () => {
+    fetch("/api/admin/seed-firebase")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.status) {
+          setFirebaseStatus(data.status);
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleSyncFirebase = async () => {
+    setSyncingFirebase(true);
+    setSyncFeedback(null);
+    try {
+      const res = await fetch("/api/admin/seed-firebase", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setSyncFeedback(`✅ ¡Éxito! ${data.productsSynced} productos sincronizados en Cloud Firestore.`);
+        checkFirebaseStatus();
+      } else {
+        setSyncFeedback(`ℹ️ ${data.error || "Firebase no tiene credenciales en .env.local aún."}`);
+      }
+    } catch (err: any) {
+      setSyncFeedback("❌ Error al comunicarse con el endpoint de Firebase.");
+    } finally {
+      setSyncingFirebase(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+    checkFirebaseStatus();
+  }, []);
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      if (selectedType !== "ALL" && p.type !== selectedType) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [products, selectedType, searchQuery]);
+
+  // KPIs
+  const totalStockUnits = products.reduce((acc, p) => acc + (p.stockAvailable || 0), 0);
+  const totalInventoryValueCLP = products.reduce(
+    (acc, p) => acc + (p.price || 0) * (p.stockAvailable || 0),
+    0
+  );
+  const preOrderCount = products.filter((p) => p.isPreOrder).length;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header with direct Action to Create */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#004E72]/40 pb-6">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6E42] uppercase tracking-wider">
+            <Package className="w-4 h-4" />
+            Control de Catálogo • E-Commerce Especializado
+          </div>
+          <h1 className="text-3xl font-black text-[#F9F9F9] tracking-tight">
+            Inventario & Gestión de Productos
+          </h1>
+          <p className="text-sm text-[#9bb5c2]">
+            Administra precios en CLP, stock disponible, preventas con pie y sincronización con la tienda pública.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={loadProducts}
+            title="Refrescar catálogo"
+            className="p-2.5 rounded-xl bg-[#092634] border border-[#004E72]/60 text-[#9bb5c2] hover:text-[#F9F9F9] hover:bg-[#004E72]/40 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#FF6E42]" : ""}`} />
+          </button>
+
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] text-xs font-bold transition shadow-lg shadow-[#FF6E42]/25"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Agregar Nuevo Producto
+          </Link>
+        </div>
+      </div>
+
+      {/* Role State Banner */}
+      {currentUser?.role === "ADMIN" ? (
+        <div className="p-4 rounded-2xl bg-[#092634] border border-emerald-500/30 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-emerald-400 tracking-wider uppercase">Sesión de Administrador Autorizada</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">ROL: ADMIN</span>
+              </div>
+              <p className="text-xs text-[#9bb5c2]">
+                Conectado como <strong className="text-[#F9F9F9]">{currentUser.fullName}</strong> ({currentUser.email}). Control total de catálogo, edición de precios CLP e inventario.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/account"
+            className="text-xs font-bold text-[#FF6E42] hover:underline"
+          >
+            Ver Mi Cuenta &rarr;
+          </Link>
+        </div>
+      ) : currentUser?.role === "CUSTOMER" ? (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-amber-400 tracking-wider uppercase">Modo Cliente Registrado (Solo Lectura)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-bold">ROL: CUSTOMER</span>
+              </div>
+              <p className="text-xs text-[#9bb5c2]">
+                Has iniciado sesión como usuario cliente (<strong className="text-[#F9F9F9]">{currentUser.fullName}</strong>). Puedes explorar las herramientas o cambiar a la cuenta admin de prueba.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => login("admin@omnicollector.cl", "admin123")}
+              className="px-3 py-1.5 rounded-lg bg-[#FF6E42] hover:bg-[#ff5421] text-[#092634] text-xs font-black transition"
+            >
+              Cambiar a Admin Demo
+            </button>
+            <Link
+              href="/account"
+              className="px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72] text-xs font-bold text-[#F9F9F9] hover:bg-[#004E72]/40 transition"
+            >
+              Mi Cuenta
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 rounded-2xl bg-[#092634] border border-[#004E72]/40 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#004E72]/30 flex items-center justify-center text-[#9bb5c2]">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <p className="text-xs text-[#9bb5c2]">
+              Modo Demo: Para probar la experiencia de cliente vs admin, inicia sesión en <strong className="text-[#F9F9F9]">Mi Cuenta</strong> con las credenciales demo.
+            </p>
+          </div>
+          <button
+            onClick={() => login("admin@omnicollector.cl", "admin123")}
+            className="px-3 py-1.5 rounded-lg bg-[#004E72] hover:bg-[#004E72]/80 text-[#F9F9F9] text-xs font-bold transition"
+          >
+            Acceso Rápido Admin Demo
+          </button>
+        </div>
+      )}
+
+      {/* Firebase Cloud Database Status Strip */}
+      <div className="p-4 rounded-2xl bg-[#092634] border border-[#004E72]/50 flex items-center justify-between flex-wrap gap-4 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            firebaseStatus?.mode === "FIREBASE_CLOUD"
+              ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+              : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+          }`}>
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-[#F9F9F9] tracking-wider uppercase flex items-center gap-1.5">
+                <Cloud className="w-4 h-4 text-[#FF6E42]" />
+                Base de Datos Firebase (Cloud Firestore)
+              </span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                firebaseStatus?.mode === "FIREBASE_CLOUD"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+              }`}>
+                {firebaseStatus?.mode === "FIREBASE_CLOUD" ? "🟢 CLOUD FIRESTORE ACTIVO" : "🟡 MODO LOCAL FALLBACK (Preparado)"}
+              </span>
+            </div>
+            <p className="text-xs text-[#9bb5c2] mt-0.5">
+              {firebaseStatus?.mode === "FIREBASE_CLOUD"
+                ? "Conexión a Firebase activa. Todas las lecturas y escrituras de productos y órdenes se sincronizan en la nube."
+                : "Sistema preparado para Firebase. Ingresa tus claves en el archivo .env.local cuando crees tu proyecto en console.firebase.google.com."}
+            </p>
+            {syncFeedback && (
+              <p className="text-xs font-medium text-[#FF6E42] mt-1">
+                {syncFeedback}
+              </p>
+            )}
+            {deleteMsg && (
+              <p className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5" />
+                {deleteMsg}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={handleSyncFirebase}
+          disabled={syncingFirebase}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004E72] hover:bg-[#004E72]/80 text-[#F9F9F9] text-xs font-bold transition disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${syncingFirebase ? "animate-spin text-[#FF6E42]" : ""}`} />
+          {syncingFirebase ? "Sincronizando..." : "Sincronizar Catálogo a Firebase"}
+        </button>
+      </div>
+
+      {/* KPI Cards Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-1 shadow-md">
+          <span className="text-[11px] font-medium text-[#9bb5c2] block">Productos Registrados</span>
+          <span className="text-2xl sm:text-3xl font-black text-[#F9F9F9] font-mono">
+            {products.length}
+          </span>
+          <span className="text-[10px] text-[#9bb5c2] block">Catálogo activo</span>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-1 shadow-md">
+          <span className="text-[11px] font-medium text-[#9bb5c2] block">Unidades en Inventario</span>
+          <span className="text-2xl sm:text-3xl font-black text-[#FF6E42] font-mono">
+            {totalStockUnits}
+          </span>
+          <span className="text-[10px] text-[#9bb5c2] block">Disponibles para venta física</span>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-1 shadow-md">
+          <span className="text-[11px] font-medium text-[#9bb5c2] block">Valorización Inventario (CLP)</span>
+          <span className="text-xl sm:text-2xl font-black text-[#F9F9F9] font-mono">
+            {formatCLP(totalInventoryValueCLP)}
+          </span>
+          <span className="text-[10px] text-[#9bb5c2] block">PVP estimado en Chile</span>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-1 shadow-md">
+          <span className="text-[11px] font-medium text-[#9bb5c2] block">Líneas de Preventa</span>
+          <span className="text-2xl sm:text-3xl font-black text-[#F9F9F9] font-mono">
+            {preOrderCount}
+          </span>
+          <span className="text-[10px] text-[#9bb5c2] block">Con reserva de pie parcial</span>
+        </div>
+      </div>
+
+      {/* Filter & Search Strip */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#092634] border border-[#004E72]/40">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-[#9bb5c2] absolute left-3.5 top-3" />
+          <input
+            type="text"
+            placeholder="Buscar por SKU o nombre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-xs text-[#F9F9F9] placeholder-[#9bb5c2] focus:outline-none focus:border-[#FF6E42]"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          {[
+            { id: "ALL", label: "Todos" },
+            { id: "FIGURE", label: "Figuras" },
+            { id: "VIDEO_GAME", label: "Juegos" },
+            { id: "COLLECTIBLE", label: "TCG / Raros" },
+            { id: "BUNDLE", label: "Bundles" },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedType(cat.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+                selectedType === cat.id
+                  ? "bg-[#004E72] text-[#F9F9F9] border border-[#FF6E42]/40 shadow-sm"
+                  : "bg-[#092634] text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9]"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Products Table */}
+      <div className="rounded-2xl bg-[#092634] border border-[#004E72]/50 overflow-hidden shadow-lg">
+        {loading ? (
+          <div className="p-16 text-center space-y-3">
+            <div className="w-8 h-8 border-3 border-[#004E72] border-t-[#FF6E42] rounded-full animate-spin mx-auto"></div>
+            <p className="text-xs text-[#9bb5c2]">Cargando catálogo en tiempo real...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-16 text-center space-y-4">
+            <Boxes className="w-12 h-12 text-[#9bb5c2]/50 mx-auto" />
+            <div>
+              <h3 className="text-base font-bold text-[#F9F9F9]">No se encontraron productos</h3>
+              <p className="text-xs text-[#9bb5c2] max-w-sm mx-auto mt-1">
+                No hay coincidencias con los filtros aplicados. Puedes registrar un producto nuevo ahora mismo.
+              </p>
+            </div>
+            <Link
+              href="/admin/products/new"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] text-xs font-bold transition shadow"
+            >
+              <PlusCircle className="w-4 h-4" /> Agregar Producto
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-[#9bb5c2]">
+              <thead className="bg-[#05161f] text-[#F9F9F9] border-b border-[#004E72]/50 font-mono uppercase text-[11px]">
+                <tr>
+                  <th className="px-5 py-3.5">SKU / Producto</th>
+                  <th className="px-5 py-3.5">Categoría</th>
+                  <th className="px-5 py-3.5">Precio CLP</th>
+                  <th className="px-5 py-3.5">Costo Unitario</th>
+                  <th className="px-5 py-3.5">Margen Bruto</th>
+                  <th className="px-5 py-3.5">Stock</th>
+                  <th className="px-5 py-3.5 text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#004E72]/30">
+                {filtered.map((prod) => {
+                  const grossProfit = Math.max(0, prod.price - prod.costPrice);
+                  const marginPct = prod.price > 0 ? ((grossProfit / prod.price) * 100).toFixed(1) : "0";
+                  const availableUnits = prod.type === "BUNDLE"
+                    ? prod.calculatedAvailableStock ?? 0
+                    : Math.max(0, prod.stockAvailable - prod.stockReserved);
+
+                  const imgUrl = prod.imageUrl || (prod.images && prod.images.length > 0 ? prod.images[0] : null);
+
+                  return (
+                    <tr key={prod.id} className="hover:bg-[#004E72]/15 transition">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          {imgUrl ? (
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#05161f] border border-[#004E72]/60 shrink-0">
+                              <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-[#004E72]/30 border border-[#004E72]/50 flex items-center justify-center shrink-0">
+                              <Package className="w-5 h-5 text-[#9bb5c2]" />
+                            </div>
+                          )}
+                          <div className="space-y-0.5">
+                            <span className="font-mono text-[#FF6E42] text-[11px] font-bold block">
+                              {prod.sku}
+                            </span>
+                            <span className="font-semibold text-[#F9F9F9] text-sm block line-clamp-1">
+                              {prod.name}
+                            </span>
+                            {prod.isPreOrder && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-300 font-medium">
+                                <Clock className="w-3 h-3" /> Preventa (Pie {Math.round((prod.figureMetadata?.minimumDepositPercent ?? 0.2) * 100)}%)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                            prod.type === "FIGURE"
+                              ? "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
+                              : prod.type === "COLLECTIBLE"
+                              ? "bg-[#FF6E42]/15 text-[#FF6E42] border-[#FF6E42]/30"
+                              : prod.type === "BUNDLE"
+                              ? "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
+                              : "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
+                          }`}
+                        >
+                          {prod.type}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 font-mono font-bold text-[#F9F9F9] whitespace-nowrap">
+                        {formatCLP(prod.price)}
+                      </td>
+
+                      <td className="px-5 py-4 font-mono text-[#9bb5c2] whitespace-nowrap">
+                        {formatCLP(prod.costPrice)}
+                      </td>
+
+                      <td className="px-5 py-4 font-mono whitespace-nowrap">
+                        <span className="text-emerald-400 font-bold block">{formatCLP(grossProfit)}</span>
+                        <span className="text-[10px] text-[#9bb5c2]">{marginPct}%</span>
+                      </td>
+
+                      <td className="px-5 py-4 font-mono whitespace-nowrap">
+                        <span
+                          className={`font-bold ${
+                            availableUnits > 0 ? "text-[#F9F9F9]" : "text-red-400"
+                          }`}
+                        >
+                          {availableUnits} uds
+                        </span>
+                        {prod.stockReserved > 0 && (
+                          <span className="block text-[10px] text-amber-400">
+                            ({prod.stockReserved} reservadas)
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-4 text-right whitespace-nowrap space-x-2">
+                        <Link
+                          href={`/admin/products/${prod.id}/edit`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#05161f] hover:bg-[#FF6E42] text-[#F9F9F9] text-xs font-semibold border border-[#004E72]/60 hover:border-[#FF6E42] transition shadow-sm"
+                          title="Editar producto"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Editar
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setProductToDelete(prod)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-600 text-red-300 hover:text-white text-xs font-semibold border border-red-500/40 hover:border-red-500 transition shadow-sm"
+                          title="Eliminar producto de Firestore"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar
+                        </button>
+                        <Link
+                          href={`/product/${prod.sku.toLowerCase()}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#004E72]/50 hover:bg-[#004E72] text-[#F9F9F9] text-xs font-semibold border border-[#004E72] transition group"
+                        >
+                          Ver en Tienda
+                          <ArrowUpRight className="w-3.5 h-3.5 text-[#FF6E42] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal de confirmación de eliminación de producto */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#092634] border-2 border-red-500/60 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/20">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">¿Eliminar Producto de Firestore?</h3>
+                <p className="text-xs text-[#9bb5c2] font-mono">{productToDelete.sku}</p>
+              </div>
+            </div>
+            <p className="text-xs text-[#d1e1e9] leading-relaxed">
+              ¿Estás seguro de que deseas eliminar permanentemente <strong>{productToDelete.name}</strong>? Se borrará el documento en Cloud Firestore y dejará de mostrarse en el catálogo de la tienda.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={deletingId === productToDelete.id}
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-[#05161f] border border-[#004E72] text-xs font-bold text-[#9bb5c2] hover:text-white transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deletingId === productToDelete.id}
+                onClick={() => handleDeleteProduct(productToDelete)}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center gap-2"
+              >
+                {deletingId === productToDelete.id ? (
+                  <span>Borrando de Firestore...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Sí, Eliminar Producto</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,59 @@
+name: Deploy - OmniCollector Web Production
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: "deploy-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Package Web Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código Fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Instalar Dependencias
+        run: npm ci
+
+      - name: Ejecutar Pruebas de Integración y Negocio
+        run: npm run test
+
+      - name: Construir Bundle de Producción Next.js
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'https://omnicollector.cl' }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY || 'demo-api-key' }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'demo.firebaseapp.com' }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-project-id' }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'demo.appspot.com' }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:demo' }}
+          MERCADOPAGO_ACCESS_TOKEN: ${{ secrets.MERCADOPAGO_ACCESS_TOKEN || 'TEST-0000000000000000-000000-demo' }}
+        run: npm run build
+
+      - name: Empaquetar Release Web Listo para Servidor
+        run: |
+          mkdir -p release
+          cp -r .next release/
+          cp -r public release/ || true
+          cp package.json release/
+          cp package-lock.json release/
+          cp next.config.mjs release/
+
+      - name: Publicar Artefacto de Release en GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnicollector-web-release
+          path: release/
+          retention-days: 14

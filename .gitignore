@@ -1,0 +1,45 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/cache
+
+# Testing & Coverage
+/coverage
+*.lcov
+
+# Next.js Build Output
+/.next/
+/out/
+/build
+
+# Environment Files & Secrets (NEVER commit secrets!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Firebase logs & debug
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# OS & Editor files
+.DS_Store
+*.pem
+Thumbs.db
+.vscode/
+.idea/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# Antigravity artifacts
+.agents/
+skills-lock.json

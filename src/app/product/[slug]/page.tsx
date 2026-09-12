@@ -25,6 +25,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
+import { RelatedProductsSlider } from "@/components/catalog/RelatedProductsSlider";
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
@@ -625,6 +626,9 @@ export default function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Suggested Related Products Slider */}
+        <RelatedProductsSlider currentProduct={product} allProducts={CATALOG_ITEMS as any} />
 
         {/* Collector Guarantee Footer Banner */}
         <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left shadow-sm">

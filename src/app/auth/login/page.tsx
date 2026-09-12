@@ -20,6 +20,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
+import { ReCaptchaWidget } from "@/components/common/ReCaptchaWidget";
 
 function LoginContent() {
   const router = useRouter();
@@ -36,6 +37,7 @@ function LoginContent() {
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [captchaChecked, setCaptchaChecked] = useState(false);
+  const [captchaError, setCaptchaError] = useState(false);
 
   // Register form state
   const [regFullName, setRegFullName] = useState("");
@@ -64,9 +66,11 @@ function LoginContent() {
     setSuccessMessage(null);
 
     if (!captchaChecked) {
-      setErrorMessage("Por favor confirme la verificación de seguridad (No soy un robot).");
+      setCaptchaError(true);
+      setErrorMessage("Por favor confirma la verificación de seguridad (No soy un robot).");
       return;
     }
+    setCaptchaError(false);
 
     setIsSubmitting(true);
     const res = login(loginEmail, loginPassword);
@@ -86,6 +90,13 @@ function LoginContent() {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    if (!captchaChecked) {
+      setCaptchaError(true);
+      setErrorMessage("Por favor confirma la verificación de seguridad (No soy un robot).");
+      return;
+    }
+    setCaptchaError(false);
 
     if (regPassword.length < 6) {
       setErrorMessage("La contraseña debe tener al menos 6 caracteres.");
@@ -253,22 +264,20 @@ function LoginContent() {
                 </label>
               </div>
 
-              {/* reCAPTCHA Box */}
-              <div className="p-3.5 rounded-xl bg-[#F7F7F5] border border-[#E5E5E5] flex items-center justify-between max-w-xs shadow-inner">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={captchaChecked}
-                    onChange={(e) => setCaptchaChecked(e.target.checked)}
-                    className="w-5 h-5 rounded border-2 border-[#E5E5E5] text-[#FF6B35] cursor-pointer"
-                  />
-                  <span className="text-xs font-semibold text-[#1A1A1A]">No soy un robot</span>
-                </label>
-                <div className="flex flex-col items-center opacity-70">
-                  <RotateCcw className="w-4 h-4 text-[#1F3A5F]" />
-                  <span className="text-[8px] font-mono text-[#666666] uppercase">reCAPTCHA</span>
-                </div>
-              </div>
+              {/* Functional reCAPTCHA Widget */}
+              <ReCaptchaWidget
+                checked={captchaChecked}
+                onChange={(verified) => {
+                  setCaptchaChecked(verified);
+                  if (verified) {
+                    setCaptchaError(false);
+                    if (errorMessage?.includes("robot") || errorMessage?.includes("seguridad")) {
+                      setErrorMessage(null);
+                    }
+                  }
+                }}
+                hasError={captchaError}
+              />
 
               {/* Actions Button & Forgot Password */}
               <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
@@ -459,10 +468,25 @@ function LoginContent() {
               </div>
             </div>
 
+            {/* Functional reCAPTCHA Widget */}
+            <ReCaptchaWidget
+              checked={captchaChecked}
+              onChange={(verified) => {
+                setCaptchaChecked(verified);
+                if (verified) {
+                  setCaptchaError(false);
+                  if (errorMessage?.includes("robot") || errorMessage?.includes("seguridad")) {
+                    setErrorMessage(null);
+                  }
+                }
+              }}
+              hasError={captchaError}
+            />
+
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-xs uppercase tracking-wider transition shadow-md shadow-[#FF6B35]/20 disabled:opacity-60"
+              className="w-full py-3.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-xs uppercase tracking-wider transition shadow-md shadow-[#FF6B35]/20 disabled:opacity-60 cursor-pointer"
             >
               {isSubmitting ? "Creando cuenta..." : "REGISTRARME Y COMENZAR"}
             </button>

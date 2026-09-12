@@ -18,9 +18,11 @@ import {
   AlertCircle,
   HelpCircle,
   Package,
+  MapPin,
+  Plus,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
-import { useAuthStore } from "@/lib/store/authStore";
+import { useAuthStore, type UserAddress } from "@/lib/store/authStore";
 import { formatCLP } from "@/lib/utils/currency";
 
 const CHILEAN_REGIONS = [
@@ -78,6 +80,7 @@ export default function CheckoutPage() {
   const [rut, setRut] = useState("");
 
   // Shipping details
+  const [selectedAddressId, setSelectedAddressId] = useState<string | "NEW">("NEW");
   const [selectedRegion, setSelectedRegion] = useState("RM");
   const [selectedComuna, setSelectedComuna] = useState("Santiago");
   const [address, setAddress] = useState("");
@@ -97,7 +100,24 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Auto-fill from authenticated user
+  // Helper to apply saved address to form
+  const applySavedAddress = (addr: UserAddress) => {
+    setSelectedAddressId(addr.id);
+    setAddress(addr.address || "");
+    setApartment(addr.apartment || "");
+
+    const matched = CHILEAN_REGIONS.find(
+      (r) => r.id === addr.region || r.name.toLowerCase() === addr.region.toLowerCase()
+    );
+    if (matched) {
+      setSelectedRegion(matched.id);
+      setSelectedComuna(addr.comuna || matched.comunas[0]);
+    } else {
+      setSelectedComuna(addr.comuna || "Santiago");
+    }
+  };
+
+  // Auto-fill from authenticated user or reset for guest
   useEffect(() => {
     if (currentUser) {
       setFullName(currentUser.fullName || "");
@@ -105,24 +125,40 @@ export default function CheckoutPage() {
       setPhone(currentUser.phone || "");
       setRut(currentUser.rut || "");
 
-      // If default address exists, pre-fill it
-      const defAddr = currentUser.addresses.find((a) => a.isDefault) || currentUser.addresses[0];
-      if (defAddr) {
-        setAddress(defAddr.address || "");
-        setApartment(defAddr.apartment || "");
-        setSelectedComuna(defAddr.comuna || "Santiago");
+      // If user has saved addresses, select default or first one
+      if (currentUser.addresses && currentUser.addresses.length > 0) {
+        const defAddr = currentUser.addresses.find((a) => a.isDefault) || currentUser.addresses[0];
+        if (defAddr) {
+          applySavedAddress(defAddr);
+        }
+      } else {
+        setSelectedAddressId("NEW");
+        setAddress("");
+        setApartment("");
       }
+    } else {
+      // Guest visitor: start with completely empty inputs
+      setSelectedAddressId("NEW");
+      setFullName("");
+      setEmail("");
+      setPhone("");
+      setRut("");
+      setAddress("");
+      setApartment("");
+      setNotes("");
     }
   }, [currentUser]);
 
-  // Update comunas when region changes
+  // Handle region dropdown change
   const activeRegion = CHILEAN_REGIONS.find((r) => r.id === selectedRegion) || CHILEAN_REGIONS[0];
 
-  useEffect(() => {
-    if (activeRegion.comunas.length > 0 && !currentUser?.addresses?.length) {
-      setSelectedComuna(activeRegion.comunas[0]);
+  const handleRegionChange = (newRegionId: string) => {
+    setSelectedRegion(newRegionId);
+    const reg = CHILEAN_REGIONS.find((r) => r.id === newRegionId);
+    if (reg && reg.comunas.length > 0) {
+      setSelectedComuna(reg.comunas[0]);
     }
-  }, [selectedRegion, currentUser]);
+  };
 
   // Shipping cost computation
   const baseShippingCost =
@@ -339,31 +375,52 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
-              {/* Guest / Account selector */}
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#F7F7F5] border border-[#E5E5E5] text-xs">
-                <button
-                  type="button"
-                  onClick={() => setUserMode("GUEST")}
-                  className={`py-2 rounded-lg font-bold transition ${
-                    userMode === "GUEST"
-                      ? "bg-white text-[#1A1A1A] shadow-sm border border-[#E5E5E5]"
-                      : "text-[#666666] hover:text-[#1A1A1A]"
-                  }`}
-                >
-                  Comprar como Invitado
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUserMode("LOGIN")}
-                  className={`py-2 rounded-lg font-bold transition ${
-                    userMode === "LOGIN"
-                      ? "bg-white text-[#1A1A1A] shadow-sm border border-[#E5E5E5]"
-                      : "text-[#666666] hover:text-[#1A1A1A]"
-                  }`}
-                >
-                  Ya tengo Cuenta
-                </button>
-              </div>
+              {/* If authenticated user */}
+              {currentUser ? (
+                <div className="p-4 rounded-2xl bg-[#1F3A5F]/5 border border-[#1F3A5F]/20 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#1F3A5F] text-white flex items-center justify-center font-black text-sm shrink-0">
+                      {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "U"}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-[#1A1A1A]">{currentUser.fullName}</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#2E9E5B]/10 text-[#2E9E5B] text-[10px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" /> Cuenta Activa
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-[#666666]">{currentUser.email}</span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/auth/login?redirect=/checkout"
+                    className="text-[11px] font-semibold text-[#FF6B35] hover:underline shrink-0"
+                  >
+                    Cambiar cuenta
+                  </Link>
+                </div>
+              ) : (
+                /* Guest / Account selector - ONLY VISIBLE IF NOT LOGGED IN */
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#F7F7F5] border border-[#E5E5E5] text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setUserMode("GUEST")}
+                    className={`py-2 rounded-lg font-bold transition ${
+                      userMode === "GUEST"
+                        ? "bg-white text-[#1A1A1A] shadow-sm border border-[#E5E5E5]"
+                        : "text-[#666666] hover:text-[#1A1A1A]"
+                    }`}
+                  >
+                    Comprar como Invitado
+                  </button>
+                  <Link
+                    href="/auth/login?redirect=/checkout"
+                    className="py-2 rounded-lg font-bold text-center text-[#666666] hover:text-[#1A1A1A] transition flex items-center justify-center"
+                  >
+                    Ya tengo Cuenta
+                  </Link>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>
@@ -511,12 +568,94 @@ export default function CheckoutPage() {
               {/* Address Form (only if not pickup) */}
               {courier !== "PICKUP" ? (
                 <div className="space-y-4 pt-2 border-t border-[#E5E5E5]">
+                  {/* Saved addresses picker (only if user is logged in and has addresses) */}
+                  {currentUser && currentUser.addresses && currentUser.addresses.length > 0 && (
+                    <div className="space-y-3 pb-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-[#1A1A1A]">
+                          Direcciones Guardadas en tu Libreta
+                        </label>
+                        <Link
+                          href="/account"
+                          target="_blank"
+                          className="text-[11px] font-semibold text-[#FF6B35] hover:underline"
+                        >
+                          Administrar libreta
+                        </Link>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {currentUser.addresses.map((addr) => {
+                          const isSelected = selectedAddressId === addr.id;
+                          return (
+                            <div
+                              key={addr.id}
+                              onClick={() => applySavedAddress(addr)}
+                              className={`p-4 rounded-2xl border cursor-pointer transition relative space-y-1.5 ${
+                                isSelected
+                                  ? "bg-[#1F3A5F]/5 border-2 border-[#1F3A5F] shadow-sm"
+                                  : "bg-white border border-[#E5E5E5] hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-[#FF6B35]" />
+                                  <span className="text-xs font-bold text-[#1A1A1A]">{addr.label || "Casa"}</span>
+                                  {addr.isDefault && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#2E9E5B]/10 text-[#2E9E5B]">
+                                      Predeterminada
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                    isSelected ? "border-[#1F3A5F] bg-[#1F3A5F]" : "border-[#E5E5E5]"
+                                  }`}
+                                >
+                                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                              </div>
+
+                              <p className="text-xs font-bold text-[#1A1A1A]">
+                                {addr.address} {addr.apartment ? `(${addr.apartment})` : ""}
+                              </p>
+                              <p className="text-[11px] text-[#666666]">
+                                {addr.comuna}, {addr.region}
+                              </p>
+                            </div>
+                          );
+                        })}
+
+                        {/* Card to use a different address */}
+                        <div
+                          onClick={() => {
+                            setSelectedAddressId("NEW");
+                            setAddress("");
+                            setApartment("");
+                          }}
+                          className={`p-4 rounded-2xl border cursor-pointer transition flex flex-col items-center justify-center text-center gap-1 min-h-[90px] ${
+                            selectedAddressId === "NEW"
+                              ? "bg-[#FF6B35]/5 border-2 border-[#FF6B35] text-[#FF6B35]"
+                              : "bg-[#F7F7F5] border border-dashed border-[#E5E5E5] text-[#666666] hover:border-slate-400"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1 font-bold text-xs">
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Usar otra dirección</span>
+                          </div>
+                          <span className="text-[10px] text-[#666666]">Escribir una dirección diferente</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Address Inputs Form */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Región de Chile *</label>
                       <select
                         value={selectedRegion}
-                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        onChange={(e) => handleRegionChange(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] focus:outline-none focus:border-[#FF6B35]"
                       >
                         {CHILEAN_REGIONS.map((r) => (
@@ -546,7 +685,12 @@ export default function CheckoutPage() {
                       required
                       placeholder="Ej. Av. Andrés Bello 2425"
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
+                      onChange={(e) => {
+                        setAddress(e.target.value);
+                        if (selectedAddressId !== "NEW") {
+                          setSelectedAddressId("NEW");
+                        }
+                      }}
                       className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
                     />
                   </div>

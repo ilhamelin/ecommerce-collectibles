@@ -26,6 +26,10 @@ import {
   Save,
   Package,
   Wand2,
+  Disc,
+  Download,
+  Tag,
+  X,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import {
@@ -42,6 +46,16 @@ import {
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
+import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
+
+const CUSTOM_CATEGORY_PRESETS = [
+  "Consola / Hardware",
+  "Ropa & Estilo",
+  "Accesorio Gaming",
+  "Manga / Artbook",
+  "Merchandising",
+  "Audio / OST",
+];
 
 export default function EditProductAdminPage() {
   const params = useParams();
@@ -56,6 +70,7 @@ export default function EditProductAdminPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ProductType>("FIGURE");
+  const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [price, setPrice] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
   const [costPrice, setCostPrice] = useState<number>(0);
@@ -65,7 +80,8 @@ export default function EditProductAdminPage() {
 
   // Multimedia & Badges
   const [trailerUrl, setTrailerUrl] = useState("");
-  const [ageRating, setAgeRating] = useState("14+ 14 AÑOS O MÁS");
+  const [ageRating, setAgeRating] = useState("TE");
+  const [customAgeRating, setCustomAgeRating] = useState("");
   const [genresInput, setGenresInput] = useState("");
 
   // Images State (Cover & Main Carrousel)
@@ -162,6 +178,7 @@ export default function EditProductAdminPage() {
           setName(p.name);
           setDescription(p.description);
           setType(p.type);
+          setCustomCategoryLabel(p.customCategoryLabel || "");
           setPrice(p.price);
           setOriginalPrice(p.originalPrice);
           setCostPrice(p.costPrice);
@@ -169,7 +186,19 @@ export default function EditProductAdminPage() {
           setIsPreOrder(Boolean(p.isPreOrder));
           setPreOrderState(p.preOrderState || "PREORDER_OPEN");
           setTrailerUrl(p.trailerUrl || "");
-          setAgeRating(p.ageRating || "14+ 14 AÑOS O MÁS");
+
+          // Check if age rating is in WORLDWIDE_AGE_RATINGS or custom
+          const existingRating = p.ageRating || "TE";
+          const matchRating = WORLDWIDE_AGE_RATINGS.find(
+            (r) => r.value.toLowerCase() === existingRating.toLowerCase()
+          );
+          if (matchRating) {
+            setAgeRating(matchRating.value);
+          } else {
+            setAgeRating("CUSTOM");
+            setCustomAgeRating(existingRating);
+          }
+
           setGenresInput(p.genres && p.genres.length > 0 ? p.genres.join(", ") : "");
           setContentGallery(p.contentGallery || []);
 
@@ -316,12 +345,19 @@ export default function EditProductAdminPage() {
       .map((g) => g.trim())
       .filter(Boolean);
 
+    const resolvedAgeRating =
+      ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
+
     return {
       id: productId,
-      sku: sku || "PROD-SAMPLE",
+      sku: (sku || "SKU-PREVIEW").toUpperCase().trim(),
       name: name || "Nombre del Producto",
       description: description || "Descripción detallada del producto.",
       type,
+      customCategoryLabel:
+        type === "OTHER" || customCategoryLabel.trim()
+          ? customCategoryLabel.trim()
+          : undefined,
       price: price || 0,
       originalPrice: originalPrice && originalPrice > 0 ? originalPrice : undefined,
       costPrice: costPrice || 0,
@@ -329,20 +365,20 @@ export default function EditProductAdminPage() {
       stockReserved: 0,
       isPreOrder,
       preOrderState: isPreOrder ? (preOrderState as any) : undefined,
-      imageUrl: images.length > 0 ? images[0] : undefined,
       images,
+      imageUrl: images.length > 0 ? images[0] : undefined,
       trailerUrl: trailerUrl.trim() || undefined,
-      ageRating: ageRating.trim() || undefined,
+      ageRating: resolvedAgeRating || undefined,
       genres: genresList.length > 0 ? genresList : undefined,
       contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
       gameMetadata:
         type === "VIDEO_GAME"
           ? {
-              id: "preview-gm",
+              id: `meta-game-${productId}`,
               productId,
               platform: gamePlatform,
               edition: gameEdition,
-              isDigital: gameIsDigital,
+              isDigital: Boolean(gameIsDigital),
               publisher: gamePublisher,
               audioLanguages: gameAudioLanguages,
               subtitleLanguages: gameSubtitleLanguages,
@@ -354,12 +390,12 @@ export default function EditProductAdminPage() {
       figureMetadata:
         type === "FIGURE"
           ? {
-              id: "preview-fig",
+              id: `meta-fig-${productId}`,
               productId,
               scale: figureScale,
               manufacturer: figureManufacturer,
               estimatedArrivalDate: figureArrivalDate,
-              allowsPartialDeposit: true,
+              allowsPartialDeposit: isPreOrder,
               minimumDepositPercent: figureDepositPercent,
               material: figureMaterial,
               dimensions: figureDimensions,
@@ -370,7 +406,7 @@ export default function EditProductAdminPage() {
       collectibleMetadata:
         type === "COLLECTIBLE"
           ? {
-              id: "preview-col",
+              id: `meta-col-${productId}`,
               productId,
               category: collectibleCategory,
               condition: collectibleCondition,
@@ -379,6 +415,8 @@ export default function EditProductAdminPage() {
               serialNumber: collectibleSerial,
             }
           : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   }, [
     productId,
@@ -386,6 +424,7 @@ export default function EditProductAdminPage() {
     name,
     description,
     type,
+    customCategoryLabel,
     price,
     originalPrice,
     costPrice,
@@ -395,12 +434,13 @@ export default function EditProductAdminPage() {
     images,
     trailerUrl,
     ageRating,
+    customAgeRating,
     genresInput,
     contentGallery,
     gamePlatform,
     gameEdition,
-    gameIsDigital,
     gamePublisher,
+    gameIsDigital,
     gameAudioLanguages,
     gameSubtitleLanguages,
     gamePlayers,
@@ -421,31 +461,19 @@ export default function EditProductAdminPage() {
     collectibleSerial,
   ]);
 
-  // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
-
-    if (!sku.trim()) {
-      setErrorMsg("El SKU es obligatorio.");
-      return;
-    }
-    if (!name.trim()) {
-      setErrorMsg("El nombre del producto es obligatorio.");
-      return;
-    }
-    if (price <= 0) {
-      setErrorMsg("El precio de venta debe ser mayor a 0 CLP.");
-      return;
-    }
-
-    setSubmitting(true);
 
     const genresList = genresInput
       .split(",")
       .map((g) => g.trim())
       .filter(Boolean);
+
+    const resolvedAgeRating =
+      ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
 
     try {
       const payload: any = {
@@ -454,6 +482,10 @@ export default function EditProductAdminPage() {
         name: name.trim(),
         description: description.trim(),
         type,
+        customCategoryLabel:
+          type === "OTHER" || customCategoryLabel.trim()
+            ? customCategoryLabel.trim()
+            : undefined,
         price: Math.round(price),
         originalPrice: originalPrice && Number(originalPrice) > 0 ? Number(originalPrice) : undefined,
         costPrice: Math.round(costPrice),
@@ -463,7 +495,7 @@ export default function EditProductAdminPage() {
         images,
         imageUrl: images.length > 0 ? images[0] : undefined,
         trailerUrl: trailerUrl.trim() || undefined,
-        ageRating: ageRating.trim() || undefined,
+        ageRating: resolvedAgeRating || undefined,
         genres: genresList.length > 0 ? genresList : undefined,
         contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
       };
@@ -472,7 +504,7 @@ export default function EditProductAdminPage() {
         payload.gameMetadata = {
           platform: gamePlatform,
           edition: gameEdition,
-          isDigital: gameIsDigital,
+          isDigital: Boolean(gameIsDigital),
           publisher: gamePublisher,
           audioLanguages: gameAudioLanguages || undefined,
           subtitleLanguages: gameSubtitleLanguages || undefined,
@@ -585,7 +617,7 @@ export default function EditProductAdminPage() {
           Editar Producto: <span className="text-[#FF6B35]">{sku}</span>
         </h1>
         <p className="text-sm text-[#555555]">
-          Actualiza precios en CLP, stock, modalidad de preventa, fotos e imágenes y metadatos de coleccionista.
+          Actualiza precios en CLP, stock, formato físico/digital, clasificación por edad y metadatos de coleccionista.
         </p>
       </div>
 
@@ -599,6 +631,7 @@ export default function EditProductAdminPage() {
             <div className="flex items-center gap-3 pt-2">
               <Link
                 href={`/product/${sku.toLowerCase()}`}
+                target="_blank"
                 className="underline font-bold text-emerald-300 hover:text-white"
               >
                 Abrir ficha en tienda &rarr;
@@ -635,7 +668,7 @@ export default function EditProductAdminPage() {
               Información Básica del Producto
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <label className="block text-xs font-semibold text-[#9bb5c2]">
@@ -685,26 +718,52 @@ export default function EditProductAdminPage() {
                   onChange={(e) => setType(e.target.value as ProductType)}
                   className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                 >
-                  <option value="VIDEO_GAME">Videojuegos</option>
                   <option value="FIGURE">Figuras de Escala</option>
+                  <option value="VIDEO_GAME">Videojuegos</option>
                   <option value="COLLECTIBLE">TCG & Rarezas PSA</option>
                   <option value="BUNDLE">Bundle Compuesto</option>
+                  <option value="OTHER">+ Otra Categoría / Personalizada</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">
-                  Stock Físico Disponible *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={stockAvailable}
-                  onChange={(e) => setStockAvailable(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
-                />
-              </div>
+              {/* Custom Category Details when type === OTHER */}
+              {type === "OTHER" && (
+                <div className="sm:col-span-2 p-4 rounded-xl bg-[#004E72]/20 border border-[#FF6E42]/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-[#FF6E42]" />
+                      Nombre de la Categoría Personalizada *
+                    </label>
+                    <span className="text-[10px] text-[#9bb5c2]">Elige un preset o escribe un nombre libre</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {CUSTOM_CATEGORY_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setCustomCategoryLabel(preset)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
+                          customCategoryLabel === preset
+                            ? "bg-[#FF6E42] text-[#092634] border-[#FF6E42]"
+                            : "bg-[#092634] text-[#9bb5c2] border-[#004E72]/60 hover:text-white"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="text"
+                    required={type === "OTHER"}
+                    value={customCategoryLabel}
+                    onChange={(e) => setCustomCategoryLabel(e.target.value)}
+                    placeholder="Ej: Consola Retro, Ropa Gamer, Accesorio de Edición..."
+                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/70 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                  />
+                </div>
+              )}
             </div>
 
             <div>
@@ -757,19 +816,71 @@ export default function EditProductAdminPage() {
                 </p>
               </div>
 
+              {/* Worldwide Age Rating Selector */}
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-[#9bb5c2]">
                   Clasificación de Edad / Sello
                 </label>
-                <input
-                  type="text"
+                <select
                   value={ageRating}
                   onChange={(e) => setAgeRating(e.target.value)}
-                  placeholder="14+ 14 AÑOS O MÁS"
-                  className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
+                >
+                  <optgroup label="🇨🇱 Chile (Ley 19.846)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "CHILE").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇺🇸 ESRB (América)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "ESRB").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇪🇺 PEGI (Europa)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "PEGI").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇯🇵 CERO (Japón)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "CERO").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇩🇪 USK (Alemania)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "USK").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🌐 General & Exento">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "OTHER").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+
+                {ageRating === "CUSTOM" && (
+                  <input
+                    type="text"
+                    value={customAgeRating}
+                    onChange={(e) => setCustomAgeRating(e.target.value)}
+                    placeholder="Escribe el sello personalizado..."
+                    className="w-full mt-1 px-3 py-1.5 rounded-lg bg-[#004E72]/30 border border-[#FF6E42]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
+                  />
+                )}
                 <p className="text-[10px] text-[#9bb5c2]">
-                  Badge oficial regulatorio (14+, 18+, TE).
+                  Placa regulatoria oficial visible en la tienda.
                 </p>
               </div>
 
@@ -788,18 +899,22 @@ export default function EditProductAdminPage() {
             </div>
           </div>
 
-          {/* Section 2: Pricing & Pre-Order in CLP */}
+          {/* Section 2: Pricing & Stock (CLP) - Responsive and perfectly aligned */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-xl">
             <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2 border-b border-[#004E72]/40 pb-3">
               <Sparkles className="w-4 h-4 text-[#FF6E42]" />
-              Precios en Moneda Chilena (CLP) & Modalidad
+              Precios en Moneda Chilena (CLP) & Stock
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">
-                  Precio Oferta / Venta (CLP) *
-                </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+              {/* Card 1: Precio Venta */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Precio Venta *
+                  </label>
+                  <span className="text-[10px] text-[#FF6E42] font-semibold">Oferta CLP</span>
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9bb5c2] font-mono">$</span>
                   <input
@@ -808,23 +923,26 @@ export default function EditProductAdminPage() {
                     required
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono font-bold focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono font-bold focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
-                <span className="text-[10px] text-[#9bb5c2] mt-1 block">
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2] font-mono">
                   {formatCLP(price)}
-                </span>
+                </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-[#9bb5c2]">
-                    Precio Normal / Lista
+              {/* Card 2: Precio Normal / Lista */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Precio Normal
                   </label>
-                  {originalPrice && originalPrice > price && (
-                    <span className="text-[10px] font-bold text-red-400 bg-red-950/80 border border-red-500/40 px-1.5 py-0.2 rounded">
-                      -{Math.round(((originalPrice - price) / originalPrice) * 100)}%
+                  {originalPrice && originalPrice > price ? (
+                    <span className="text-[10px] font-bold text-red-400 bg-red-950/80 border border-red-500/40 px-1.5 py-0.5 rounded">
+                      -{Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF
                     </span>
+                  ) : (
+                    <span className="text-[10px] text-[#9bb5c2]">Tachado</span>
                   )}
                 </div>
                 <div className="relative">
@@ -835,18 +953,22 @@ export default function EditProductAdminPage() {
                     value={originalPrice || ""}
                     onChange={(e) => setOriginalPrice(e.target.value ? Number(e.target.value) : undefined)}
                     placeholder="Ej. 69900"
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
-                <span className="text-[10px] text-[#9bb5c2] mt-1 block">
-                  {originalPrice ? `Tachado: ${formatCLP(originalPrice)}` : "Opcional (para mostrar % OFF)"}
-                </span>
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2] font-mono">
+                  {originalPrice ? `Tachado: ${formatCLP(originalPrice)}` : "Opcional"}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">
-                  Costo Unitario (CLP) *
-                </label>
+              {/* Card 3: Costo Unitario */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Costo Unitario *
+                  </label>
+                  <span className="text-[10px] text-[#9bb5c2]">Adquisición</span>
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9bb5c2] font-mono">$</span>
                   <input
@@ -855,12 +977,33 @@ export default function EditProductAdminPage() {
                     required
                     value={costPrice}
                     onChange={(e) => setCostPrice(Number(e.target.value))}
-                    className="w-full pl-8 pr-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
-                <span className="text-[10px] text-[#9bb5c2] mt-1 block">
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2] font-mono">
                   Margen: {price > 0 ? (((price - costPrice) / price) * 100).toFixed(1) : 0}%
-                </span>
+                </div>
+              </div>
+
+              {/* Card 4: Stock Físico Disponible */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Stock Disponible *
+                  </label>
+                  <span className="text-[10px] text-emerald-400 font-semibold">Unidades</span>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={stockAvailable}
+                  onChange={(e) => setStockAvailable(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
+                />
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2]">
+                  Unidades físicas en almacén
+                </div>
               </div>
             </div>
 
@@ -1123,13 +1266,54 @@ export default function EditProductAdminPage() {
                 <Gamepad2 className="w-4 h-4 text-[#FF6E42]" />
                 Ficha de Especificaciones Técnicas del Videojuego
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Formato de Entrega: Físico vs Digital */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-semibold text-[#F9F9F9] block">
+                    Formato de Entrega del Videojuego *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setGameIsDigital(false)}
+                      className={`p-3 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                        !gameIsDigital
+                          ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                          : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
+                      }`}
+                    >
+                      <Disc className={`w-5 h-5 shrink-0 ${!gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                      <div>
+                        <div className="text-xs font-bold">Formato Físico (Caja & Disco/Cartucho)</div>
+                        <div className="text-[10px] opacity-80">Incluye caja sellada, disco Blu-ray o cartucho.</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGameIsDigital(true)}
+                      className={`p-3 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                        gameIsDigital
+                          ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                          : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
+                      }`}
+                    >
+                      <Download className={`w-5 h-5 shrink-0 ${gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                      <div>
+                        <div className="text-xs font-bold">Formato Digital (Código Canjeable / Key)</div>
+                        <div className="text-[10px] opacity-80">Licencia descargable para PS Store, eShop, Steam, Xbox.</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Plataforma</label>
                   <select
                     value={gamePlatform}
                     onChange={(e) => setGamePlatform(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                   >
                     <option value="PS5">PlayStation 5</option>
                     <option value="NINTENDO_SWITCH">Nintendo Switch</option>
@@ -1137,19 +1321,21 @@ export default function EditProductAdminPage() {
                     <option value="XBOX_SERIES">Xbox Series X|S</option>
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Edición</label>
                   <select
                     value={gameEdition}
                     onChange={(e) => setGameEdition(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                   >
                     <option value="STANDARD">Estándar</option>
                     <option value="DELUXE">Deluxe</option>
                     <option value="COLLECTORS">Coleccionista</option>
                   </select>
                 </div>
-                <div>
+
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Fabricante / Publisher</label>
                   <input
                     type="text"
@@ -1159,6 +1345,7 @@ export default function EditProductAdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Idioma Audio (Voces)</label>
                   <input
@@ -1169,6 +1356,7 @@ export default function EditProductAdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Idioma Subtítulos</label>
                   <input
@@ -1179,6 +1367,7 @@ export default function EditProductAdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">N° de Jugadores</label>
                   <input
@@ -1189,6 +1378,7 @@ export default function EditProductAdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Espacio en Disco</label>
                   <input
@@ -1199,6 +1389,7 @@ export default function EditProductAdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
                   />
                 </div>
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Resolución / Rendimiento</label>
                   <input
@@ -1300,7 +1491,7 @@ export default function EditProductAdminPage() {
                   <select
                     value={collectibleAuth}
                     onChange={(e) => setCollectibleAuth(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                   >
                     <option value="PSA">PSA (Professional Sports Authenticator)</option>
                     <option value="BGS">Beckett (BGS)</option>
@@ -1313,7 +1504,7 @@ export default function EditProductAdminPage() {
                   <select
                     value={collectibleCondition}
                     onChange={(e) => setCollectibleCondition(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                   >
                     <option value="GEM_MINT_10">Gem Mint 10</option>
                     <option value="MINT_9">Mint 9</option>
@@ -1340,7 +1531,7 @@ export default function EditProductAdminPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-3 px-6 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] disabled:opacity-50 text-[#F9F9F9] font-bold text-sm transition shadow-lg shadow-[#FF6E42]/25 flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-6 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] disabled:opacity-50 text-[#F9F9F9] font-bold text-sm transition shadow-lg shadow-[#FF6E42]/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {submitting ? "Guardando Cambios..." : "Guardar Cambios del Producto"}
@@ -1348,14 +1539,13 @@ export default function EditProductAdminPage() {
             <button
               type="button"
               onClick={() => setShowDeleteModal(true)}
-              className="px-5 py-3 rounded-xl bg-red-950/40 hover:bg-red-600 text-red-300 hover:text-white font-bold text-xs border border-red-500/50 transition flex items-center gap-2"
+              className="py-3 px-4 rounded-xl bg-red-600/20 hover:bg-red-600 border border-red-500/50 text-red-300 hover:text-white font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Eliminar</span>
+              <Trash2 className="w-4 h-4" /> Eliminar
             </button>
             <Link
               href="/admin/products"
-              className="px-5 py-3 rounded-xl bg-[#05161f] hover:bg-[#004E72]/40 text-[#9bb5c2] hover:text-[#F9F9F9] font-medium text-xs border border-[#004E72]/60 transition text-center"
+              className="py-3 px-4 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/50 border border-[#004E72]/60 text-[#9bb5c2] hover:text-[#F9F9F9] text-xs font-semibold transition"
             >
               Cancelar
             </Link>
@@ -1363,43 +1553,90 @@ export default function EditProductAdminPage() {
         </form>
 
         {/* Live Preview Column */}
-        <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-24">
-          <div className="flex items-center gap-2 text-xs font-bold text-[#FF6E42] uppercase tracking-wider">
-            <Eye className="w-4 h-4" />
-            Vista Previa en Tienda (En Vivo)
+        <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-8">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#FF6E42] uppercase tracking-wider flex items-center gap-1.5">
+              <Eye className="w-4 h-4" /> Vista Previa en Vivo
+            </span>
+            <span className="text-[10px] text-[#9bb5c2] font-mono">Actualización en directo</span>
           </div>
-          <p className="text-[11px] text-[#9bb5c2]">
-            Así es exactamente como los clientes verán esta tarjeta en el catálogo público con los datos actuales.
-          </p>
 
-          <div className="p-3 rounded-2xl bg-[#05161f] border border-[#004E72]/60 shadow-2xl">
+          <div className="p-4 rounded-2xl bg-[#092634]/40 border border-[#004E72]/40 shadow-inner">
             <ProductCard product={previewProduct} />
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#092634] border border-[#004E72]/40 space-y-2 text-xs">
+            <h4 className="font-bold text-[#F9F9F9] flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#FF6E42]" /> Información de Publicación
+            </h4>
+            <p className="text-[#9bb5c2] leading-relaxed">
+              Los cambios que guardes se sincronizarán directamente en la base de datos de productos y en Cloud Firestore.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Modal de Confirmación de Eliminación */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#092634] border-2 border-red-500/60 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-400">
-              <div className="p-2.5 rounded-xl bg-red-500/20">
-                <Trash2 className="w-6 h-6 text-red-400" />
+      {/* Floating Notification for Instant Feedback without Scrolling */}
+      {successMsg && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md w-[calc(100vw-3rem)] p-4 rounded-2xl bg-[#092634]/95 border-2 border-emerald-500 text-white shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">¿Eliminar Producto de Firestore?</h3>
-                <p className="text-xs text-[#9bb5c2] font-mono">{sku}</p>
+                <h4 className="font-bold text-sm text-emerald-200">
+                  ¡Cambios guardados con éxito!
+                </h4>
+                <p className="text-xs text-[#9bb5c2] mt-0.5 line-clamp-1">
+                  SKU: <span className="font-mono font-bold text-white">{sku}</span> • {name}
+                </p>
               </div>
             </div>
-            <p className="text-xs text-[#d1e1e9] leading-relaxed">
-              ¿Estás seguro de que deseas eliminar permanentemente <strong>{name || sku}</strong>? Se borrará el documento en Cloud Firestore y dejará de mostrarse en la tienda.
+            <button
+              type="button"
+              onClick={() => setSuccessMsg(null)}
+              className="text-[#9bb5c2] hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
+              title="Cerrar notificación"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#004E72]/50">
+            <Link
+              href={`/product/${sku.toLowerCase()}`}
+              target="_blank"
+              className="flex-1 py-2 px-3 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-white text-xs font-bold text-center transition flex items-center justify-center gap-1.5 shadow"
+            >
+              Ver en Tienda <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/admin/products"
+              className="py-2 px-3 rounded-xl bg-[#004E72] hover:bg-[#004E72]/80 text-white text-xs font-semibold text-center transition"
+            >
+              Ir al Inventario
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full p-6 rounded-2xl bg-[#092634] border border-red-500/50 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-red-400">
+              <AlertCircle className="w-6 h-6" />
+              <h3 className="font-bold text-base text-[#F9F9F9]">¿Eliminar este producto?</h3>
+            </div>
+            <p className="text-xs text-[#9bb5c2] leading-relaxed">
+              Estás a punto de eliminar definitivamente <strong className="text-white font-mono">{sku}</strong> del catálogo de la tienda y de Cloud Firestore. Esta acción no se puede deshacer.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-xl bg-[#05161f] border border-[#004E72] text-xs font-bold text-[#9bb5c2] hover:text-white transition"
+                className="px-4 py-2 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/50 text-[#9bb5c2] hover:text-[#F9F9F9] text-xs font-semibold transition"
               >
                 Cancelar
               </button>
@@ -1407,14 +1644,16 @@ export default function EditProductAdminPage() {
                 type="button"
                 disabled={deleting}
                 onClick={handleDelete}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-600/30 flex items-center gap-1.5"
               >
                 {deleting ? (
-                  <span>Borrando de Firestore...</span>
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Eliminando...
+                  </>
                 ) : (
                   <>
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Sí, Eliminar Producto</span>
+                    <Trash2 className="w-3.5 h-3.5" /> Confirmar Eliminación
                   </>
                 )}
               </button>

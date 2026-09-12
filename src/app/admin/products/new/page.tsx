@@ -23,12 +23,36 @@ import {
   Star,
   Link2,
   Wand2,
+  Disc,
+  Download,
+  Tag,
+  X,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
-import { ProductDomainEntity, ProductType, FigureScale, FigureManufacturer, GamePlatform, GameEdition, CollectibleCategory, CollectibleCondition, Authenticator } from "@/lib/types/domain";
+import {
+  ProductDomainEntity,
+  ProductType,
+  FigureScale,
+  FigureManufacturer,
+  GamePlatform,
+  GameEdition,
+  CollectibleCategory,
+  CollectibleCondition,
+  Authenticator,
+} from "@/lib/types/domain";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
+import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
+
+const CUSTOM_CATEGORY_PRESETS = [
+  "Consola / Hardware",
+  "Ropa & Estilo",
+  "Accesorio Gaming",
+  "Manga / Artbook",
+  "Merchandising",
+  "Audio / OST",
+];
 
 export default function NewProductAdminPage() {
   // Available existing products for bundle composition
@@ -39,6 +63,7 @@ export default function NewProductAdminPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ProductType>("FIGURE");
+  const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [price, setPrice] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
   const [costPrice, setCostPrice] = useState<number>(0);
@@ -48,7 +73,8 @@ export default function NewProductAdminPage() {
 
   // Multimedia & Badges
   const [trailerUrl, setTrailerUrl] = useState("");
-  const [ageRating, setAgeRating] = useState("14+ 14 AÑOS O MÁS");
+  const [ageRating, setAgeRating] = useState("TE");
+  const [customAgeRating, setCustomAgeRating] = useState("");
   const [genresInput, setGenresInput] = useState("Acción, Aventuras");
 
   // Images State (Cover & Carrousel)
@@ -249,143 +275,6 @@ export default function NewProductAdminPage() {
       .catch(() => {});
   }, []);
 
-  // Quick Preset Presets
-  const applyPreset = (presetKey: "GOJO" | "ZELDA" | "CHARIZARD" | "BUNDLE" | "PRAGMATA") => {
-    setErrorMsg(null);
-    setFieldErrors({});
-
-    if (presetKey === "PRAGMATA") {
-      setType("VIDEO_GAME");
-      setSku("VG-PRAGMATA-PS5");
-      setName("Pragmata [Juego PS5]");
-      setDescription("Aventura de acción y ciencia ficción ambientada en un futuro distópico en la luna. Hugh y la pequeña Diana colaboran combinando habilidades de hackeo y armamento pesado para abrirse camino.");
-      setPrice(59900);
-      setOriginalPrice(69900);
-      setCostPrice(44000);
-      setStockAvailable(30);
-      setIsPreOrder(false);
-      setGamePlatform("PS5");
-      setGameEdition("STANDARD");
-      setGamePublisher("Capcom");
-      setGameIsDigital(false);
-      setAgeRating("14+ 14 AÑOS O MÁS");
-      setGenresInput("Acción, Aventuras, Ciencia Ficción");
-      setGameAudioLanguages("Español - Inglés");
-      setGameSubtitleLanguages("Español - Inglés");
-      setGamePlayers("1 Jugador");
-      setGameFileSize("55 GB");
-      setGameResolution("4K Ray-Tracing 60fps");
-      setTrailerUrl("https://www.youtube.com/watch?v=xoxCHe80A-w");
-      setImages([
-        "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80",
-      ]);
-      setContentGallery([
-        "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
-      ]);
-    } else if (presetKey === "GOJO") {
-      setType("FIGURE");
-      setSku("FIG-GOJO-17-01");
-      setName("Satoru Gojo: Murasaki Hollow 1/7 Scale PVC Figure (Edición Especial)");
-      setDescription("Figura oficial a escala 1/7 con efectos translúcidos de energía maldita, mirada intercambiable y base diorama premium.");
-      setPrice(189990);
-      setOriginalPrice(219990);
-      setCostPrice(115000);
-      setStockAvailable(20);
-      setIsPreOrder(true);
-      setPreOrderState("PREORDER_OPEN");
-      setFigureScale("SCALE_1_7");
-      setFigureManufacturer("GOOD_SMILE_COMPANY");
-      setFigureArrivalDate("Noviembre 2026");
-      setFigureDepositPercent(0.2);
-      setAgeRating("14+ 14 AÑOS O MÁS");
-      setGenresInput("Anime, Jujutsu Kaisen, Shonen");
-      setFigureMaterial("PVC & ABS de alta densidad");
-      setFigureDimensions("28 cm de alto x 20 cm de diámetro");
-      setFigureSculptor("Design COCO / eStream");
-      setFigureBoxCondition("Caja sellada impecable (Mint in Box)");
-      setTrailerUrl("https://www.youtube.com/watch?v=pkZXUFflc68");
-      setImages([
-        "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-      ]);
-      setContentGallery([
-        "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200&auto=format&fit=crop&q=80",
-      ]);
-    } else if (presetKey === "ZELDA") {
-      setType("VIDEO_GAME");
-      setSku("VG-ZELDA-TOTK-CE");
-      setName("The Legend of Zelda: Tears of the Kingdom Collector's Edition");
-      setDescription("Edición coleccionista física con SteelBook, set de 4 pines temáticos, póster metálico ICONART y libro de arte exclusivo.");
-      setPrice(109990);
-      setOriginalPrice(129990);
-      setCostPrice(82000);
-      setStockAvailable(12);
-      setIsPreOrder(false);
-      setGamePlatform("NINTENDO_SWITCH");
-      setGameEdition("COLLECTORS");
-      setGamePublisher("Nintendo");
-      setGameIsDigital(false);
-      setAgeRating("12+ 12 AÑOS O MÁS");
-      setGenresInput("Aventura, Acción, Mundo Abierto");
-      setGameAudioLanguages("Español - Inglés - Japonés");
-      setGameSubtitleLanguages("Español - Inglés - Japonés");
-      setGamePlayers("1 Jugador");
-      setGameFileSize("18.2 GB");
-      setGameResolution("1080p Dock / 720p Portátil 60fps");
-      setTrailerUrl("https://www.youtube.com/watch?v=uHGShqcAHlQ");
-      setImages([
-        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80",
-      ]);
-      setContentGallery([
-        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80",
-        "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&auto=format&fit=crop&q=80",
-      ]);
-    } else if (presetKey === "CHARIZARD") {
-      setType("COLLECTIBLE");
-      setSku("TCG-CHAR-SHADOW-10");
-      setName("Charizard Shadowless Base Set 1st Ed. 4/102 (PSA 10 Gem Mint)");
-      setDescription("La gema suprema del TCG internacional. Certificada con grado máximo PSA 10 Gem Mint con cápsula sellada ultrasónica libre de rayos UV.");
-      setPrice(8900000);
-      setOriginalPrice(9900000);
-      setCostPrice(7500000);
-      setStockAvailable(1);
-      setIsPreOrder(false);
-      setAgeRating("Todo Espectador");
-      setGenresInput("TCG, Pokémon, Graduadas");
-      setCollectibleCategory("TCG");
-      setCollectibleCondition("GEM_MINT_10");
-      setCollectibleAuth("PSA");
-      setCollectibleLang("Inglés");
-      setCollectibleSerial("PSA-99382101");
-      setImages([
-        "https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=800&auto=format&fit=crop&q=80",
-      ]);
-    } else if (presetKey === "BUNDLE") {
-      setType("BUNDLE");
-      setSku("BUN-ANIME-COLLECTOR");
-      setName("Pack Coleccionista: Figura + Pin Esmaltado + Artbook");
-      setDescription("Bundle con descuento especial que combina figuras exclusivas y artículos conmemorativos con inventario protegido.");
-      setPrice(159990);
-      setOriginalPrice(189990);
-      setCostPrice(110000);
-      setStockAvailable(0);
-      setIsPreOrder(false);
-      setAgeRating("14+ 14 AÑOS O MÁS");
-      setGenresInput("Colección, Bundle, Anime");
-      setImages([
-        "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
-      ]);
-      if (existingProducts.length >= 2) {
-        setSelectedBundleItems([
-          { productId: existingProducts[0].id, quantity: 1 },
-          { productId: existingProducts[1].id, quantity: 1 },
-        ]);
-      }
-    }
-  };
-
   // Live Calculations
   const grossProfitCLP = Math.max(0, price - costPrice);
   const marginPercent = price > 0 ? ((grossProfitCLP / price) * 100).toFixed(1) : "0";
@@ -399,12 +288,19 @@ export default function NewProductAdminPage() {
       .map((g) => g.trim())
       .filter(Boolean);
 
+    const resolvedAgeRating =
+      ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
+
     return {
       id: "preview-id",
       sku: (sku || "SKU-PREVIEW").toUpperCase().trim(),
       name: name || "Nombre del Producto",
       description: description || "Descripción detallada del producto en catálogo.",
       type,
+      customCategoryLabel:
+        type === "OTHER" || customCategoryLabel.trim()
+          ? customCategoryLabel.trim()
+          : undefined,
       price: price || 0,
       originalPrice: originalPrice && originalPrice > 0 ? originalPrice : undefined,
       costPrice: costPrice || 0,
@@ -415,50 +311,62 @@ export default function NewProductAdminPage() {
       images,
       imageUrl: images.length > 0 ? images[0] : undefined,
       trailerUrl: trailerUrl.trim() || undefined,
-      ageRating: ageRating.trim() || undefined,
+      ageRating: resolvedAgeRating || undefined,
       genres: genresList.length > 0 ? genresList : undefined,
       contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
-      gameMetadata: type === "VIDEO_GAME" ? {
-        id: "meta-game",
-        productId: "preview-id",
-        platform: gamePlatform,
-        edition: gameEdition,
-        isDigital: gameIsDigital,
-        publisher: gamePublisher,
-        audioLanguages: gameAudioLanguages,
-        subtitleLanguages: gameSubtitleLanguages,
-        players: gamePlayers,
-        fileSize: gameFileSize,
-        resolution: gameResolution,
-      } : undefined,
-      figureMetadata: type === "FIGURE" ? {
-        id: "meta-fig",
-        productId: "preview-id",
-        scale: figureScale,
-        manufacturer: figureManufacturer,
-        estimatedArrivalDate: figureArrivalDate,
-        allowsPartialDeposit: isPreOrder,
-        minimumDepositPercent: figureDepositPercent,
-        material: figureMaterial,
-        dimensions: figureDimensions,
-        sculptor: figureSculptor,
-        boxCondition: figureBoxCondition,
-      } : undefined,
-      collectibleMetadata: type === "COLLECTIBLE" ? {
-        id: "meta-col",
-        productId: "preview-id",
-        category: collectibleCategory,
-        condition: collectibleCondition,
-        authenticationBody: collectibleAuth,
-        cardLanguage: collectibleLang,
-        serialNumber: collectibleSerial,
-      } : undefined,
+      gameMetadata:
+        type === "VIDEO_GAME"
+          ? {
+              id: "meta-game",
+              productId: "preview-id",
+              platform: gamePlatform,
+              edition: gameEdition,
+              isDigital: gameIsDigital,
+              publisher: gamePublisher,
+              audioLanguages: gameAudioLanguages,
+              subtitleLanguages: gameSubtitleLanguages,
+              players: gamePlayers,
+              fileSize: gameFileSize,
+              resolution: gameResolution,
+            }
+          : undefined,
+      figureMetadata:
+        type === "FIGURE"
+          ? {
+              id: "meta-fig",
+              productId: "preview-id",
+              scale: figureScale,
+              manufacturer: figureManufacturer,
+              estimatedArrivalDate: figureArrivalDate,
+              allowsPartialDeposit: isPreOrder,
+              minimumDepositPercent: figureDepositPercent,
+              material: figureMaterial,
+              dimensions: figureDimensions,
+              sculptor: figureSculptor,
+              boxCondition: figureBoxCondition,
+            }
+          : undefined,
+      collectibleMetadata:
+        type === "COLLECTIBLE"
+          ? {
+              id: "meta-col",
+              productId: "preview-id",
+              category: collectibleCategory,
+              condition: collectibleCondition,
+              authenticationBody: collectibleAuth,
+              cardLanguage: collectibleLang,
+              serialNumber: collectibleSerial,
+            }
+          : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   }, [
     sku,
     name,
     description,
     type,
+    customCategoryLabel,
     price,
     originalPrice,
     costPrice,
@@ -468,6 +376,7 @@ export default function NewProductAdminPage() {
     images,
     trailerUrl,
     ageRating,
+    customAgeRating,
     genresInput,
     contentGallery,
     gamePlatform,
@@ -492,6 +401,7 @@ export default function NewProductAdminPage() {
     collectibleAuth,
     collectibleLang,
     collectibleSerial,
+    selectedBundleItems,
   ]);
 
   // Handle Submit
@@ -506,13 +416,21 @@ export default function NewProductAdminPage() {
       .map((g) => g.trim())
       .filter(Boolean);
 
+    const resolvedAgeRating =
+      ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
+
     const payload: any = {
       sku: sku.trim().toUpperCase(),
       name: name.trim(),
       description: description.trim(),
       type,
+      customCategoryLabel:
+        type === "OTHER" || customCategoryLabel.trim()
+          ? customCategoryLabel.trim()
+          : undefined,
       price: Number(price),
-      originalPrice: originalPrice && Number(originalPrice) > 0 ? Number(originalPrice) : undefined,
+      originalPrice:
+        originalPrice && Number(originalPrice) > 0 ? Number(originalPrice) : undefined,
       costPrice: Number(costPrice),
       stockAvailable: Number(stockAvailable),
       isPreOrder: Boolean(isPreOrder),
@@ -520,7 +438,7 @@ export default function NewProductAdminPage() {
       images: images.length > 0 ? images : undefined,
       imageUrl: images.length > 0 ? images[0] : undefined,
       trailerUrl: trailerUrl.trim() || undefined,
-      ageRating: ageRating.trim() || undefined,
+      ageRating: resolvedAgeRating || undefined,
       genres: genresList.length > 0 ? genresList : undefined,
       contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
     };
@@ -529,7 +447,7 @@ export default function NewProductAdminPage() {
       payload.gameMetadata = {
         platform: gamePlatform,
         edition: gameEdition,
-        isDigital: gameIsDigital,
+        isDigital: Boolean(gameIsDigital),
         publisher: gamePublisher,
         audioLanguages: gameAudioLanguages || undefined,
         subtitleLanguages: gameSubtitleLanguages || undefined,
@@ -584,7 +502,7 @@ export default function NewProductAdminPage() {
           );
         }
         setCreatedProduct(prod);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        // Do not force scroll to top: floating toast notifies admin right where they are!
       }
     } catch (err: any) {
       setErrorMsg(err?.message || "Error de conexión con el servidor");
@@ -595,8 +513,8 @@ export default function NewProductAdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Top Header & Breadcrumbs */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#E5E5E5] pb-6">
+      {/* Top Header & Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6B35] uppercase tracking-wider">
             <Sliders className="w-4 h-4" />
@@ -606,7 +524,7 @@ export default function NewProductAdminPage() {
             Crear Nuevo Producto en Catálogo
           </h1>
           <p className="text-sm text-[#555555]">
-            Configura preventas con pie porcentual, cartas TCG graduadas con cápsula o videojuegos con sincronización CLP.
+            Configura preventas con pie porcentual, cartas TCG graduadas con cápsula, videojuegos físicos/digitales o nuevas categorías personalizadas.
           </p>
         </div>
 
@@ -626,7 +544,7 @@ export default function NewProductAdminPage() {
         </div>
       </div>
 
-      {/* Success Notification Banner */}
+      {/* Top Success Banner (if user happens to be near top) */}
       {createdProduct && (
         <div className="p-6 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-[#F9F9F9] space-y-4 animate-in fade-in-50 duration-300">
           <div className="flex items-start justify-between">
@@ -666,6 +584,7 @@ export default function NewProductAdminPage() {
               onClick={() => {
                 setCreatedProduct(null);
                 setSku(`PROD-${Date.now().toString().slice(-4)}`);
+                setName("");
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#092634] hover:bg-[#004E72]/40 text-[#F9F9F9] text-xs font-semibold border border-[#004E72]/60 transition"
             >
@@ -674,70 +593,6 @@ export default function NewProductAdminPage() {
           </div>
         </div>
       )}
-
-      {/* Preset Buttons Strip */}
-      <div className="p-4 rounded-2xl bg-[#092634] border border-[#004E72]/40 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-bold text-[#FF6E42]">
-          <Sparkles className="w-4 h-4" />
-          Plantillas Rápidas de Alta Especialización (1-Click)
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => applyPreset("PRAGMATA")}
-            className="px-3 py-2 rounded-xl bg-[#FF6E42]/20 hover:bg-[#FF6E42] border border-[#FF6E42]/60 text-left transition group"
-          >
-            <div className="text-[11px] font-bold text-[#F9F9F9] group-hover:text-[#092634]">
-              🎮 Pragmata [PS5]
-            </div>
-            <div className="text-[10px] text-[#9bb5c2] group-hover:text-[#092634]">Capcom • Trailer & Specs</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => applyPreset("GOJO")}
-            className="px-3 py-2 rounded-xl bg-[#004E72]/40 hover:bg-[#004E72] border border-[#004E72]/60 text-left transition group"
-          >
-            <div className="text-[11px] font-bold text-[#F9F9F9] group-hover:text-[#FF6E42]">
-              🎎 Figura Gojo 1/7
-            </div>
-            <div className="text-[10px] text-[#9bb5c2]">Preventa • Pie 20% CLP</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => applyPreset("ZELDA")}
-            className="px-3 py-2 rounded-xl bg-[#004E72]/40 hover:bg-[#004E72] border border-[#004E72]/60 text-left transition group"
-          >
-            <div className="text-[11px] font-bold text-[#F9F9F9] group-hover:text-[#FF6E42]">
-              🗡️ Zelda TOTK Collector
-            </div>
-            <div className="text-[10px] text-[#9bb5c2]">Videojuego • Switch Físico</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => applyPreset("CHARIZARD")}
-            className="px-3 py-2 rounded-xl bg-[#004E72]/40 hover:bg-[#004E72] border border-[#004E72]/60 text-left transition group"
-          >
-            <div className="text-[11px] font-bold text-[#F9F9F9] group-hover:text-[#FF6E42]">
-              ⚡ Charizard PSA 10
-            </div>
-            <div className="text-[10px] text-[#9bb5c2]">TCG • Certificación UV</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => applyPreset("BUNDLE")}
-            className="px-3 py-2 rounded-xl bg-[#004E72]/40 hover:bg-[#004E72] border border-[#004E72]/60 text-left transition group"
-          >
-            <div className="text-[11px] font-bold text-[#F9F9F9] group-hover:text-[#FF6E42]">
-              📦 Master Pack Bundle
-            </div>
-            <div className="text-[10px] text-[#9bb5c2]">Lote • Stock Compuesto</div>
-          </button>
-        </div>
-      </div>
 
       {/* Main Grid: Form + Live Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -768,12 +623,13 @@ export default function NewProductAdminPage() {
               1. Tipo de Producto Especializado
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {[
                 { id: "FIGURE", label: "Figura", icon: Clock },
                 { id: "VIDEO_GAME", label: "Videojuego", icon: Gamepad2 },
                 { id: "COLLECTIBLE", label: "Coleccionable / TCG", icon: Trophy },
                 { id: "BUNDLE", label: "Bundle Lote", icon: Layers },
+                { id: "OTHER", label: "+ Otra Categoría", icon: Tag },
               ].map((item) => {
                 const Icon = item.icon;
                 const isSelected = type === item.id;
@@ -788,16 +644,56 @@ export default function NewProductAdminPage() {
                     }}
                     className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center ${
                       isSelected
-                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md shadow-[#004E72]/40"
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md shadow-[#004E72]/40 ring-1 ring-[#FF6E42]"
                         : "bg-[#092634]/60 border-[#004E72]/30 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9]"
                     }`}
                   >
                     <Icon className={`w-5 h-5 ${isSelected ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
-                    <span className="text-xs font-bold">{item.label}</span>
+                    <span className="text-xs font-bold leading-tight">{item.label}</span>
                   </button>
                 );
               })}
             </div>
+
+            {/* Custom Category Subpanel (when OTHER is active) */}
+            {type === "OTHER" && (
+              <div className="p-4 rounded-xl bg-[#004E72]/20 border border-[#FF6E42]/50 space-y-3 animate-in fade-in-50 duration-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-[#FF6E42]" />
+                    Nombre de la Categoría Personalizada *
+                  </label>
+                  <span className="text-[10px] text-[#9bb5c2]">Selecciona una plantilla o escribe una nueva</span>
+                </div>
+
+                {/* Preset Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {CUSTOM_CATEGORY_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCustomCategoryLabel(preset)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
+                        customCategoryLabel === preset
+                          ? "bg-[#FF6E42] text-[#092634] border-[#FF6E42]"
+                          : "bg-[#092634] text-[#9bb5c2] border-[#004E72]/60 hover:text-[#F9F9F9] hover:border-[#FF6E42]/50"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  required={type === "OTHER"}
+                  value={customCategoryLabel}
+                  onChange={(e) => setCustomCategoryLabel(e.target.value)}
+                  placeholder="Ej: Consola Nintendo, Polerón Edición Limitada, Joypad Pro..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#092634] border border-[#004E72]/80 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                />
+              </div>
+            )}
           </div>
 
           {/* Section 2: General Information */}
@@ -904,7 +800,7 @@ export default function NewProductAdminPage() {
             </div>
           </div>
 
-          {/* Section 2.5: Multimedia, Trailer Oficial & Clasificación */}
+          {/* Section 3: Multimedia, Trailer Oficial & Clasificación Mundial */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
             <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
@@ -929,17 +825,69 @@ export default function NewProductAdminPage() {
                 </p>
               </div>
 
+              {/* Worldwide Age Rating Selector */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-[#9bb5c2]">Clasificación de Edad / Sello</label>
-                <input
-                  type="text"
+                <select
                   value={ageRating}
                   onChange={(e) => setAgeRating(e.target.value)}
-                  placeholder="14+ 14 AÑOS O MÁS"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                />
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42] cursor-pointer"
+                >
+                  <optgroup label="🇨🇱 Chile (Ley 19.846)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "CHILE").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇺🇸 ESRB (América)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "ESRB").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇪🇺 PEGI (Europa)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "PEGI").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇯🇵 CERO (Japón)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "CERO").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🇩🇪 USK (Alemania)">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "USK").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🌐 General & Exento">
+                    {WORLDWIDE_AGE_RATINGS.filter((r) => r.system === "OTHER").map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#092634] text-white">
+                        {r.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+
+                {ageRating === "CUSTOM" && (
+                  <input
+                    type="text"
+                    value={customAgeRating}
+                    onChange={(e) => setCustomAgeRating(e.target.value)}
+                    placeholder="Escribe el sello (ej: 16+, Coleccionismo Adulto)"
+                    className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-[#004E72]/30 border border-[#FF6E42]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                  />
+                )}
                 <p className="text-[10px] text-[#9bb5c2]">
-                  Muestra la placa regulatoria oficial (ej. 14+, 18+, TE).
+                  Muestra la placa regulatoria oficial en la ficha del producto.
                 </p>
               </div>
 
@@ -949,73 +897,51 @@ export default function NewProductAdminPage() {
                   type="text"
                   value={genresInput}
                   onChange={(e) => setGenresInput(e.target.value)}
-                  placeholder="Acción, Aventuras, Ciencia Ficción"
+                  placeholder="Acción, RPG, Mundo Abierto, Shonen"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
                 />
-                <p className="text-[10px] text-[#9bb5c2]">
-                  Se mostrarán como etiquetas / tags interactivas debajo de la ficha del producto.
-                </p>
               </div>
             </div>
           </div>
 
-          {/* Section 4: Product Images Gallery */}
+          {/* Section 4: Images & Cover */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                4. Galería de Imágenes del Producto
+                4. Galería de Fotos & Portada
               </h2>
-              <span className="text-[11px] font-mono text-[#FF6E42] font-semibold">
-                {images.length} {images.length === 1 ? "imagen cargada" : "imágenes cargadas"}
+              <span className="text-xs text-[#9bb5c2] font-mono">
+                {images.length} imagen{images.length !== 1 ? "es" : ""} cargada{images.length !== 1 ? "s" : ""}
               </span>
             </div>
 
-            <p className="text-xs text-[#9bb5c2]">
-              Sube fotografías desde tu dispositivo o ingresa enlaces URL directos. La primera imagen se usará como portada principal en el catálogo y la ficha del producto.
-            </p>
-
-            {/* Input methods: URL & File Upload */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Option A: Enter Image URL */}
-              <div className="p-3.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/50 space-y-2">
-                <label className="text-xs font-semibold text-[#F9F9F9] flex items-center gap-1.5">
-                  <Link2 className="w-3.5 h-3.5 text-[#FF6E42]" />
-                  Añadir por URL Web
-                </label>
-                <div className="flex gap-2">
+            {/* Input by URL and File Upload */}
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9bb5c2]" />
                   <input
                     type="url"
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddImageUrl();
-                      }
-                    }}
-                    placeholder="https://ejemplo.com/figura.jpg"
-                    className="flex-1 px-3 py-2 rounded-lg bg-[#092634] border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddImageUrl}
-                    className="px-3 py-2 rounded-lg bg-[#004E72] hover:bg-[#FF6E42] text-[#F9F9F9] text-xs font-bold transition shrink-0"
-                  >
-                    + Añadir
-                  </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleAddImageUrl}
+                  className="px-4 py-2.5 rounded-xl bg-[#004E72] hover:bg-[#004E72]/80 text-[#F9F9F9] text-xs font-semibold transition shrink-0 flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" /> Agregar URL
+                </button>
               </div>
 
-              {/* Option B: Local File Upload */}
-              <div className="p-3.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/50 space-y-2">
-                <label className="text-xs font-semibold text-[#F9F9F9] flex items-center gap-1.5">
-                  <UploadCloud className="w-3.5 h-3.5 text-[#FF6E42]" />
-                  Subir desde tu Dispositivo
-                </label>
-                <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#092634] hover:bg-[#004E72]/40 border border-[#004E72]/60 border-dashed text-xs text-[#9bb5c2] hover:text-[#F9F9F9] cursor-pointer transition">
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/50 border border-[#004E72]/60 text-[#F9F9F9] text-xs font-semibold transition">
                   <UploadCloud className="w-4 h-4 text-[#FF6E42]" />
-                  <span>Seleccionar fotos (PNG, JPG, WebP)...</span>
+                  <span>Subir desde mi equipo</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1024,29 +950,27 @@ export default function NewProductAdminPage() {
                     className="hidden"
                   />
                 </label>
+                <span className="text-[11px] text-[#9bb5c2]">
+                  Formatos JPG, PNG, WebP. La primera foto será la portada principal del catálogo.
+                </span>
               </div>
             </div>
 
-            {/* Thumbnail Preview Strip */}
+            {/* Thumbnails Grid */}
             {images.length > 0 ? (
               <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-semibold text-[#9bb5c2] block">
-                  Imágenes seleccionadas (haz clic en "Hacer Portada" para reordenar):
-                </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {images.map((img, idx) => (
                     <div
                       key={idx}
-                      className={`relative group rounded-xl overflow-hidden border bg-[#05161f] transition ${
-                        idx === 0
-                          ? "border-[#FF6E42] shadow-md shadow-[#FF6E42]/20"
-                          : "border-[#004E72]/50 hover:border-[#FF6E42]/60"
+                      className={`relative group rounded-xl overflow-hidden border bg-[#004E72]/10 transition ${
+                        idx === 0 ? "border-[#FF6E42] ring-2 ring-[#FF6E42]/40" : "border-[#004E72]/40"
                       }`}
                     >
-                      <div className="w-full h-24 sm:h-28 overflow-hidden flex items-center justify-center">
+                      <div className="aspect-square w-full">
                         <img
                           src={img}
-                          alt={`Imagen ${idx + 1}`}
+                          alt={`Foto ${idx + 1}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         />
                       </div>
@@ -1086,18 +1010,24 @@ export default function NewProductAdminPage() {
             )}
           </div>
 
-          {/* Section 5: Financials & Stock (CLP) */}
+          {/* Section 5: Financials & Stock (CLP) - Responsive and perfectly aligned */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
             <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
               5. Precios en Moneda Chilena (CLP) & Stock
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#9bb5c2]">Precio Oferta / Venta (CLP) *</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+              {/* Card 1: Precio Venta */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Precio Venta *
+                  </label>
+                  <span className="text-[10px] text-[#FF6E42] font-semibold">Oferta CLP</span>
+                </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-2.5 text-xs text-[#9bb5c2] font-mono">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9bb5c2] font-mono">$</span>
                   <input
                     type="number"
                     required
@@ -1105,42 +1035,57 @@ export default function NewProductAdminPage() {
                     step={100}
                     value={price}
                     onChange={(e) => setPrice(Math.round(Number(e.target.value)))}
-                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
                   />
                 </div>
-                <p className="text-[10px] text-[#9bb5c2]">{formatCLP(price)}</p>
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2] font-mono">
+                  {formatCLP(price)}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#9bb5c2] flex items-center justify-between">
-                  <span>Precio Normal / Lista</span>
-                  {originalPrice && originalPrice > price && (
+              {/* Card 2: Precio Normal / Lista */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Precio Normal
+                  </label>
+                  {originalPrice && originalPrice > price ? (
                     <span className="text-[10px] font-bold text-red-400 bg-red-950/80 border border-red-500/40 px-1.5 py-0.5 rounded">
-                      -{Math.round(((originalPrice - price) / originalPrice) * 100)}%
+                      -{Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF
                     </span>
+                  ) : (
+                    <span className="text-[10px] text-[#9bb5c2]">Tachado</span>
                   )}
-                </label>
+                </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-2.5 text-xs text-[#9bb5c2] font-mono">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9bb5c2] font-mono">$</span>
                   <input
                     type="number"
                     min={0}
                     step={100}
                     value={originalPrice || ""}
-                    onChange={(e) => setOriginalPrice(e.target.value ? Math.round(Number(e.target.value)) : undefined)}
+                    onChange={(e) =>
+                      setOriginalPrice(e.target.value ? Math.round(Number(e.target.value)) : undefined)
+                    }
                     placeholder="Ej. 69900"
-                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
                   />
                 </div>
-                <p className="text-[10px] text-[#9bb5c2]">
-                  {originalPrice ? `Tachado: ${formatCLP(originalPrice)}` : "Opcional (para mostrar % OFF)"}
-                </p>
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2] font-mono">
+                  {originalPrice ? `Tachado: ${formatCLP(originalPrice)}` : "Opcional"}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#9bb5c2]">Costo Unitario (CLP) *</label>
+              {/* Card 3: Costo Unitario */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Costo Unitario *
+                  </label>
+                  <span className="text-[10px] text-[#9bb5c2]">Adquisición</span>
+                </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-2.5 text-xs text-[#9bb5c2] font-mono">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#9bb5c2] font-mono">$</span>
                   <input
                     type="number"
                     required
@@ -1148,48 +1093,56 @@ export default function NewProductAdminPage() {
                     step={100}
                     value={costPrice}
                     onChange={(e) => setCostPrice(Math.round(Number(e.target.value)))}
-                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
+                    className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
                   />
                 </div>
-                <p className="text-[10px] text-[#9bb5c2]">{formatCLP(costPrice)}</p>
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2] font-mono">
+                  {formatCLP(costPrice)}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#9bb5c2]">Stock Disponible Inicial</label>
+              {/* Card 4: Stock Inicial */}
+              <div className="p-3.5 rounded-xl bg-[#004E72]/15 border border-[#004E72]/50 flex flex-col justify-between space-y-2">
+                <div className="h-6 flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#F9F9F9]">
+                    Stock Disponible *
+                  </label>
+                  <span className="text-[10px] text-emerald-400 font-semibold">Unidades</span>
+                </div>
                 <input
                   type="number"
                   required
                   min={0}
                   value={stockAvailable}
                   onChange={(e) => setStockAvailable(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
                 />
-                <p className="text-[10px] text-[#9bb5c2]">
-                  {type === "BUNDLE" ? "Calculado automáticamente por componentes" : "Unidades físicas en almacén"}
-                </p>
+                <div className="h-5 flex items-center text-[10px] text-[#9bb5c2]">
+                  {type === "BUNDLE" ? "Sincronizado con componentes" : "Unidades físicas almacén"}
+                </div>
               </div>
             </div>
 
             {/* Financial Metrics Strip */}
-            <div className="p-3.5 rounded-xl bg-[#004E72]/30 border border-[#004E72]/50 flex items-center justify-between text-xs">
+            <div className="p-3.5 rounded-xl bg-[#004E72]/30 border border-[#004E72]/50 flex flex-wrap items-center justify-between gap-3 text-xs">
               <span className="text-[#9bb5c2]">Margen Bruto Proyectado:</span>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-[#F9F9F9] font-bold">
                   {formatCLP(grossProfitCLP)} de ganancia
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-[#FF6E42]/20 text-[#FF6E42] font-bold font-mono">
+                <span className="px-2.5 py-0.5 rounded-md bg-[#FF6E42]/20 text-[#FF6E42] font-bold font-mono">
                   {marginPercent}% margen
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Section 5: Dynamic Specific Fields */}
+          {/* Section 6: Specific Field Sets by Type */}
           {type === "FIGURE" && (
             <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md animate-in fade-in duration-200">
               <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                5. Especificaciones de Figura Japonesa & Preventa
+                6. Especificaciones de Figura Japonesa & Preventa
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1331,6 +1284,46 @@ export default function NewProductAdminPage() {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Formato de Entrega: Físico vs Digital */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-semibold text-[#F9F9F9] block">
+                    Formato de Entrega del Videojuego *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setGameIsDigital(false)}
+                      className={`p-3.5 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                        !gameIsDigital
+                          ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                          : "bg-[#004E72]/15 border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-white"
+                      }`}
+                    >
+                      <Disc className={`w-5 h-5 shrink-0 ${!gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                      <div>
+                        <div className="text-xs font-bold">Formato Físico (Caja & Disco/Cartucho)</div>
+                        <div className="text-[10px] opacity-80">Incluye caja oficial, disco Blu-ray o cartucho de colección.</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGameIsDigital(true)}
+                      className={`p-3.5 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                        gameIsDigital
+                          ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                          : "bg-[#004E72]/15 border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-white"
+                      }`}
+                    >
+                      <Download className={`w-5 h-5 shrink-0 ${gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                      <div>
+                        <div className="text-xs font-bold">Formato Digital (Código Canjeable / Key)</div>
+                        <div className="text-[10px] opacity-80">Entrega de licencia descargable para PS Store, eShop, Steam o Xbox Live.</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-[#9bb5c2]">Plataforma</label>
                   <select
@@ -1427,96 +1420,95 @@ export default function NewProductAdminPage() {
             </div>
           )}
 
-          {/* Section 6.5: In-Game Content Gallery (Capturas de gameplay & detalles) */}
-          <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
+          {/* Section 6.5: In-Game Content Gallery */}
+          <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md animate-in fade-in duration-200">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                7. Galería de Capturas de Gameplay / Contenido
+                7. Galería de Capturas de Contenido & Gameplay
               </h2>
-              <span className="text-[11px] font-mono text-[#FF6E42] font-semibold">
+              <span className="text-xs text-[#9bb5c2] font-mono">
                 {contentGallery.length} {contentGallery.length === 1 ? "captura" : "capturas"}
               </span>
             </div>
 
             <p className="text-xs text-[#9bb5c2]">
-              Capturas de pantalla de la jugabilidad del videojuego o vistas detalladas de la figura. Se mostrarán con un visor interactivo de pantalla ancha y miniaturas activables.
+              Agrega capturas de alta resolución (gameplay en 4K, detalles del acabado de la figura o holograma TCG) para el visor interactivo de la ficha del producto.
             </p>
 
-            <div className="p-3.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/50 space-y-2">
-              <label className="text-xs font-semibold text-[#F9F9F9] flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5 text-[#FF6E42]" />
-                Añadir URL de Captura o Pantallazo
-              </label>
+            <div className="space-y-3">
               <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={contentGalleryInput}
-                  onChange={(e) => setContentGalleryInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddContentGalleryImage();
-                    }
-                  }}
-                  placeholder="https://ejemplo.com/captura-gameplay-1.jpg"
-                  className="flex-1 px-3 py-2 rounded-lg bg-[#092634] border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                />
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9bb5c2]" />
+                  <input
+                    type="url"
+                    value={contentGalleryInput}
+                    onChange={(e) => setContentGalleryInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddContentGalleryImage();
+                      }
+                    }}
+                    placeholder="https://images.unsplash.com/photo-... (Captura de pantalla)"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleAddContentGalleryImage}
-                  className="px-3 py-2 rounded-lg bg-[#004E72] hover:bg-[#FF6E42] text-[#F9F9F9] text-xs font-bold transition shrink-0"
+                  className="px-4 py-2.5 rounded-xl bg-[#004E72] hover:bg-[#004E72]/80 text-[#F9F9F9] text-xs font-semibold transition shrink-0 flex items-center gap-1.5"
                 >
-                  + Añadir Captura
+                  <Plus className="w-4 h-4" /> Agregar Captura
                 </button>
               </div>
-            </div>
 
-            {contentGallery.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                {contentGallery.map((img, idx) => (
-                  <div
-                    key={idx}
-                    className="relative group rounded-xl overflow-hidden border border-[#004E72]/50 bg-[#05161f]"
-                  >
-                    <div className="w-full h-24 overflow-hidden flex items-center justify-center">
-                      <img
-                        src={img}
-                        alt={`Captura ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
-                    </div>
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-mono text-white">
-                      #{idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveContentGalleryImage(idx)}
-                      title="Eliminar captura"
-                      className="absolute top-1 right-1 p-1 rounded bg-red-600/90 text-white opacity-0 group-hover:opacity-100 transition shadow"
+              {contentGallery.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  {contentGallery.map((img, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group rounded-xl overflow-hidden border border-[#004E72]/40 bg-[#004E72]/10"
                     >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-[#004E72]/10 border border-[#004E72]/30 text-center text-xs text-[#9bb5c2]">
-                No hay capturas cargadas. Puedes añadir capturas de gameplay o fotos de referencia de contenido.
-              </div>
-            )}
+                      <div className="aspect-video w-full">
+                        <img
+                          src={img}
+                          alt={`Captura ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        />
+                      </div>
+                      <span className="absolute bottom-1.5 left-1.5 text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#092634]/90 text-[#F9F9F9] border border-[#004E72]/40">
+                        #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveContentGalleryImage(idx)}
+                        title="Eliminar captura"
+                        className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-600/90 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition shadow"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-[#004E72]/10 border border-[#004E72]/30 text-center text-xs text-[#9bb5c2]">
+                  No hay capturas agregadas aún. Opcional para enriquecer la experiencia visual del comprador.
+                </div>
+              )}
+            </div>
           </div>
 
           {type === "COLLECTIBLE" && (
             <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md animate-in fade-in duration-200">
               <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                5. Certificación & Autenticación de Coleccionables
+                6. Especificaciones de Rareza TCG & Coleccionismo
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Categoría de Coleccionable</label>
+                  <label className="text-xs font-medium text-[#9bb5c2]">Categoría de Colección</label>
                   <select
                     value={collectibleCategory}
                     onChange={(e) => setCollectibleCategory(e.target.value as CollectibleCategory)}
@@ -1575,7 +1567,7 @@ export default function NewProductAdminPage() {
             <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md animate-in fade-in duration-200">
               <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                5. Selección de Componentes del Bundle Compuesto
+                6. Selección de Componentes del Bundle Compuesto
               </h2>
               <p className="text-xs text-[#9bb5c2]">
                 Selecciona al menos 2 productos del catálogo para formar este lote. El stock del bundle se sincronizará dinámicamente según la disponibilidad de sus partes.
@@ -1648,7 +1640,7 @@ export default function NewProductAdminPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-6 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] font-bold text-sm tracking-wide transition shadow-lg shadow-[#FF6E42]/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-6 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] font-bold text-sm tracking-wide transition shadow-lg shadow-[#FF6E42]/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -1711,6 +1703,62 @@ export default function NewProductAdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Notification for Instant Feedback without Scrolling */}
+      {createdProduct && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md w-[calc(100vw-3rem)] p-4 rounded-2xl bg-[#092634]/95 border-2 border-emerald-500 text-white shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-emerald-200">
+                  ¡Producto publicado con éxito en el catálogo!
+                </h4>
+                <p className="text-xs text-[#9bb5c2] mt-0.5 line-clamp-1">
+                  SKU: <span className="font-mono font-bold text-white">{createdProduct.sku}</span> • {createdProduct.name}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreatedProduct(null)}
+              className="text-[#9bb5c2] hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
+              title="Cerrar notificación"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#004E72]/50">
+            <Link
+              href={`/product/${createdProduct.sku.toLowerCase()}`}
+              target="_blank"
+              className="flex-1 py-2 px-3 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-white text-xs font-bold text-center transition flex items-center justify-center gap-1.5 shadow"
+            >
+              Ver en Tienda <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/admin/products"
+              className="py-2 px-3 rounded-xl bg-[#004E72] hover:bg-[#004E72]/80 text-white text-xs font-semibold text-center transition"
+            >
+              Ir al Inventario
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setCreatedProduct(null);
+                setName("");
+                setSku(`PROD-${Date.now().toString().slice(-4)}`);
+              }}
+              className="py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition"
+              title="Registrar otro producto"
+            >
+              + Otro
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

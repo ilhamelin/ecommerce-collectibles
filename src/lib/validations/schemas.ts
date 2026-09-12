@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ProductTypeEnum = z.enum(["VIDEO_GAME", "FIGURE", "COLLECTIBLE", "BUNDLE"]);
+export const ProductTypeEnum = z.enum(["VIDEO_GAME", "FIGURE", "COLLECTIBLE", "BUNDLE", "OTHER"]).or(z.string());
 export const PreOrderStateEnum = z.enum([
   "ANNOUNCED",
   "PREORDER_OPEN",
@@ -173,6 +173,7 @@ export const CreateProductSchema = z.object({
     .optional(),
   images: z.array(z.string()).optional(),
   imageUrl: z.string().optional(),
+  customCategoryLabel: z.string().optional(),
 });
 
 export const UpdateProductSchema = CreateProductSchema.partial().extend({

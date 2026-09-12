@@ -1,4 +1,4 @@
-export type ProductType = "VIDEO_GAME" | "FIGURE" | "COLLECTIBLE" | "BUNDLE";
+export type ProductType = "VIDEO_GAME" | "FIGURE" | "COLLECTIBLE" | "BUNDLE" | "OTHER" | (string & {});
 
 export type PreOrderState =
   | "ANNOUNCED"
@@ -119,6 +119,7 @@ export interface ProductDomainEntity {
   nominalSumOfItems?: number;
   bundleDetails?: any;
   createdAt?: string;
+  customCategoryLabel?: string;
 }
 
 export interface PreOrderDepositEntity {

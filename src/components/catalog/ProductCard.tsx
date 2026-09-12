@@ -138,6 +138,11 @@ export function ProductCard({ product }: ProductCardProps) {
                   <Layers className="w-3 h-3 text-[#FF6B35]" /> BUNDLE
                 </span>
               )}
+              {!isPreOrder && !isBundle && product.customCategoryLabel && (
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
+                  {product.customCategoryLabel}
+                </span>
+              )}
             </div>
 
             {/* Floating Heart Button on Image */}

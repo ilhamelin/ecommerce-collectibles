@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { ProductDomainEntity, ProductType } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
+import { getAdminHeaders } from "@/lib/auth/security";
 import { useAuthStore } from "@/lib/store/authStore";
 
 export default function AdminProductsListPage() {
@@ -56,6 +57,7 @@ export default function AdminProductsListPage() {
     try {
       const res = await fetch(`/api/products?id=${encodeURIComponent(product.id)}`, {
         method: "DELETE",
+        headers: { ...getAdminHeaders() },
       });
       const data = await res.json();
       if (data.success) {

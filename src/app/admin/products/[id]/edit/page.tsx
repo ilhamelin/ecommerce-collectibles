@@ -40,6 +40,7 @@ import {
   Authenticator,
 } from "@/lib/types/domain";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
+import { getAdminHeaders } from "@/lib/auth/security";
 
 export default function EditProductAdminPage() {
   const params = useParams();
@@ -498,7 +499,7 @@ export default function EditProductAdminPage() {
 
       const res = await fetch("/api/products", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(payload),
       });
 

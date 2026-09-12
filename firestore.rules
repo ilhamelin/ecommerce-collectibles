@@ -2,8 +2,54 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.role == 'ADMIN'
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Catálogo de Productos
+    // Cualquier cliente puede ver el catálogo. Solo administradores pueden crear, modificar o eliminar.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 2. Pedidos y Órdenes de Compra
+    // La creación está permitida si incluye campos obligatorios.
+    // La lectura está restringida al cliente dueño del pedido o administradores.
+    // La modificación y cancelación está reservada a administradores.
+    match /orders/{orderId} {
+      allow create: if request.resource.data.orderNumber != null &&
+                       request.resource.data.customer.email != null;
+      allow read: if isAdmin() || (
+        isAuthenticated() && resource.data.customer.email == request.auth.token.email
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // 3. Perfiles de Usuario
+    // Cada usuario solo puede leer y modificar su propio perfil.
+    // Prohibido listar la colección completa de usuarios públicamente.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+    }
+
+    // 4. Bloqueo de cualquier otra colección no declarada
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

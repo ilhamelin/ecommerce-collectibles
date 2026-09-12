@@ -5,6 +5,8 @@ import {
   updateOrderInFirestore,
   deleteOrderFromFirestore,
 } from "@/lib/firebase/firestore";
+import { verifyAdminAuthorization } from "@/lib/auth/security";
+import { sanitizeText } from "@/lib/utils/sanitizer";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +46,17 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authCheck = verifyAdminAuthorization(req);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          error: "Forbidden",
+          message: "Acceso denegado: Se requieren permisos de administrador para modificar pedidos.",
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { status, trackingNumber, adminNotes, shippingCourier } = body;
 
@@ -80,14 +93,16 @@ export async function PATCH(
     }
 
     if (adminNotes !== undefined) {
-      updates.adminNotes = adminNotes;
+      updates.adminNotes = sanitizeText(adminNotes);
     }
 
     if (trackingNumber !== undefined || shippingCourier !== undefined) {
+      const cleanTracking = trackingNumber !== undefined ? sanitizeText(trackingNumber) : order.shippingMethod.trackingNumber;
+      const cleanCourier = shippingCourier ? sanitizeText(shippingCourier) : "";
       updates.shippingMethod = {
         ...order.shippingMethod,
-        trackingNumber: trackingNumber !== undefined ? trackingNumber : order.shippingMethod.trackingNumber,
-        name: shippingCourier ? `${shippingCourier} - Despacho Asegurado` : order.shippingMethod.name,
+        trackingNumber: cleanTracking,
+        name: cleanCourier ? `${cleanCourier} - Despacho Asegurado` : order.shippingMethod.name,
       };
     }
 
@@ -121,6 +136,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authCheck = verifyAdminAuthorization(req);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          error: "Forbidden",
+          message: "Acceso denegado: Se requieren permisos de administrador para cancelar o eliminar pedidos.",
+        },
+        { status: 403 }
+      );
+    }
+
     const store = MemoryTransactionalStore.getInstance();
     let order = await getOrderByIdFromFirestore(params.id);
 

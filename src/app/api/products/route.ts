@@ -10,6 +10,7 @@ import {
   saveProductToFirestore,
   deleteProductFromFirestore,
 } from "@/lib/firebase/firestore";
+import { verifyAdminAuthorization } from "@/lib/auth/security";
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,6 +57,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const authCheck = verifyAdminAuthorization(request);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Acceso denegado: Se requieren privilegios de administrador para crear productos.",
+          code: "FORBIDDEN",
+        },
+        { status: 403 }
+      );
+    }
+
     const rawBody = await request.json();
     const validationResult = CreateProductSchema.safeParse(rawBody);
 
@@ -197,6 +210,18 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const authCheck = verifyAdminAuthorization(request);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Acceso denegado: Se requieren privilegios de administrador para modificar productos.",
+          code: "FORBIDDEN",
+        },
+        { status: 403 }
+      );
+    }
+
     const rawBody = await request.json();
     const validationResult = UpdateProductSchema.safeParse(rawBody);
 
@@ -289,6 +314,18 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const authCheck = verifyAdminAuthorization(request);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Acceso denegado: Se requieren privilegios de administrador para eliminar productos.",
+          code: "FORBIDDEN",
+        },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id") || searchParams.get("sku");
 

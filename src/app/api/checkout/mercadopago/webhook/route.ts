@@ -10,6 +10,19 @@ export async function POST(req: NextRequest) {
 
     // 1. Handle Sandbox Simulation
     if (body.simulated && body.orderId) {
+      // SECURITY: Disallow arbitrary unauthenticated simulated payments in non-local environments
+      const host = req.headers.get("host") || "";
+      const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+      const simulationSecret = req.headers.get("x-simulation-key");
+      const expectedSecret = process.env.SANDBOX_SIMULATION_KEY || "omnicollector-sandbox-key";
+
+      if (!isLocal && simulationSecret !== expectedSecret) {
+        return NextResponse.json(
+          { error: "Forbidden", message: "Simulación de pagos restringida en este entorno." },
+          { status: 403 }
+        );
+      }
+
       const orderId = body.orderId;
       const paymentDetails = body.paymentDetails || {};
 

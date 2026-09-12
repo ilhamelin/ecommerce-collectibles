@@ -31,6 +31,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { formatCLP } from "@/lib/utils/currency";
+import { getAdminHeaders } from "@/lib/auth/security";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 
 export default function AdminOrdersPage() {
@@ -57,7 +58,9 @@ export default function AdminOrdersPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/orders");
+      const res = await fetch("/api/orders", {
+        headers: { ...getAdminHeaders() },
+      });
       const data = await res.json();
       if (data.success && Array.isArray(data.data?.orders)) {
         setOrders(data.data.orders);
@@ -78,7 +81,7 @@ export default function AdminOrdersPage() {
       setIsSaving(true);
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
@@ -104,7 +107,7 @@ export default function AdminOrdersPage() {
       setIsSaving(true);
       const res = await fetch(`/api/orders/${selectedOrder.id || selectedOrder.orderNumber}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           trackingNumber: editTrackingNumber,
           shippingCourier: editCourier,
@@ -135,6 +138,7 @@ export default function AdminOrdersPage() {
       setIsSaving(true);
       const res = await fetch(`/api/orders/${orderToDelete.id || orderToDelete.orderNumber}`, {
         method: "DELETE",
+        headers: { ...getAdminHeaders() },
       });
       const data = await res.json();
       if (data.success) {

@@ -27,6 +27,7 @@ import {
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { ProductDomainEntity, ProductType, FigureScale, FigureManufacturer, GamePlatform, GameEdition, CollectibleCategory, CollectibleCondition, Authenticator } from "@/lib/types/domain";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
+import { getAdminHeaders } from "@/lib/auth/security";
 
 export default function NewProductAdminPage() {
   // Available existing products for bundle composition
@@ -562,7 +563,7 @@ export default function NewProductAdminPage() {
     try {
       const res = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify(payload),
       });
 

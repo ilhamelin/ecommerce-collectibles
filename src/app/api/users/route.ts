@@ -6,6 +6,10 @@ import {
   getUsersFromFirestore,
 } from "@/lib/firebase/firestore";
 import { DEFAULT_USERS } from "@/lib/store/authStore";
+import { sanitizeUserOutput, sanitizeText } from "@/lib/utils/sanitizer";
+import { verifyAdminAuthorization } from "@/lib/auth/security";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +22,7 @@ export async function GET(request: NextRequest) {
       if (firestoreUser) {
         return NextResponse.json({
           success: true,
-          data: { user: firestoreUser, source: "FIRESTORE_CLOUD" },
+          data: { user: sanitizeUserOutput(firestoreUser), source: "FIRESTORE_CLOUD" },
         });
       }
 
@@ -31,7 +35,7 @@ export async function GET(request: NextRequest) {
       if (fallbackUser) {
         return NextResponse.json({
           success: true,
-          data: { user: fallbackUser, source: "LOCAL_FALLBACK" },
+          data: { user: sanitizeUserOutput(fallbackUser), source: "LOCAL_FALLBACK" },
         });
       }
 
@@ -41,15 +45,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // List all users from Firestore or fallback
+    // SECURITY: Listing all registered users requires verified Admin Authorization
+    const authCheck = verifyAdminAuthorization(request);
+    if (!authCheck.authorized) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Acceso denegado: Se requieren privilegios de administrador para listar la base de datos de usuarios.",
+          code: "FORBIDDEN",
+        },
+        { status: 403 }
+      );
+    }
+
+    // List all users for authorized admin (with sensitive fields like passwords stripped)
     const firestoreUsers = await getUsersFromFirestore();
-    const users = firestoreUsers.length > 0 ? firestoreUsers : DEFAULT_USERS;
+    const rawUsers = firestoreUsers.length > 0 ? firestoreUsers : DEFAULT_USERS;
+    const safeUsers = rawUsers.map((u) => sanitizeUserOutput(u));
 
     return NextResponse.json({
       success: true,
       data: {
-        users,
-        total: users.length,
+        users: safeUsers,
+        total: safeUsers.length,
         source: firestoreUsers.length > 0 ? "FIRESTORE_CLOUD" : "LOCAL_FALLBACK",
       },
     });
@@ -79,9 +97,9 @@ export async function PUT(request: NextRequest) {
     const userToSave: any = {
       id: id || existing?.id || `usr-${Date.now()}`,
       email: (email || existing?.email || "").toLowerCase().trim(),
-      fullName: fullName !== undefined ? fullName.trim() : (existing?.fullName || ""),
-      phone: phone !== undefined ? phone.trim() : (existing?.phone || ""),
-      rut: rut !== undefined ? rut.trim() : (existing?.rut || ""),
+      fullName: fullName !== undefined ? sanitizeText(fullName) : (existing?.fullName || ""),
+      phone: phone !== undefined ? sanitizeText(phone) : (existing?.phone || ""),
+      rut: rut !== undefined ? sanitizeText(rut) : (existing?.rut || ""),
       role: existing?.role || "CUSTOMER",
       addresses: addresses !== undefined ? addresses : (existing?.addresses || []),
       paymentMethods: paymentMethods !== undefined ? paymentMethods : (existing?.paymentMethods || []),
@@ -104,7 +122,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Datos de cuenta actualizados exitosamente en Cloud Firestore.",
-      data: { user: userToSave, syncedToFirestore: saved },
+      data: { user: sanitizeUserOutput(userToSave), syncedToFirestore: saved },
     });
   } catch (error) {
     console.error("[API_USERS_PUT_ERROR]", error);

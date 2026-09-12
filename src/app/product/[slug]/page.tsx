@@ -238,16 +238,7 @@ export default function ProductDetailPage() {
           <span className="text-[#FF6B35] font-semibold font-mono">{product.sku}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/admin/products/${product.id}/edit`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-[#1F3A5F] text-[#666666] hover:text-white border border-[#E5E5E5] hover:border-[#1F3A5F] text-xs font-semibold transition shadow-sm"
-            title="Modificar precio, stock, trailer y datos de este producto en el panel de administración"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            <span>Editar Ficha</span>
-          </Link>
-        </div>
+
       </div>
 
       {/* Product SKU Top Pill & H1 Title */}

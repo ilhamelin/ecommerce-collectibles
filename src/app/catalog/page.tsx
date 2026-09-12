@@ -28,27 +28,31 @@ function CatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category") || "ALL";
+  const qParam = searchParams.get("q") || searchParams.get("search") || searchParams.get("tag") || "";
+  const platformParam = searchParams.get("platform") || "ALL";
 
   const [products, setProducts] = useState(BASE_PRODUCTS);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(qParam);
   const [sortBy, setSortBy] = useState<"FEATURED" | "PRICE_ASC" | "PRICE_DESC" | "PREORDER_FIRST">("FEATURED");
 
   // Advanced Filters State
   const [minPrice, setMinPrice] = useState<string>("");
   const [maxPrice, setMaxPrice] = useState<string>("");
   const [stockFilter, setStockFilter] = useState<"ALL" | "IN_STOCK" | "PREORDER">("ALL");
-  const [platformFilter, setPlatformFilter] = useState<string>("ALL");
+  const [platformFilter, setPlatformFilter] = useState<string>(platformParam);
   const [scaleFilter, setScaleFilter] = useState<string>("ALL");
   const [conditionFilter, setConditionFilter] = useState<string>("ALL");
 
   // Mobile drawer toggle
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // Sync category state when URL changes (e.g., clicking navbar links)
+  // Sync category, query and platform state when URL changes
   useEffect(() => {
     setSelectedCategory(categoryParam);
-  }, [categoryParam]);
+    if (qParam) setSearchQuery(qParam);
+    if (platformParam !== "ALL") setPlatformFilter(platformParam);
+  }, [categoryParam, qParam, platformParam]);
 
   // Fetch updated catalog from backend
   useEffect(() => {
@@ -122,13 +126,42 @@ function CatalogContent() {
         return false;
       }
 
-      // Search Filter
+      // Search Filter: comprehensive match for Name, SKU, Description, Genres, Tags, Platform, Manufacturer, Publisher, Scale, Category, Authenticator
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchName = product.name.toLowerCase().includes(query);
-        const matchSku = product.sku.toLowerCase().includes(query);
-        const matchDesc = product.description.toLowerCase().includes(query);
-        if (!matchName && !matchSku && !matchDesc) return false;
+        const query = searchQuery.toLowerCase().trim();
+        const queryTerms = query.split(/\s+/).filter(Boolean);
+
+        const searchableParts = [
+          product.name || "",
+          product.sku || "",
+          product.description || "",
+          ...(product.genres || []),
+          product.type || "",
+          product.type === "VIDEO_GAME" ? "videojuego videojuego juego gaming" : "",
+          product.type === "FIGURE" ? "figura estatua anime figure" : "",
+          product.type === "COLLECTIBLE" ? "tcg carta coleccionable rareza pokemon" : "",
+          product.type === "BUNDLE" ? "bundle pack combo" : "",
+          product.gameMetadata?.platform || "",
+          ((product.gameMetadata?.platform as string) === "NINTENDO_SWITCH" || (product.name && product.name.toLowerCase().includes("switch"))) ? "switch nintendo nintendo switch" : "",
+          ((product.gameMetadata?.platform as string) === "PS5" || (product.name && product.name.toLowerCase().includes("ps5"))) ? "playstation ps5 playstation 5 sony" : "",
+          (product.gameMetadata?.platform as string) === "PC" ? "pc steam windows" : "",
+          (product.gameMetadata?.platform as string) === "XBOX_SERIES" ? "xbox xbox series microsoft" : "",
+          product.gameMetadata?.publisher || "",
+          product.gameMetadata?.edition || "",
+          product.figureMetadata?.manufacturer || "",
+          product.figureMetadata?.scale ? product.figureMetadata.scale.replace("SCALE_", "").replace("_", "/") : "",
+          product.figureMetadata?.scale || "",
+          product.collectibleMetadata?.category || "",
+          product.collectibleMetadata?.authenticationBody || "",
+          product.collectibleMetadata?.condition || "",
+          product.collectibleMetadata?.cardLanguage || "",
+          product.ageRating || "",
+          product.isPreOrder ? "preventa reserva preorder pre-order" : "stock inmediato entrega inmediata",
+        ].join(" ").toLowerCase();
+
+        // Every query term must match at least one part
+        const allTermsMatch = queryTerms.every((term) => searchableParts.includes(term));
+        if (!allTermsMatch) return false;
       }
 
       // Price Range Filter
@@ -153,16 +186,43 @@ function CatalogContent() {
         if (!product.isPreOrder) return false;
       }
 
-      // Platform Filter (for Video Games)
+      // Platform Filter (for Video Games - robust matching for NINTENDO_SWITCH / SWITCH, PS5, XBOX, PC)
       if (platformFilter !== "ALL") {
-        const prodPlatform = product.gameMetadata?.platform;
-        if (prodPlatform !== platformFilter) return false;
+        const prodPlatform = (product.gameMetadata?.platform || "").toUpperCase();
+        const target = platformFilter.toUpperCase();
+        const isSwitch =
+          target === "NINTENDO_SWITCH" || target === "SWITCH" || target.includes("SWITCH");
+        const isPs5 = target === "PS5" || target.includes("PS5");
+        const isXbox = target === "XBOX" || target === "XBOX_SERIES";
+        const isPc = target === "PC";
+
+        const matchesMetadata =
+          prodPlatform === target ||
+          (isSwitch && (prodPlatform === "NINTENDO_SWITCH" || prodPlatform === "SWITCH")) ||
+          (isPs5 && (prodPlatform === "PS5" || prodPlatform === "PLAYSTATION_5")) ||
+          (isXbox && (prodPlatform === "XBOX_SERIES" || prodPlatform === "XBOX")) ||
+          (isPc && prodPlatform === "PC");
+
+        const matchesText =
+          (isSwitch && ((product.name && product.name.toUpperCase().includes("SWITCH")) || (product.sku && product.sku.toUpperCase().includes("SWITCH")))) ||
+          (isPs5 && ((product.name && product.name.toUpperCase().includes("PS5")) || (product.sku && product.sku.toUpperCase().includes("PS5")))) ||
+          (isXbox && ((product.name && product.name.toUpperCase().includes("XBOX")) || (product.sku && product.sku.toUpperCase().includes("XBOX")))) ||
+          (isPc && ((product.name && product.name.toUpperCase().includes("PC")) || (product.sku && product.sku.toUpperCase().includes("PC"))));
+
+        if (!matchesMetadata && !matchesText) return false;
       }
 
       // Scale Filter (for Figures)
       if (scaleFilter !== "ALL") {
-        const prodScale = product.figureMetadata?.scale;
-        if (prodScale !== scaleFilter) return false;
+        const prodScale = (product.figureMetadata?.scale || "").toUpperCase();
+        const target = scaleFilter.toUpperCase();
+        const cleanNumber = target.replace("SCALE_", "").replace("_", "/");
+
+        const matches =
+          prodScale === target ||
+          (cleanNumber && product.name && product.name.toUpperCase().includes(cleanNumber)) ||
+          (product.name && product.name.toUpperCase().includes(target));
+        if (!matches) return false;
       }
 
       // Condition Filter (for TCG & Collectibles)
@@ -377,19 +437,25 @@ function CatalogContent() {
               { id: "SWITCH", label: "Nintendo Switch" },
               { id: "PC", label: "PC" },
               { id: "XBOX", label: "Xbox Series" },
-            ].map((plat) => (
-              <button
-                key={plat.id}
-                onClick={() => setPlatformFilter(plat.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
-                  platformFilter === plat.id
-                    ? "bg-[#FF6B35] text-white font-bold"
-                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
-                }`}
-              >
-                {plat.label}
-              </button>
-            ))}
+            ].map((plat) => {
+              const isSelected =
+                platformFilter === plat.id ||
+                (plat.id === "SWITCH" && platformFilter === "NINTENDO_SWITCH") ||
+                (plat.id === "XBOX" && platformFilter === "XBOX_SERIES");
+              return (
+                <button
+                  key={plat.id}
+                  onClick={() => setPlatformFilter(plat.id === "ALL" ? "ALL" : isSelected ? "ALL" : plat.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                    isSelected
+                      ? "bg-[#FF6B35] text-white font-bold shadow-xs"
+                      : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                  }`}
+                >
+                  {plat.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -541,6 +607,42 @@ function CatalogContent() {
             </div>
           </div>
 
+          {/* Quick Tag Chips Bar */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+            <span className="text-[11px] font-bold text-[#666666] flex items-center gap-1 shrink-0">
+              <Tag className="w-3 h-3 text-[#FF6B35]" /> Tags Rápidos:
+            </span>
+            {[
+              { label: "Nintendo Switch", query: "Nintendo Switch" },
+              { label: "PlayStation 5", query: "PS5" },
+              { label: "Escala 1/7", query: "1/7" },
+              { label: "PSA 10", query: "PSA" },
+              { label: "Preventas", query: "Preventa" },
+              { label: "RPG", query: "RPG" },
+              { label: "Acción", query: "Acción" },
+              { label: "Zelda", query: "Zelda" },
+              { label: "Cyberpunk", query: "Cyberpunk" },
+              { label: "Good Smile", query: "Good Smile" },
+            ].map((t) => {
+              const isActive = searchQuery.toLowerCase() === t.query.toLowerCase();
+              return (
+                <button
+                  key={t.label}
+                  type="button"
+                  onClick={() => setSearchQuery(isActive ? "" : t.query)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition shrink-0 flex items-center gap-1 border ${
+                    isActive
+                      ? "bg-[#FF6B35] text-white border-[#FF6B35] shadow-xs font-bold"
+                      : "bg-white text-[#666666] hover:text-[#1A1A1A] hover:bg-[#F7F7F5] border-[#E5E5E5]"
+                  }`}
+                >
+                  <span>{t.label}</span>
+                  {isActive && <X className="w-3 h-3" />}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Active Filters Badges Bar & Results Count */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-[#E5E5E5] text-xs shadow-sm">
             <div className="text-[#666666]">
@@ -584,7 +686,7 @@ function CatalogContent() {
                 )}
                 {platformFilter !== "ALL" && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F7F7F5] text-[#1A1A1A] text-[11px] font-medium border border-[#E5E5E5]">
-                    {platformFilter}
+                    {platformFilter === "NINTENDO_SWITCH" || platformFilter === "SWITCH" ? "Nintendo Switch" : platformFilter === "XBOX_SERIES" || platformFilter === "XBOX" ? "Xbox Series" : platformFilter === "PS5" ? "PlayStation 5" : platformFilter}
                     <button onClick={() => setPlatformFilter("ALL")} className="hover:text-[#FF6B35]">
                       <X className="w-3 h-3" />
                     </button>

@@ -174,6 +174,7 @@ export const CreateProductSchema = z.object({
   images: z.array(z.string()).optional(),
   imageUrl: z.string().optional(),
   customCategoryLabel: z.string().optional(),
+  customSpecifications: z.record(z.any()).optional(),
 });
 
 export const UpdateProductSchema = CreateProductSchema.partial().extend({

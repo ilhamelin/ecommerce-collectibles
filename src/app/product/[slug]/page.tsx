@@ -204,6 +204,215 @@ export default function ProductDetailPage() {
     ...(product.collectibleMetadata?.serialNumber
       ? [{ label: "Número de Serie Certificado", value: product.collectibleMetadata.serialNumber }]
       : []),
+    // Consolas / Hardware
+    ...(product.customSpecifications?.console?.baseModel
+      ? [{ label: "Modelo Base Consola", value: product.customSpecifications.console.baseModel }]
+      : []),
+    ...(product.customSpecifications?.console?.capacity
+      ? [{ label: "Capacidad Almacenamiento", value: product.customSpecifications.console.capacity }]
+      : []),
+    ...(product.customSpecifications?.console?.format
+      ? [{ label: "Formato de Consola", value: product.customSpecifications.console.format }]
+      : []),
+    ...(product.customSpecifications?.console?.controllersIncluded
+      ? [{ label: "Controles Incluidos", value: product.customSpecifications.console.controllersIncluded }]
+      : []),
+    ...(product.customSpecifications?.console?.bundleIncluded
+      ? [{ label: "Bundle / Accesorios", value: product.customSpecifications.console.bundleIncluded }]
+      : []),
+    ...(product.customSpecifications?.console?.ports
+      ? [{ label: "Puertos & Conexiones", value: product.customSpecifications.console.ports }]
+      : []),
+    ...(product.customSpecifications?.console?.gameCompatibility
+      ? [{ label: "Compatibilidad con Juegos", value: product.customSpecifications.console.gameCompatibility }]
+      : []),
+    ...(product.customSpecifications?.console?.featuredHighlights
+      ? [{ label: "Características Destacadas", value: product.customSpecifications.console.featuredHighlights }]
+      : []),
+    // Mouse Gaming
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.brand
+      ? [{ label: "Marca del Mouse", value: product.customSpecifications.gamingAccessory.mouse.brand }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.tracking
+      ? [{ label: "Sensor & Tracking", value: product.customSpecifications.gamingAccessory.mouse.tracking }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.buttonCount
+      ? [{ label: "Cantidad de Botones", value: String(product.customSpecifications.gamingAccessory.mouse.buttonCount) }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.maxDpi
+      ? [{ label: "DPI Máximo", value: String(product.customSpecifications.gamingAccessory.mouse.maxDpi) }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.wiring
+      ? [{ label: "Cableado / Conexión", value: product.customSpecifications.gamingAccessory.mouse.wiring }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.weight
+      ? [{ label: "Peso", value: product.customSpecifications.gamingAccessory.mouse.weight }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.dimensions
+      ? [{ label: "Dimensiones", value: product.customSpecifications.gamingAccessory.mouse.dimensions }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.adjustableDpi
+      ? [{ label: "DPI Ajustable", value: product.customSpecifications.gamingAccessory.mouse.adjustableDpi }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.color
+      ? [{ label: "Color", value: product.customSpecifications.gamingAccessory.mouse.color }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.pollingRate
+      ? [{ label: "Polling Rate", value: product.customSpecifications.gamingAccessory.mouse.pollingRate }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.adjustableWeight
+      ? [{ label: "Peso Ajustable", value: product.customSpecifications.gamingAccessory.mouse.adjustableWeight }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.handedness
+      ? [{ label: "Lateralidad", value: product.customSpecifications.gamingAccessory.mouse.handedness }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.technology
+      ? [{ label: "Tecnología de Switches", value: product.customSpecifications.gamingAccessory.mouse.technology }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.lighting
+      ? [{ label: "Iluminación", value: product.customSpecifications.gamingAccessory.mouse.lighting }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.mouse?.powerSource
+      ? [{ label: "Alimentación / Batería", value: product.customSpecifications.gamingAccessory.mouse.powerSource }]
+      : []),
+    // Teclado Gaming
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.brand
+      ? [{ label: "Marca del Teclado", value: product.customSpecifications.gamingAccessory.keyboard.brand }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.partNumber
+      ? [{ label: "Part Number", value: product.customSpecifications.gamingAccessory.keyboard.partNumber }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.type
+      ? [{ label: "Tipo de Teclado", value: product.customSpecifications.gamingAccessory.keyboard.type }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.category
+      ? [{ label: "Formato / Tamaño", value: product.customSpecifications.gamingAccessory.keyboard.category }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.backlight
+      ? [{ label: "Retroiluminación", value: product.customSpecifications.gamingAccessory.keyboard.backlight }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.switchType
+      ? [{ label: "Tipo de Switch", value: product.customSpecifications.gamingAccessory.keyboard.switchType }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.wiring
+      ? [{ label: "Cableado", value: product.customSpecifications.gamingAccessory.keyboard.wiring }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.connectionTechnology
+      ? [{ label: "Tecnología de Conexión", value: product.customSpecifications.gamingAccessory.keyboard.connectionTechnology }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.macroKeys
+      ? [{ label: "Teclas Macro", value: product.customSpecifications.gamingAccessory.keyboard.macroKeys }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.hasWristRest
+      ? [{ label: "¿Apoya muñecas?", value: product.customSpecifications.gamingAccessory.keyboard.hasWristRest }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.keyboard?.hasMediaKeys
+      ? [{ label: "¿Teclas Multimedia?", value: product.customSpecifications.gamingAccessory.keyboard.hasMediaKeys }]
+      : []),
+    // Audífonos Gaming
+    ...(product.customSpecifications?.gamingAccessory?.headset?.type
+      ? [{ label: "Tipo de Audífono", value: product.customSpecifications.gamingAccessory.headset.type }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.microphone
+      ? [{ label: "Micrófono", value: product.customSpecifications.gamingAccessory.headset.microphone }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.frequencyResponse
+      ? [{ label: "Respuesta en Frecuencia", value: product.customSpecifications.gamingAccessory.headset.frequencyResponse }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.color
+      ? [{ label: "Color", value: product.customSpecifications.gamingAccessory.headset.color }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.lighting
+      ? [{ label: "Iluminación", value: product.customSpecifications.gamingAccessory.headset.lighting }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.connectivity
+      ? [{ label: "Conectividad", value: product.customSpecifications.gamingAccessory.headset.connectivity }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.activeNoiseCancelling
+      ? [{ label: "Cancelación de Ruido (ANC)", value: product.customSpecifications.gamingAccessory.headset.activeNoiseCancelling }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.inLineControls
+      ? [{ label: "Controles de Audio", value: product.customSpecifications.gamingAccessory.headset.inLineControls }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.driverSize
+      ? [{ label: "Tamaño Driver", value: product.customSpecifications.gamingAccessory.headset.driverSize }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.impedance
+      ? [{ label: "Impedancia", value: product.customSpecifications.gamingAccessory.headset.impedance }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.headset?.cableLength
+      ? [{ label: "Largo del Cable", value: product.customSpecifications.gamingAccessory.headset.cableLength }]
+      : []),
+    // Ropa & Estilo
+    ...(product.customSpecifications?.apparel?.apparelType
+      ? [{ label: "Tipo de Prenda", value: product.customSpecifications.apparel.apparelType }]
+      : []),
+    ...(product.customSpecifications?.apparel?.size
+      ? [{ label: "Tallas Disponibles", value: product.customSpecifications.apparel.size }]
+      : []),
+    ...(product.customSpecifications?.apparel?.gender
+      ? [{ label: "Género / Corte", value: product.customSpecifications.apparel.gender }]
+      : []),
+    ...(product.customSpecifications?.apparel?.material
+      ? [{ label: "Material / Composición", value: product.customSpecifications.apparel.material }]
+      : []),
+    ...(product.customSpecifications?.apparel?.careInstructions
+      ? [{ label: "Cuidados de Lavado", value: product.customSpecifications.apparel.careInstructions }]
+      : []),
+    ...(product.customSpecifications?.apparel?.license
+      ? [{ label: "Licencia Oficial", value: product.customSpecifications.apparel.license }]
+      : []),
+    // Manga / Artbook
+    ...(product.customSpecifications?.book?.publisher
+      ? [{ label: "Editorial", value: product.customSpecifications.book.publisher }]
+      : []),
+    ...(product.customSpecifications?.book?.language
+      ? [{ label: "Idioma", value: product.customSpecifications.book.language }]
+      : []),
+    ...(product.customSpecifications?.book?.pages
+      ? [{ label: "Número de Páginas", value: String(product.customSpecifications.book.pages) }]
+      : []),
+    ...(product.customSpecifications?.book?.binding
+      ? [{ label: "Encuadernación", value: product.customSpecifications.book.binding }]
+      : []),
+    ...(product.customSpecifications?.book?.dimensions
+      ? [{ label: "Dimensiones", value: product.customSpecifications.book.dimensions }]
+      : []),
+    ...(product.customSpecifications?.book?.hasColorPages
+      ? [{ label: "Páginas a Color", value: product.customSpecifications.book.hasColorPages }]
+      : []),
+    ...(product.customSpecifications?.book?.isbn
+      ? [{ label: "ISBN / Código", value: product.customSpecifications.book.isbn }]
+      : []),
+    // Merchandising
+    ...(product.customSpecifications?.merch?.itemType
+      ? [{ label: "Tipo de Artículo", value: product.customSpecifications.merch.itemType }]
+      : []),
+    ...(product.customSpecifications?.merch?.material
+      ? [{ label: "Materiales", value: product.customSpecifications.merch.material }]
+      : []),
+    ...(product.customSpecifications?.merch?.dimensions
+      ? [{ label: "Dimensiones / Capacidad", value: product.customSpecifications.merch.dimensions }]
+      : []),
+    ...(product.customSpecifications?.merch?.franchise
+      ? [{ label: "Franquicia Oficial", value: product.customSpecifications.merch.franchise }]
+      : []),
+    // Audio / OST
+    ...(product.customSpecifications?.audio?.format
+      ? [{ label: "Formato Físico", value: product.customSpecifications.audio.format }]
+      : []),
+    ...(product.customSpecifications?.audio?.discCount
+      ? [{ label: "Número de Discos", value: String(product.customSpecifications.audio.discCount) }]
+      : []),
+    ...(product.customSpecifications?.audio?.recordLabel
+      ? [{ label: "Sello Discográfico", value: product.customSpecifications.audio.recordLabel }]
+      : []),
+    ...(product.customSpecifications?.audio?.includesArtbook
+      ? [{ label: "¿Incluye Libreto / Arte?", value: product.customSpecifications.audio.includesArtbook }]
+      : []),
+    ...(product.customSpecifications?.audio?.featuredTracks
+      ? [{ label: "Pistas Destacadas", value: product.customSpecifications.audio.featuredTracks }]
+      : []),
   ];
 
   const handleAddToCart = () => {

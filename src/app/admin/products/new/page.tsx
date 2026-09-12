@@ -39,7 +39,9 @@ import {
   CollectibleCategory,
   CollectibleCondition,
   Authenticator,
+  CustomCategorySpecifications,
 } from "@/lib/types/domain";
+import { CustomSpecificationsForm } from "@/components/admin/CustomSpecificationsForm";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
@@ -64,6 +66,7 @@ export default function NewProductAdminPage() {
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ProductType>("FIGURE");
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
+  const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
   const [price, setPrice] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
   const [costPrice, setCostPrice] = useState<number>(0);
@@ -358,6 +361,7 @@ export default function NewProductAdminPage() {
               serialNumber: collectibleSerial,
             }
           : undefined,
+      customSpecifications: type === "OTHER" ? customSpecifications : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -402,6 +406,7 @@ export default function NewProductAdminPage() {
     collectibleLang,
     collectibleSerial,
     selectedBundleItems,
+    customSpecifications,
   ]);
 
   // Handle Submit
@@ -477,6 +482,8 @@ export default function NewProductAdminPage() {
       };
     } else if (type === "BUNDLE") {
       payload.bundleComponents = selectedBundleItems;
+    } else if (type === "OTHER") {
+      payload.customSpecifications = customSpecifications;
     }
 
     try {
@@ -1633,6 +1640,15 @@ export default function NewProductAdminPage() {
                 })}
               </div>
             </div>
+          )}
+
+          {/* Section 6: Custom Category Technical Specifications Form */}
+          {type === "OTHER" && (
+            <CustomSpecificationsForm
+              customCategoryLabel={customCategoryLabel}
+              value={customSpecifications}
+              onChange={setCustomSpecifications}
+            />
           )}
 
           {/* Submit Action Bar */}

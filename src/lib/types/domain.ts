@@ -120,6 +120,116 @@ export interface ProductDomainEntity {
   bundleDetails?: any;
   createdAt?: string;
   customCategoryLabel?: string;
+  customSpecifications?: CustomCategorySpecifications;
+}
+
+export interface ConsoleSpecifications {
+  baseModel: string;
+  capacity: string;
+  format: string;
+  controllersIncluded: string;
+  bundleIncluded?: string;
+  ports: string;
+  gameCompatibility: string;
+  featuredHighlights: string;
+}
+
+export interface MouseSpecifications {
+  brand: string;
+  tracking: string;
+  buttonCount: string | number;
+  maxDpi: string | number;
+  wiring: string;
+  weight: string;
+  dimensions?: string;
+  adjustableDpi?: string;
+  color?: string;
+  pollingRate?: string;
+  adjustableWeight?: string;
+  handedness?: string;
+  technology?: string;
+  lighting?: string;
+  powerSource?: string;
+}
+
+export interface KeyboardSpecifications {
+  brand: string;
+  partNumber?: string;
+  type: string;
+  category: string;
+  backlight?: string;
+  switchType?: string;
+  wiring?: string;
+  connectionTechnology?: string;
+  macroKeys?: string;
+  hasWristRest?: string;
+  hasMediaKeys?: string;
+}
+
+export interface HeadsetSpecifications {
+  type: string;
+  microphone?: string;
+  frequencyResponse?: string;
+  color?: string;
+  lighting?: string;
+  connectivity?: string;
+  activeNoiseCancelling?: string;
+  inLineControls?: string;
+  driverSize?: string;
+  impedance?: string;
+  cableLength?: string;
+}
+
+export interface GamingAccessorySpecifications {
+  accessoryType: "MOUSE" | "KEYBOARD" | "HEADSET" | string;
+  mouse?: MouseSpecifications;
+  keyboard?: KeyboardSpecifications;
+  headset?: HeadsetSpecifications;
+}
+
+export interface ApparelSpecifications {
+  size?: string;
+  gender?: string;
+  material?: string;
+  apparelType?: string;
+  careInstructions?: string;
+  license?: string;
+}
+
+export interface BookSpecifications {
+  publisher?: string;
+  language?: string;
+  pages?: number | string;
+  binding?: string;
+  dimensions?: string;
+  hasColorPages?: string;
+  isbn?: string;
+}
+
+export interface MerchSpecifications {
+  itemType?: string;
+  material?: string;
+  dimensions?: string;
+  franchise?: string;
+}
+
+export interface AudioSpecifications {
+  format?: string;
+  discCount?: number | string;
+  recordLabel?: string;
+  includesArtbook?: string;
+  featuredTracks?: string;
+}
+
+export interface CustomCategorySpecifications {
+  categoryType?: string;
+  console?: ConsoleSpecifications;
+  gamingAccessory?: GamingAccessorySpecifications;
+  apparel?: ApparelSpecifications;
+  book?: BookSpecifications;
+  merch?: MerchSpecifications;
+  audio?: AudioSpecifications;
+  [key: string]: any;
 }
 
 export interface PreOrderDepositEntity {

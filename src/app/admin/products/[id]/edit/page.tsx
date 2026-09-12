@@ -42,7 +42,9 @@ import {
   CollectibleCategory,
   CollectibleCondition,
   Authenticator,
+  CustomCategorySpecifications,
 } from "@/lib/types/domain";
+import { CustomSpecificationsForm } from "@/components/admin/CustomSpecificationsForm";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
@@ -71,6 +73,7 @@ export default function EditProductAdminPage() {
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ProductType>("FIGURE");
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
+  const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
   const [price, setPrice] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
   const [costPrice, setCostPrice] = useState<number>(0);
@@ -232,6 +235,9 @@ export default function EditProductAdminPage() {
             setCollectibleLanguage(p.collectibleMetadata.cardLanguage || "English");
             setCollectibleAuth(p.collectibleMetadata.authenticationBody);
             setCollectibleSerial(p.collectibleMetadata.serialNumber || "");
+          }
+          if (p.customSpecifications) {
+            setCustomSpecifications(p.customSpecifications);
           }
         } else {
           setLoadError(data.error || "No se pudo encontrar el producto.");
@@ -415,6 +421,7 @@ export default function EditProductAdminPage() {
               serialNumber: collectibleSerial,
             }
           : undefined,
+      customSpecifications: type === "OTHER" ? customSpecifications : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -459,6 +466,7 @@ export default function EditProductAdminPage() {
     collectibleLanguage,
     collectibleAuth,
     collectibleSerial,
+    customSpecifications,
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -532,6 +540,8 @@ export default function EditProductAdminPage() {
           authenticationBody: collectibleAuth,
           serialNumber: collectibleSerial || undefined,
         };
+      } else if (type === "OTHER") {
+        payload.customSpecifications = customSpecifications;
       }
 
       const res = await fetch("/api/products", {
@@ -1524,6 +1534,15 @@ export default function EditProductAdminPage() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Section 6: Custom Category Technical Specifications Form */}
+          {type === "OTHER" && (
+            <CustomSpecificationsForm
+              customCategoryLabel={customCategoryLabel}
+              value={customSpecifications}
+              onChange={setCustomSpecifications}
+            />
           )}
 
           {/* Submit, Delete and Cancel Buttons */}

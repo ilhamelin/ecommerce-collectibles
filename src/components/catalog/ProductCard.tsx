@@ -17,6 +17,7 @@ import { ProductDomainEntity } from "@/lib/types/domain";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
+import { analytics } from "@/lib/services/AnalyticsTracker";
 
 interface ProductCardProps {
   product: ProductDomainEntity & {
@@ -31,6 +32,15 @@ export function ProductCard({ product }: ProductCardProps) {
   const { toggleWishlist, isProductWishlisted } = useAuthStore();
   const [justAdded, setJustAdded] = useState(false);
   const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+
+  const trackClick = () => {
+    analytics.trackProductClick({
+      sku: product.sku,
+      name: product.name,
+      category: product.type,
+      price: product.price,
+    });
+  };
 
   const isLiked = isProductWishlisted(product.id);
 
@@ -73,6 +83,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    trackClick();
 
     addItem({
       productId: product.id,
@@ -201,7 +213,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Product Info */}
         <div className="p-5 space-y-2.5">
-          <Link href={`/product/${slug}`} className="block group-hover:text-[#FF6B35] transition">
+          <Link href={`/product/${slug}`} onClick={trackClick} className="block group-hover:text-[#FF6B35] transition">
             <h3 className="font-bold text-[#1A1A1A] text-base leading-snug line-clamp-2">
               {product.name}
             </h3>
@@ -277,6 +289,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="grid grid-cols-2 gap-2 pt-1">
           <Link
             href={`/product/${slug}`}
+            onClick={trackClick}
             className="py-2 px-2.5 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1 shadow-sm truncate"
           >
             <span>Detalles</span>

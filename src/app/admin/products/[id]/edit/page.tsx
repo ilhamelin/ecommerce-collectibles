@@ -576,15 +576,15 @@ export default function EditProductAdminPage() {
       </div>
 
       {/* Header Banner */}
-      <div className="border-b border-[#004E72]/40 pb-6 space-y-2">
-        <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6E42] uppercase tracking-wider">
+      <div className="border-b border-[#E5E5E5] pb-6 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6B35] uppercase tracking-wider">
           <Save className="w-4 h-4" />
           Modificación de Catálogo
         </div>
-        <h1 className="text-3xl font-black text-[#F9F9F9] tracking-tight">
-          Editar Producto: <span className="text-[#FF6E42]">{sku}</span>
+        <h1 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
+          Editar Producto: <span className="text-[#FF6B35]">{sku}</span>
         </h1>
-        <p className="text-sm text-[#9bb5c2]">
+        <p className="text-sm text-[#555555]">
           Actualiza precios en CLP, stock, modalidad de preventa, fotos e imágenes y metadatos de coleccionista.
         </p>
       </div>

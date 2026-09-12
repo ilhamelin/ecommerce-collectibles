@@ -191,16 +191,16 @@ export default function AdminProductsListPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header with direct Action to Create */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#004E72]/40 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6E42] uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6B35] uppercase tracking-wider">
             <Package className="w-4 h-4" />
             Control de Catálogo • E-Commerce Especializado
           </div>
-          <h1 className="text-3xl font-black text-[#F9F9F9] tracking-tight">
+          <h1 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
             Inventario & Gestión de Productos
           </h1>
-          <p className="text-sm text-[#9bb5c2]">
+          <p className="text-sm text-[#555555]">
             Administra precios en CLP, stock disponible, preventas con pie y sincronización con la tienda pública.
           </p>
         </div>
@@ -209,14 +209,14 @@ export default function AdminProductsListPage() {
           <button
             onClick={loadProducts}
             title="Refrescar catálogo"
-            className="p-2.5 rounded-xl bg-[#092634] border border-[#004E72]/60 text-[#9bb5c2] hover:text-[#F9F9F9] hover:bg-[#004E72]/40 transition"
+            className="p-2.5 rounded-xl bg-white border border-[#E5E5E5] text-[#555555] hover:text-[#1A1A1A] hover:bg-[#F7F7F5] transition shadow-sm"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#FF6E42]" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#FF6B35]" : ""}`} />
           </button>
 
           <Link
             href="/admin/products/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] text-xs font-bold transition shadow-lg shadow-[#FF6E42]/25"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e05622] text-white text-xs font-bold transition shadow-md"
           >
             <PlusCircle className="w-4 h-4" />
             Agregar Nuevo Producto

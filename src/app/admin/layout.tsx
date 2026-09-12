@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   Sliders,
   LayoutDashboard,
+  Users,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -45,6 +46,12 @@ export default function AdminLayout({
       label: "Gestión de Pedidos",
       icon: ShoppingBag,
       active: pathname === "/admin/orders",
+    },
+    {
+      href: "/admin/users",
+      label: "Usuarios & Clientes",
+      icon: Users,
+      active: pathname === "/admin/users",
     },
   ];
 

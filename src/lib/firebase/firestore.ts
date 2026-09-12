@@ -24,25 +24,48 @@ import { COLLECTIONS } from "./collections";
  */
 
 /**
+ * In-memory TTL Cache to optimize requests between domain and Firestore,
+ * preventing redundant queries under concurrent web traffic.
+ */
+let productsCache: { data: ProductDomainEntity[]; cachedAt: number } | null = null;
+const PRODUCTS_CACHE_TTL_MS = 25000; // 25 seconds
+
+export function invalidateProductsCache() {
+  productsCache = null;
+}
+
+/**
  * Fetch all products from Firestore if available. Returns null if Firebase is not active.
  */
 export async function getProductsFromFirestore(): Promise<ProductDomainEntity[] | null> {
+  // Check memory cache first
+  if (productsCache && Date.now() - productsCache.cachedAt < PRODUCTS_CACHE_TTL_MS) {
+    return productsCache.data;
+  }
+
   try {
+    let result: ProductDomainEntity[] | null = null;
+
     // 1. Check Server Admin SDK first
     if (typeof window === "undefined" && adminDb) {
       const snapshot = await adminDb.collection(COLLECTIONS.PRODUCTS).get();
       if (!snapshot.empty) {
-        return snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
+        result = snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
       }
     }
 
     // 2. Check Client SDK
-    if (db && isFirebaseConfigured()) {
+    if (!result && db && isFirebaseConfigured()) {
       const colRef = collection(db, COLLECTIONS.PRODUCTS);
       const snapshot = await getDocs(colRef);
       if (!snapshot.empty) {
-        return snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
+        result = snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
       }
+    }
+
+    if (result && result.length > 0) {
+      productsCache = { data: result, cachedAt: Date.now() };
+      return result;
     }
 
     return null;
@@ -166,11 +189,13 @@ export async function saveProductToFirestore(product: ProductDomainEntity): Prom
 
     if (typeof window === "undefined" && adminDb) {
       await adminDb.collection(COLLECTIONS.PRODUCTS).doc(product.id).set(cleanProduct, { merge: true });
+      invalidateProductsCache();
       return true;
     }
 
     if (db && isFirebaseConfigured()) {
       await setDoc(doc(db, COLLECTIONS.PRODUCTS, product.id), cleanProduct, { merge: true });
+      invalidateProductsCache();
       return true;
     }
 
@@ -199,6 +224,7 @@ export async function deleteProductFromFirestore(productId: string): Promise<boo
       for (const d of skuSnap.docs) {
         await d.ref.delete();
       }
+      invalidateProductsCache();
       return true;
     }
 
@@ -214,6 +240,7 @@ export async function deleteProductFromFirestore(productId: string): Promise<boo
       for (const d of snap.docs) {
         await deleteDoc(d.ref);
       }
+      invalidateProductsCache();
       return true;
     }
 

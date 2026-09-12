@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       ? firestoreProducts
       : repo.getAll();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         products,
@@ -46,6 +46,14 @@ export async function GET(request: NextRequest) {
         source: (firestoreProducts && firestoreProducts.length > 0) ? "FIRESTORE_CLOUD" : "LOCAL_FALLBACK",
       },
     });
+
+    // Edge CDN and browser caching optimization for Vercel deployment
+    response.headers.set(
+      "Cache-Control",
+      "public, s-maxage=30, stale-while-revalidate=120"
+    );
+
+    return response;
   } catch (error) {
     console.error("[API_PRODUCTS_GET_ERROR]", error);
     return NextResponse.json(

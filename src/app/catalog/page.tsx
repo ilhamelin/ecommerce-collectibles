@@ -536,13 +536,37 @@ function CatalogContent() {
       <div className="space-y-2 border-b border-[#E5E5E5] pb-6">
         <div className="flex items-center gap-2 text-[#FF6B35] font-semibold text-xs uppercase tracking-wider">
           <SlidersHorizontal className="w-4 h-4" />
-          Catálogo Especializado en Pesos Chilenos (CLP)
+          {selectedCategory === "VIDEO_GAME"
+            ? "Catálogo Videojuegos"
+            : selectedCategory === "FIGURE"
+            ? "Catálogo Figuras"
+            : selectedCategory === "COLLECTIBLE"
+            ? "Catálogo TCG & Rarezas PSA"
+            : selectedCategory === "BUNDLE"
+            ? "Catálogo Bundles & Packs"
+            : "Catálogo General"}
         </div>
         <h1 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
-          Coleccionables, Videojuegos & Ediciones Japonesas
+          {selectedCategory === "VIDEO_GAME"
+            ? "Videojuegos & Ediciones Especiales"
+            : selectedCategory === "FIGURE"
+            ? "Figuras a Escala & Model Kits"
+            : selectedCategory === "COLLECTIBLE"
+            ? "Cartas Graduadas PSA & Rarezas"
+            : selectedCategory === "BUNDLE"
+            ? "Bundles Compuestos & Ofertas"
+            : "Coleccionables, Videojuegos & Ediciones Japonesas"}
         </h1>
         <p className="text-sm text-[#666666] max-w-2xl">
-          Explora preventas oficiales con precio congelado en CLP, cartas graduadas PSA de alta gama y figuras licenciadas con despacho asegurado a todo Chile.
+          {selectedCategory === "VIDEO_GAME"
+            ? "Títulos para Nintendo Switch, PS5, Xbox y PC. Preventas aseguradas con entrega el día de estreno en Chile."
+            : selectedCategory === "FIGURE"
+            ? "Figuras 100% originales importadas de Japón (Good Smile Company, Alter, Kotobukiya y más)."
+            : selectedCategory === "COLLECTIBLE"
+            ? "Cartas TCG certificadas con cápsula de seguridad y valor garantizado en pesos chilenos."
+            : selectedCategory === "BUNDLE"
+            ? "Packs seleccionados con descuento exclusivo y reserva sincronizada."
+            : "Explora preventas oficiales con precio congelado en CLP, cartas graduadas PSA de alta gama y figuras licenciadas con despacho asegurado a todo Chile."}
         </p>
       </div>
 

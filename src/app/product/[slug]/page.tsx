@@ -26,6 +26,7 @@ import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
 import { RelatedProductsSlider } from "@/components/catalog/RelatedProductsSlider";
+import { analytics } from "@/lib/services/AnalyticsTracker";
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
@@ -53,12 +54,22 @@ export default function ProductDetailPage() {
   const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
+    analytics.trackPageView(`/product/${slug}`, product?.name || slug);
+  }, [slug, product?.name]);
+
+  useEffect(() => {
     // Always fetch live product data from database so edits are reflected immediately
     fetch(`/api/products?sku=${encodeURIComponent(slug)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data?.product) {
           setProduct(data.data.product);
+          analytics.trackProductView({
+            sku: data.data.product.sku,
+            name: data.data.product.name,
+            category: data.data.product.type,
+            price: data.data.product.price,
+          });
         }
       })
       .catch((err) => console.error("Error fetching product by slug:", err))

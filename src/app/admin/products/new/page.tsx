@@ -596,16 +596,16 @@ export default function NewProductAdminPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Top Header & Breadcrumbs */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#004E72]/40 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6E42] uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#FF6B35] uppercase tracking-wider">
             <Sliders className="w-4 h-4" />
             Panel de Administración • E-Commerce Especializado
           </div>
-          <h1 className="text-3xl font-black text-[#F9F9F9] tracking-tight">
+          <h1 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
             Crear Nuevo Producto en Catálogo
           </h1>
-          <p className="text-sm text-[#9bb5c2]">
+          <p className="text-sm text-[#555555]">
             Configura preventas con pie porcentual, cartas TCG graduadas con cápsula o videojuegos con sincronización CLP.
           </p>
         </div>
@@ -613,13 +613,13 @@ export default function NewProductAdminPage() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/admin/products"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#092634] hover:bg-[#004E72]/50 text-[#F9F9F9] text-xs font-semibold border border-[#004E72]/60 transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F7F7F5] text-[#1A1A1A] text-xs font-semibold border border-[#E5E5E5] transition shadow-sm"
           >
-            <ArrowLeft className="w-4 h-4 text-[#FF6E42]" /> Volver a Inventario
+            <ArrowLeft className="w-4 h-4 text-[#FF6B35]" /> Volver a Inventario
           </Link>
           <Link
             href="/catalog"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#004E72] hover:bg-[#004E72]/80 text-[#F9F9F9] text-xs font-semibold transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] text-white text-xs font-semibold transition shadow-sm"
           >
             Ver Tienda en Vivo
           </Link>

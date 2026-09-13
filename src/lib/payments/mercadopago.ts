@@ -137,7 +137,7 @@ export async function createMercadoPagoPreference(
       external_reference: order.id,
       statement_descriptor: "OMNICOLLECTOR",
       payment_methods: {
-        installments: 12, // Allow up to 12 installments in Chile
+        installments: 6, // Mercado Pago Chile allows up to 6 installments without interest
       },
     },
   });

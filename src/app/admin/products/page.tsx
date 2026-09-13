@@ -29,6 +29,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { ProductDomainEntity, ProductType } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
@@ -223,6 +225,59 @@ export default function AdminProductsListPage() {
 
     return list;
   }, [products, selectedType, searchQuery, sortKey, sortOrder]);
+
+  // Real-time counts for categories
+  const adminCategoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: products.length,
+      VIDEO_GAME: 0,
+      FIGURE: 0,
+      COLLECTIBLE: 0,
+      BUNDLE: 0,
+      CONSOLE: 0,
+      GAMING_ACCESSORY: 0,
+      APPAREL: 0,
+      BOOK: 0,
+      MERCH: 0,
+      AUDIO: 0,
+      OTHER: 0,
+    };
+    for (const p of products) {
+      if (p.type === "VIDEO_GAME") counts.VIDEO_GAME++;
+      else if (p.type === "FIGURE") counts.FIGURE++;
+      else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
+      else if (p.type === "BUNDLE") counts.BUNDLE++;
+      else if (p.type === "OTHER") {
+        const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
+        const l = (p.customCategoryLabel || "").toLowerCase();
+        if (specCat === "CONSOLE" || l.includes("consola") || l.includes("hardware")) counts.CONSOLE++;
+        else if (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono")) counts.GAMING_ACCESSORY++;
+        else if (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
+        else if (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;
+        else if (specCat === "MERCH" || l.includes("merch") || l.includes("decoraci")) counts.MERCH++;
+        else if (specCat === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("soundtrack")) counts.AUDIO++;
+        else counts.OTHER++;
+      }
+    }
+    return counts;
+  }, [products]);
+
+  const getCategoryLabel = (id: string) => {
+    switch (id) {
+      case "VIDEO_GAME": return "Videojuegos";
+      case "FIGURE": return "Figuras";
+      case "COLLECTIBLE": return "TCG / Rarezas";
+      case "BUNDLE": return "Bundles";
+      case "CONSOLE": return "Consolas / Hardware";
+      case "GAMING_ACCESSORY": return "Accesorios Gaming";
+      case "APPAREL": return "Ropa & Estilo";
+      case "BOOK": return "Manga / Libros";
+      case "MERCH": return "Merchandising";
+      case "AUDIO": return "Audio / OST";
+      case "OTHER": return "Otras";
+      default: return "Todas las Categorías";
+    }
+  };
 
   // KPIs
   const totalStockUnits = products.reduce((acc, p) => acc + (p.stockAvailable || 0), 0);
@@ -434,46 +489,144 @@ export default function AdminProductsListPage() {
       </div>
 
       {/* Filter & Search Strip */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#092634] border border-[#004E72]/40">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-[#9bb5c2] absolute left-3.5 top-3" />
-          <input
-            type="text"
-            placeholder="Buscar por SKU o nombre..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-xs text-[#F9F9F9] placeholder-[#9bb5c2] focus:outline-none focus:border-[#FF6E42]"
-          />
+      <div className="p-4 rounded-2xl bg-[#092634] border border-[#004E72]/50 shadow-md space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Search input with clean icon & clear button */}
+          <div className="relative flex-1 max-w-full md:max-w-md">
+            <Search className="w-4 h-4 text-[#9bb5c2] absolute left-3.5 top-3 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar por SKU, nombre, marca o especificaciones..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-[#004E72]/25 border border-[#004E72]/60 text-xs text-[#F9F9F9] placeholder-[#9bb5c2] focus:outline-none focus:border-[#FF6E42] transition shadow-inner"
+            />
+            {searchQuery.trim() && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2.5 p-1 rounded-lg text-[#9bb5c2] hover:text-[#F9F9F9] hover:bg-[#004E72]/50 transition"
+                title="Limpiar búsqueda"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Right side: Category Dropdown & Quick Actions */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto">
+            <div className="relative flex-1 md:w-72">
+              <Filter className="w-3.5 h-3.5 text-[#FF6E42] absolute left-3.5 top-3.5 pointer-events-none" />
+              <select
+                id="admin-category-select"
+                aria-label="Filtrar por categoría"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/45 border border-[#004E72]/70 text-xs font-semibold text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42] cursor-pointer shadow-sm appearance-none transition"
+              >
+                <option value="ALL" className="bg-[#092634] text-[#F9F9F9]">
+                  Todas las Categorías ({adminCategoryCounts.ALL})
+                </option>
+                <optgroup label="── Categorías Principales ──" className="bg-[#092634] text-[#FF6E42] font-bold">
+                  <option value="VIDEO_GAME" className="bg-[#092634] text-[#F9F9F9]">
+                    🎮 Videojuegos ({adminCategoryCounts.VIDEO_GAME})
+                  </option>
+                  <option value="FIGURE" className="bg-[#092634] text-[#F9F9F9]">
+                    🎎 Figuras de Escala ({adminCategoryCounts.FIGURE})
+                  </option>
+                  <option value="COLLECTIBLE" className="bg-[#092634] text-[#F9F9F9]">
+                    🏆 TCG & Rarezas PSA ({adminCategoryCounts.COLLECTIBLE})
+                  </option>
+                  <option value="BUNDLE" className="bg-[#092634] text-[#F9F9F9]">
+                    📦 Bundles Compuestos ({adminCategoryCounts.BUNDLE})
+                  </option>
+                </optgroup>
+                <optgroup label="── Categorías Especializadas ──" className="bg-[#092634] text-[#FF6E42] font-bold">
+                  <option value="CONSOLE" className="bg-[#092634] text-[#F9F9F9]">
+                    🖥️ Consolas / Hardware ({adminCategoryCounts.CONSOLE})
+                  </option>
+                  <option value="GAMING_ACCESSORY" className="bg-[#092634] text-[#F9F9F9]">
+                    🎧 Accesorios Gaming ({adminCategoryCounts.GAMING_ACCESSORY})
+                  </option>
+                  <option value="APPAREL" className="bg-[#092634] text-[#F9F9F9]">
+                    👕 Ropa & Estilo ({adminCategoryCounts.APPAREL})
+                  </option>
+                  <option value="BOOK" className="bg-[#092634] text-[#F9F9F9]">
+                    📖 Manga / Artbooks ({adminCategoryCounts.BOOK})
+                  </option>
+                  <option value="MERCH" className="bg-[#092634] text-[#F9F9F9]">
+                    🎁 Merchandising ({adminCategoryCounts.MERCH})
+                  </option>
+                  <option value="AUDIO" className="bg-[#092634] text-[#F9F9F9]">
+                    💿 Audio / OST ({adminCategoryCounts.AUDIO})
+                  </option>
+                  <option value="OTHER" className="bg-[#092634] text-[#F9F9F9]">
+                    🧩 Otras Categorías ({adminCategoryCounts.OTHER})
+                  </option>
+                </optgroup>
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#9bb5c2] absolute right-3 top-3.5 pointer-events-none" />
+            </div>
+
+            {(selectedType !== "ALL" || searchQuery.trim() !== "") && (
+              <button
+                onClick={() => {
+                  setSelectedType("ALL");
+                  setSearchQuery("");
+                }}
+                className="px-3 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-xs font-semibold transition shrink-0 flex items-center gap-1.5 shadow-sm"
+                title="Restablecer todos los filtros"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpiar</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar">
-          {[
-            { id: "ALL", label: "Todos" },
-            { id: "FIGURE", label: "Figuras" },
-            { id: "VIDEO_GAME", label: "Juegos" },
-            { id: "COLLECTIBLE", label: "TCG / Raros" },
-            { id: "BUNDLE", label: "Bundles" },
-            { id: "CONSOLE", label: "Consolas" },
-            { id: "GAMING_ACCESSORY", label: "Accesorios" },
-            { id: "APPAREL", label: "Ropa" },
-            { id: "BOOK", label: "Manga" },
-            { id: "MERCH", label: "Merch" },
-            { id: "AUDIO", label: "Audio" },
-            { id: "OTHER", label: "+ Otras" },
-          ].map((cat) => (
+        {/* Active Filter Chips Strip */}
+        {(selectedType !== "ALL" || searchQuery.trim() !== "") && (
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#004E72]/40 text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[#9bb5c2] text-[11px] font-medium">Filtro aplicado:</span>
+              {selectedType !== "ALL" && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#004E72] text-[#F9F9F9] border border-[#FF6E42]/60 font-semibold text-[11px]">
+                  Categoría: <strong className="text-[#FF6E42]">{getCategoryLabel(selectedType)}</strong>
+                  <button
+                    onClick={() => setSelectedType("ALL")}
+                    className="hover:text-red-300 ml-0.5 p-0.5 rounded transition"
+                    title="Quitar filtro de categoría"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {searchQuery.trim() !== "" && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#004E72] text-[#F9F9F9] border border-[#FF6E42]/60 font-semibold text-[11px]">
+                  Búsqueda: <strong className="text-[#FF6E42]">"{searchQuery}"</strong>
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="hover:text-red-300 ml-0.5 p-0.5 rounded transition"
+                    title="Quitar filtro de búsqueda"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              <span className="text-[11px] text-[#9bb5c2]/80 ml-1">
+                ({filtered.length} {filtered.length === 1 ? "producto encontrado" : "productos encontrados"})
+              </span>
+            </div>
             <button
-              key={cat.id}
-              onClick={() => setSelectedType(cat.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
-                selectedType === cat.id
-                  ? "bg-[#004E72] text-[#F9F9F9] border border-[#FF6E42] shadow-sm font-bold ring-1 ring-[#FF6E42]/50"
-                  : "bg-[#092634] text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9] border border-[#004E72]/40"
-              }`}
+              onClick={() => {
+                setSelectedType("ALL");
+                setSearchQuery("");
+              }}
+              className="text-[11px] text-[#FF6E42] hover:text-[#ff8a65] font-bold shrink-0 transition"
             >
-              {cat.label}
+              Quitar todos
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Products Table */}

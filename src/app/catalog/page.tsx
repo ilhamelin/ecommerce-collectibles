@@ -841,47 +841,6 @@ function CatalogContent() {
             </div>
           </div>
 
-          {/* Quick Tag Chips Bar */}
-          {/* Quick Tags Bar with New Categories */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-            <span className="text-[11px] font-bold text-[#666666] flex items-center gap-1 shrink-0">
-              <Tag className="w-3 h-3 text-[#FF6B35]" /> Tags Rápidos:
-            </span>
-            {[
-              { label: "Nintendo Switch", query: "Nintendo Switch" },
-              { label: "PlayStation 5", query: "PS5" },
-              { label: "Consolas", query: "Consola" },
-              { label: "Mouse Gamer", query: "Mouse" },
-              { label: "Teclados", query: "Teclado" },
-              { label: "Audífonos", query: "Audífonos" },
-              { label: "Manga", query: "Manga" },
-              { label: "Ropa", query: "Ropa" },
-              { label: "Audio OST", query: "Audio" },
-              { label: "Escala 1/7", query: "1/7" },
-              { label: "PSA 10", query: "PSA" },
-              { label: "Preventas", query: "Preventa" },
-              { label: "RPG", query: "RPG" },
-              { label: "Good Smile", query: "Good Smile" },
-            ].map((t) => {
-              const isActive = searchQuery.toLowerCase() === t.query.toLowerCase();
-              return (
-                <button
-                  key={t.label}
-                  type="button"
-                  onClick={() => setSearchQuery(isActive ? "" : t.query)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition shrink-0 flex items-center gap-1 border ${
-                    isActive
-                      ? "bg-[#FF6B35] text-white border-[#FF6B35] shadow-xs font-bold"
-                      : "bg-white text-[#666666] hover:text-[#1A1A1A] hover:bg-[#F7F7F5] border-[#E5E5E5]"
-                  }`}
-                >
-                  <span>{t.label}</span>
-                  {isActive && <X className="w-3 h-3" />}
-                </button>
-              );
-            })}
-          </div>
-
           {/* Active Filters Badges Bar & Results Count */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-[#E5E5E5] text-xs shadow-sm">
             <div className="text-[#666666]">

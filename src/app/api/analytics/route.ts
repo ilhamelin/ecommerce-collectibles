@@ -66,8 +66,8 @@ const globalAnalytics: AnalyticsStore = {
       views: 84,
       lastInteractionAt: Date.now() - 1000 * 60 * 30,
     },
-    "FIG-FORZA-HORIZON-5": {
-      sku: "FIG-FORZA-HORIZON-5",
+    "VG-FORZA-HORIZON-5": {
+      sku: "VG-FORZA-HORIZON-5",
       name: "Forza Horizon 5",
       category: "VIDEO_GAME",
       price: 49900,

@@ -155,13 +155,40 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
             {isCollectible && (
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FF6B35] text-white border border-[#FF6B35] flex items-center gap-1 shadow-sm">
-                <Trophy className="w-3 h-3" /> PSA 9 MINT
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FF6B35] text-white border border-[#FF6B35] flex items-center gap-1 shadow-sm uppercase tracking-tight">
+                <Trophy className="w-3 h-3 shrink-0" />
+                {(() => {
+                  const meta = product.collectibleMetadata;
+                  const auth = meta?.authenticationBody || "PSA";
+                  const cond = meta?.condition;
+                  const nameUpper = (product.name || "").toUpperCase();
+                  const skuUpper = (product.sku || "").toUpperCase();
+
+                  if (cond === "GEM_MINT_10" || nameUpper.includes("PSA 10") || skuUpper.includes("PSA10") || nameUpper.includes("GEM MINT 10")) {
+                    return `${auth} 10 GEM MINT`;
+                  }
+                  if (cond === "MINT_9" || nameUpper.includes("PSA 9") || skuUpper.includes("PSA9") || nameUpper.includes("MINT 9")) {
+                    return `${auth} 9 MINT`;
+                  }
+                  if (cond === "NEAR_MINT_8" || nameUpper.includes("PSA 8") || nameUpper.includes("NM 8")) {
+                    return `${auth} 8 NM`;
+                  }
+                  if (nameUpper.includes("CGC 8.5") || skuUpper.includes("CGC")) {
+                    return "CGC 8.5 NM+";
+                  }
+                  if (nameUpper.includes("BGS 9.5") || skuUpper.includes("BGS")) {
+                    return "BGS 9.5 GEM";
+                  }
+                  if (cond) {
+                    return `${auth} ${cond.replace(/_/g, " ")}`;
+                  }
+                  return `${auth} CERTIFICADO`;
+                })()}
               </span>
             )}
-            {!isPreOrder && !isBundle && !isCollectible && product.customCategoryLabel && (
+            {!isPreOrder && !isBundle && !isCollectible && (
               <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
-                {product.customCategoryLabel}
+                {product.customCategoryLabel || (isFigure ? (product.figureMetadata?.scale || "FIGURA") : isGame ? (product.gameMetadata?.platform || "VIDEOJUEGO") : "OFICIAL")}
               </span>
             )}
           </div>
@@ -212,7 +239,13 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
             {product.collectibleMetadata && (
               <span className="text-[10px] px-2.5 py-0.5 rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] font-medium border border-[#FF6B35]/25">
-                Cert: {product.collectibleMetadata.authenticationBody} • {product.collectibleMetadata.condition}
+                Cert: {product.collectibleMetadata.authenticationBody || "PSA"} • {(() => {
+                  const cond = product.collectibleMetadata.condition;
+                  if (cond === "GEM_MINT_10") return "Gem Mint 10";
+                  if (cond === "MINT_9") return "Mint 9";
+                  if (cond === "NEAR_MINT_8") return "Near Mint 8";
+                  return "Auténtico";
+                })()}
               </span>
             )}
             {isBundle && nominalSavings > 0 && (

@@ -6,4 +6,5 @@ export const COLLECTIONS = {
   CSV_BACKUPS: "csv_backups",
   KPI_SNAPSHOTS: "kpi_snapshots",
   ANALYTICS: "analytics",
+  SLIDER_SETTINGS: "slider_settings",
 } as const;

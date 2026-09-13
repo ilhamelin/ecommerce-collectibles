@@ -791,3 +791,62 @@ export async function deleteUserFromFirestore(userIdOrEmail: string): Promise<bo
   }
 }
 
+/**
+ * ============================================================================
+ * SLIDER SETTINGS OPERATIONS
+ * ============================================================================
+ */
+
+export async function getSliderSettingsFromFirestore(): Promise<any[] | null> {
+  try {
+    if (typeof window === "undefined" && adminDb) {
+      const snap = await adminDb.collection(COLLECTIONS.SLIDER_SETTINGS).doc("home_slider").get();
+      if (snap.exists) {
+        const data = snap.data();
+        if (data && Array.isArray(data.slides)) {
+          return data.slides;
+        }
+      }
+    }
+
+    if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.SLIDER_SETTINGS, "home_slider"));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && Array.isArray(data.slides)) {
+          return data.slides;
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("[Firestore] Error fetching slider settings:", err);
+    return null;
+  }
+}
+
+export async function saveSliderSettingsToFirestore(slides: any[]): Promise<boolean> {
+  try {
+    const payload = {
+      slides: cleanFirestoreData(slides),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb.collection(COLLECTIONS.SLIDER_SETTINGS).doc("home_slider").set(payload, { merge: true });
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.SLIDER_SETTINGS, "home_slider"), payload, { merge: true });
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.warn("[Firestore] Error saving slider settings:", err);
+    return false;
+  }
+}
+

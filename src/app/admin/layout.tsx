@@ -48,6 +48,12 @@ export default function AdminLayout({
       active: pathname === "/admin/orders",
     },
     {
+      href: "/admin/slider",
+      label: "Slider Portada",
+      icon: Sparkles,
+      active: pathname === "/admin/slider",
+    },
+    {
       href: "/admin/users",
       label: "Usuarios & Clientes",
       icon: Users,

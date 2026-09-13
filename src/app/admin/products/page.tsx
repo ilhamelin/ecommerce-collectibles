@@ -305,7 +305,7 @@ export default function AdminProductsListPage() {
   const preOrderCount = products.filter((p) => p.isPreOrder).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl 2xl:max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header with direct Action to Create */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div>
@@ -687,12 +687,12 @@ export default function AdminProductsListPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-[#9bb5c2]">
+            <table className="w-full text-left text-xs text-[#9bb5c2] table-auto">
               <thead className="bg-[#05161f] text-[#F9F9F9] border-b border-[#004E72]/50 font-mono uppercase text-[11px]">
                 <tr>
                   <th 
                     onClick={() => handleSort("sku_name")}
-                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    className="px-3.5 py-3 cursor-pointer hover:text-[#FF6E42] transition select-none"
                     title="Ordenar por SKU o Nombre"
                   >
                     <div className="flex items-center gap-1.5">
@@ -706,7 +706,7 @@ export default function AdminProductsListPage() {
                   </th>
                   <th 
                     onClick={() => handleSort("type")}
-                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    className="px-3 py-3 cursor-pointer hover:text-[#FF6E42] transition select-none"
                     title="Ordenar por Categoría"
                   >
                     <div className="flex items-center gap-1.5">
@@ -720,7 +720,7 @@ export default function AdminProductsListPage() {
                   </th>
                   <th 
                     onClick={() => handleSort("price")}
-                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    className="px-3 py-3 cursor-pointer hover:text-[#FF6E42] transition select-none"
                     title="Ordenar por Precio CLP"
                   >
                     <div className="flex items-center gap-1.5">
@@ -734,7 +734,7 @@ export default function AdminProductsListPage() {
                   </th>
                   <th 
                     onClick={() => handleSort("costPrice")}
-                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    className="px-3 py-3 cursor-pointer hover:text-[#FF6E42] transition select-none"
                     title="Ordenar por Costo Unitario"
                   >
                     <div className="flex items-center gap-1.5">
@@ -748,7 +748,7 @@ export default function AdminProductsListPage() {
                   </th>
                   <th 
                     onClick={() => handleSort("margin")}
-                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    className="px-3 py-3 cursor-pointer hover:text-[#FF6E42] transition select-none"
                     title="Ordenar por Margen Bruto"
                   >
                     <div className="flex items-center gap-1.5">
@@ -762,7 +762,7 @@ export default function AdminProductsListPage() {
                   </th>
                   <th 
                     onClick={() => handleSort("stock")}
-                    className="px-5 py-3.5 cursor-pointer hover:text-[#FF6E42] transition select-none"
+                    className="px-3 py-3 cursor-pointer hover:text-[#FF6E42] transition select-none"
                     title="Ordenar por Stock Disponible"
                   >
                     <div className="flex items-center gap-1.5">
@@ -774,7 +774,7 @@ export default function AdminProductsListPage() {
                       )}
                     </div>
                   </th>
-                  <th className="px-5 py-3.5 text-right">Acción</th>
+                  <th className="px-3.5 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#004E72]/30">
@@ -789,36 +789,36 @@ export default function AdminProductsListPage() {
 
                   return (
                     <tr key={prod.id} className="hover:bg-[#004E72]/15 transition">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3.5 py-2.5">
+                        <div className="flex items-center gap-2.5">
                           {imgUrl ? (
-                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-[#05161f] border border-[#004E72]/60 shrink-0">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#05161f] border border-[#004E72]/60 shrink-0">
                               <img src={imgUrl} alt="" className="w-full h-full object-cover" />
                             </div>
                           ) : (
-                            <div className="w-12 h-12 rounded-xl bg-[#004E72]/30 border border-[#004E72]/50 flex items-center justify-center shrink-0">
-                              <Package className="w-5 h-5 text-[#9bb5c2]" />
+                            <div className="w-10 h-10 rounded-lg bg-[#004E72]/30 border border-[#004E72]/50 flex items-center justify-center shrink-0">
+                              <Package className="w-4 h-4 text-[#9bb5c2]" />
                             </div>
                           )}
-                          <div className="space-y-0.5">
-                            <span className="font-mono text-[#FF6E42] text-[11px] font-bold block">
+                          <div className="space-y-0.5 min-w-0">
+                            <span className="font-mono text-[#FF6E42] text-[10px] font-bold block leading-none">
                               {prod.sku}
                             </span>
-                            <span className="font-semibold text-[#F9F9F9] text-sm block line-clamp-1">
+                            <span className="font-semibold text-[#F9F9F9] text-xs block truncate max-w-[190px] xl:max-w-[250px]" title={prod.name}>
                               {prod.name}
                             </span>
                             {prod.isPreOrder && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-amber-300 font-medium">
-                                <Clock className="w-3 h-3" /> Preventa (Pie {Math.round((prod.figureMetadata?.minimumDepositPercent ?? 0.2) * 100)}%)
+                              <span className="inline-flex items-center gap-1 text-[9px] text-amber-300 font-medium leading-none">
+                                <Clock className="w-2.5 h-2.5" /> Preventa ({Math.round((prod.figureMetadata?.minimumDepositPercent ?? 0.2) * 100)}%)
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 whitespace-nowrap">
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                             prod.type === "FIGURE"
                               ? "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
                               : prod.type === "COLLECTIBLE"
@@ -831,25 +831,25 @@ export default function AdminProductsListPage() {
                           }`}
                         >
                           {prod.type === "OTHER"
-                            ? prod.customCategoryLabel?.toUpperCase() || "OTRA CATEGORÍA"
+                            ? prod.customCategoryLabel?.toUpperCase() || "OTRA"
                             : prod.type}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 font-mono font-bold text-[#F9F9F9] whitespace-nowrap">
+                      <td className="px-3 py-2.5 font-mono font-bold text-[#F9F9F9] whitespace-nowrap text-xs">
                         {formatCLP(prod.price)}
                       </td>
 
-                      <td className="px-5 py-4 font-mono text-[#9bb5c2] whitespace-nowrap">
+                      <td className="px-3 py-2.5 font-mono text-[#9bb5c2] whitespace-nowrap text-xs">
                         {formatCLP(prod.costPrice)}
                       </td>
 
-                      <td className="px-5 py-4 font-mono whitespace-nowrap">
+                      <td className="px-3 py-2.5 font-mono whitespace-nowrap text-xs">
                         <span className="text-emerald-400 font-bold block">{formatCLP(grossProfit)}</span>
                         <span className="text-[10px] text-[#9bb5c2]">{marginPct}%</span>
                       </td>
 
-                      <td className="px-5 py-4 font-mono whitespace-nowrap">
+                      <td className="px-3 py-2.5 font-mono whitespace-nowrap text-xs">
                         <span
                           className={`font-bold ${
                             availableUnits > 0 ? "text-[#F9F9F9]" : "text-red-400"
@@ -859,36 +859,39 @@ export default function AdminProductsListPage() {
                         </span>
                         {prod.stockReserved > 0 && (
                           <span className="block text-[10px] text-amber-400">
-                            ({prod.stockReserved} reservadas)
+                            ({prod.stockReserved} res.)
                           </span>
                         )}
                       </td>
 
-                      <td className="px-5 py-4 text-right whitespace-nowrap space-x-2">
-                        <Link
-                          href={`/admin/products/${prod.id}/edit`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#05161f] hover:bg-[#FF6E42] text-[#F9F9F9] text-xs font-semibold border border-[#004E72]/60 hover:border-[#FF6E42] transition shadow-sm"
-                          title="Editar producto"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          Editar
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setProductToDelete(prod)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-600 text-red-300 hover:text-white text-xs font-semibold border border-red-500/40 hover:border-red-500 transition shadow-sm"
-                          title="Eliminar producto de Firestore"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Eliminar
-                        </button>
-                        <Link
-                          href={`/product/${prod.sku.toLowerCase()}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#004E72]/50 hover:bg-[#004E72] text-[#F9F9F9] text-xs font-semibold border border-[#004E72] transition group"
-                        >
-                          Ver en Tienda
-                          <ArrowUpRight className="w-3.5 h-3.5 text-[#FF6E42] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
-                        </Link>
+                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5 justify-end">
+                          <Link
+                            href={`/admin/products/${prod.id}/edit`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#05161f] hover:bg-[#FF6E42] text-[#F9F9F9] text-xs font-semibold border border-[#004E72]/60 hover:border-[#FF6E42] transition shadow-xs group"
+                            title="Editar producto"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-[#FF6E42] group-hover:text-white transition" />
+                            <span>Editar</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setProductToDelete(prod)}
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-600 text-red-300 hover:text-white text-xs font-semibold border border-red-500/40 hover:border-red-500 transition shadow-xs"
+                            title="Eliminar producto de la base de datos"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Eliminar</span>
+                          </button>
+                          <Link
+                            href={`/product/${prod.sku.toLowerCase()}`}
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#004E72]/40 hover:bg-[#004E72] text-[#F9F9F9] text-xs font-semibold border border-[#004E72] transition group"
+                            title="Ver en la tienda"
+                          >
+                            <span>Ver</span>
+                            <ArrowUpRight className="w-3.5 h-3.5 text-[#FF6E42] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

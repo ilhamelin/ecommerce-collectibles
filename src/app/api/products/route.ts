@@ -3,7 +3,7 @@ import { CreateProductSchema, UpdateProductSchema } from "@/lib/validations/sche
 import { CatalogRepository } from "@/lib/services/CatalogRepository";
 import { DomainError } from "@/lib/errors/DomainErrors";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
-import { BundleItemDefinition } from "@/lib/types/domain";
+import { BundleItemDefinition, ProductDomainEntity } from "@/lib/types/domain";
 import {
   getProductsFromFirestore,
   getProductByIdOrSkuFromFirestore,
@@ -11,6 +11,50 @@ import {
   deleteProductFromFirestore,
 } from "@/lib/firebase/firestore";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
+
+function sanitizeProductData(prod: ProductDomainEntity): ProductDomainEntity {
+  const p = { ...prod };
+  const nameUpper = (p.name || "").toUpperCase();
+
+  // 1. Fix incorrect FIG- prefix on non-figures
+  if (p.type === "VIDEO_GAME" && p.sku && p.sku.startsWith("FIG-")) {
+    p.sku = "VG-" + p.sku.slice(4);
+  } else if (p.type === "COLLECTIBLE" && p.sku && p.sku.startsWith("FIG-")) {
+    p.sku = "TCG-" + p.sku.slice(4);
+  }
+
+  // 2. Specific incoherences
+  if (nameUpper.includes("MAGIC") && nameUpper.includes("BLACK LOTUS")) {
+    p.type = "COLLECTIBLE";
+    if (p.sku && p.sku.startsWith("FIG-")) {
+      p.sku = "TCG-" + p.sku.slice(4);
+    }
+  }
+  if (nameUpper.includes("FINAL FANTASY VII") && (p.type === "FIGURE" || (p.sku && p.sku.startsWith("FIG-"))) && !p.figureMetadata) {
+    p.type = "VIDEO_GAME";
+    if (p.sku && p.sku.startsWith("FIG-")) {
+      p.sku = "VG-" + p.sku.slice(4);
+    }
+  }
+  if (nameUpper.includes("FORZA HORIZON") && p.sku && p.sku.startsWith("FIG-")) {
+    p.sku = "VG-" + p.sku.slice(4);
+    p.type = "VIDEO_GAME";
+  }
+
+  // 3. Fix grading condition matching
+  if (p.collectibleMetadata) {
+    p.collectibleMetadata = { ...p.collectibleMetadata };
+    if (nameUpper.includes("PSA 10") || (p.sku && p.sku.includes("PSA10")) || nameUpper.includes("GEM MINT 10")) {
+      p.collectibleMetadata.condition = "GEM_MINT_10";
+      p.collectibleMetadata.gradeScore = "10";
+    } else if (nameUpper.includes("PSA 9") || (p.sku && p.sku.includes("PSA9")) || nameUpper.includes("MINT 9")) {
+      p.collectibleMetadata.condition = "MINT_9";
+      p.collectibleMetadata.gradeScore = "9";
+    }
+  }
+
+  return p;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +64,19 @@ export async function GET(request: NextRequest) {
 
     if (skuOrSlug) {
       // Check Firestore first if available, then fallback to local repo
-      const firestoreProduct = await getProductByIdOrSkuFromFirestore(skuOrSlug);
-      const product = firestoreProduct || repo.getBySlugOrSku(skuOrSlug);
+      let firestoreProduct = await getProductByIdOrSkuFromFirestore(skuOrSlug);
+      if (!firestoreProduct && skuOrSlug.startsWith("vg-")) {
+        firestoreProduct = await getProductByIdOrSkuFromFirestore("fig-" + skuOrSlug.slice(3));
+      } else if (!firestoreProduct && skuOrSlug.startsWith("tcg-")) {
+        firestoreProduct = await getProductByIdOrSkuFromFirestore("fig-" + skuOrSlug.slice(4));
+      }
+
+      let product = firestoreProduct || repo.getBySlugOrSku(skuOrSlug);
+      if (!product && skuOrSlug.startsWith("vg-")) {
+        product = repo.getBySlugOrSku("fig-" + skuOrSlug.slice(3));
+      } else if (!product && skuOrSlug.startsWith("tcg-")) {
+        product = repo.getBySlugOrSku("fig-" + skuOrSlug.slice(4));
+      }
 
       if (!product) {
         return NextResponse.json(
@@ -29,7 +84,7 @@ export async function GET(request: NextRequest) {
           { status: 404 }
         );
       }
-      return NextResponse.json({ success: true, data: { product } });
+      return NextResponse.json({ success: true, data: { product: sanitizeProductData(product) } });
     }
 
     // Try fetching products from Firestore; if empty or unconfigured, fallback to local repo
@@ -38,12 +93,14 @@ export async function GET(request: NextRequest) {
 
     // If Firestore has products, sync the local repository so fallbacks never show deleted zombie items
     if (firestoreProducts && firestoreProducts.length > 0) {
-      repo.syncWithFirestore(firestoreProducts);
+      repo.syncWithFirestore(firestoreProducts.map(sanitizeProductData));
     }
 
-    const products = (firestoreProducts && firestoreProducts.length > 0)
+    const rawProducts = (firestoreProducts && firestoreProducts.length > 0)
       ? firestoreProducts
       : repo.getAll();
+
+    const products = rawProducts.map(sanitizeProductData);
 
     const response = NextResponse.json({
       success: true,

@@ -128,9 +128,9 @@ export async function createMercadoPagoPreference(
         },
       },
       back_urls: {
-        success: `${baseUrl}/order-confirmation/${order.id}?status=approved`,
-        pending: `${baseUrl}/order-confirmation/${order.id}?status=pending`,
-        failure: `${baseUrl}/checkout?status=failure&orderId=${order.id}`,
+        success: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=approved`,
+        pending: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=pending`,
+        failure: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=failure`,
       },
       auto_return: baseUrl.startsWith("https://") ? "approved" : undefined,
       notification_url: baseUrl.startsWith("https://") ? `${baseUrl}/api/checkout/mercadopago/webhook` : undefined,

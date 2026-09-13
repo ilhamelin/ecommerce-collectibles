@@ -148,4 +148,12 @@ export class CatalogRepository {
     }
     return this.store.products.delete(id);
   }
+
+  public syncWithFirestore(products: ProductDomainEntity[]): void {
+    if (!products || products.length === 0) return;
+    this.store.products.clear();
+    for (const p of products) {
+      this.store.products.set(p.id, p);
+    }
+  }
 }

@@ -28,7 +28,7 @@ import { COLLECTIONS } from "./collections";
  * preventing redundant queries under concurrent web traffic.
  */
 let productsCache: { data: ProductDomainEntity[]; cachedAt: number } | null = null;
-const PRODUCTS_CACHE_TTL_MS = 25000; // 25 seconds
+const PRODUCTS_CACHE_TTL_MS = 2000; // 2 seconds micro-cache
 
 export function invalidateProductsCache() {
   productsCache = null;
@@ -37,9 +37,9 @@ export function invalidateProductsCache() {
 /**
  * Fetch all products from Firestore if available. Returns null if Firebase is not active.
  */
-export async function getProductsFromFirestore(): Promise<ProductDomainEntity[] | null> {
+export async function getProductsFromFirestore(bypassCache = false): Promise<ProductDomainEntity[] | null> {
   // Check memory cache first
-  if (productsCache && Date.now() - productsCache.cachedAt < PRODUCTS_CACHE_TTL_MS) {
+  if (!bypassCache && productsCache && Date.now() - productsCache.cachedAt < PRODUCTS_CACHE_TTL_MS) {
     return productsCache.data;
   }
 
@@ -212,34 +212,63 @@ export async function saveProductToFirestore(product: ProductDomainEntity): Prom
 export async function deleteProductFromFirestore(productId: string): Promise<boolean> {
   try {
     const cleanId = productId.trim();
+    const upper = cleanId.toUpperCase();
+    invalidateProductsCache();
 
     // Server Admin SDK
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.PRODUCTS).doc(cleanId).delete();
-      // In case the ID was an SKU, check SKU doc as well
+      try {
+        await adminDb.collection(COLLECTIONS.PRODUCTS).doc(cleanId).delete();
+      } catch {}
+
+      // Delete by 'sku'
       const skuSnap = await adminDb
         .collection(COLLECTIONS.PRODUCTS)
-        .where("sku", "==", cleanId.toUpperCase())
+        .where("sku", "==", upper)
         .get();
       for (const d of skuSnap.docs) {
         await d.ref.delete();
       }
+
+      // Delete by 'id' field
+      const idSnap = await adminDb
+        .collection(COLLECTIONS.PRODUCTS)
+        .where("id", "==", cleanId)
+        .get();
+      for (const d of idSnap.docs) {
+        await d.ref.delete();
+      }
+
       invalidateProductsCache();
       return true;
     }
 
     // Client SDK
     if (db && isFirebaseConfigured()) {
-      await deleteDoc(doc(db, COLLECTIONS.PRODUCTS, cleanId));
+      try {
+        await deleteDoc(doc(db, COLLECTIONS.PRODUCTS, cleanId));
+      } catch {}
+
       // In case ID was SKU
-      const q = query(
+      const qSku = query(
         collection(db, COLLECTIONS.PRODUCTS),
-        where("sku", "==", cleanId.toUpperCase())
+        where("sku", "==", upper)
       );
-      const snap = await getDocs(q);
-      for (const d of snap.docs) {
+      const snapSku = await getDocs(qSku);
+      for (const d of snapSku.docs) {
         await deleteDoc(d.ref);
       }
+
+      // In case doc ID was different than 'id' field
+      const qId = query(
+        collection(db, COLLECTIONS.PRODUCTS),
+        where("id", "==", cleanId)
+      );
+      const snapId = await getDocs(qId);
+      for (const d of snapId.docs) {
+        await deleteDoc(d.ref);
+      }
+
       invalidateProductsCache();
       return true;
     }

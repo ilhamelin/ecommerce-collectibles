@@ -33,7 +33,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Try fetching products from Firestore; if empty or unconfigured, fallback to local repo
-    const firestoreProducts = await getProductsFromFirestore();
+    const fresh = searchParams.get("fresh") === "true" || searchParams.get("admin") === "true";
+    const firestoreProducts = await getProductsFromFirestore(fresh);
+
+    // If Firestore has products, sync the local repository so fallbacks never show deleted zombie items
+    if (firestoreProducts && firestoreProducts.length > 0) {
+      repo.syncWithFirestore(firestoreProducts);
+    }
+
     const products = (firestoreProducts && firestoreProducts.length > 0)
       ? firestoreProducts
       : repo.getAll();
@@ -47,11 +54,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Edge CDN and browser caching optimization for Vercel deployment
+    // Disable caching to guarantee instant synchronization and prevent stale/deleted products from reappearing
     response.headers.set(
       "Cache-Control",
-      "public, s-maxage=30, stale-while-revalidate=120"
+      "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
     );
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
 
     return response;
   } catch (error) {
@@ -359,16 +368,22 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 1. Delete from Firestore
-    await deleteProductFromFirestore(id);
+    const deletedInFirestore = await deleteProductFromFirestore(id);
 
     // 2. Delete from local repository
     const repo = CatalogRepository.getInstance();
     repo.deleteProduct(id);
 
+    // 3. Immediately re-sync local repo with fresh Firestore state if available
+    const freshProducts = await getProductsFromFirestore(true);
+    if (freshProducts && freshProducts.length > 0) {
+      repo.syncWithFirestore(freshProducts);
+    }
+
     return NextResponse.json({
       success: true,
       message: `Producto '${id}' eliminado exitosamente de Cloud Firestore y del catálogo.`,
-      data: { id },
+      data: { id, deletedInFirestore },
     });
   } catch (error) {
     console.error("[API_PRODUCTS_DELETE_ERROR]", error);

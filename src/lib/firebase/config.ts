@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, type Firestore } from "firebase/firestore";
 import { getAuth, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
@@ -35,7 +35,14 @@ if (typeof window !== "undefined" || process.env.NODE_ENV !== "test") {
   if (isFirebaseConfigured()) {
     try {
       app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-      db = getFirestore(app);
+      try {
+        db = initializeFirestore(app, {
+          experimentalAutoDetectLongPolling: true,
+          ignoreUndefinedProperties: true,
+        });
+      } catch {
+        db = getFirestore(app);
+      }
       auth = getAuth(app);
       storage = getStorage(app);
     } catch (err) {

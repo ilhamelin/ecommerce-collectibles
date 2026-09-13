@@ -122,7 +122,10 @@ function CatalogContent() {
 
   // Fetch updated catalog from backend
   useEffect(() => {
-    fetch("/api/products")
+    fetch(`/api/products?t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data?.products)) {

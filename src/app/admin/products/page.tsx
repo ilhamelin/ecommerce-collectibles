@@ -59,30 +59,45 @@ export default function AdminProductsListPage() {
 
   const handleDeleteProduct = async (product: ProductDomainEntity) => {
     setDeletingId(product.id);
+    const targetId = product.id;
+    const targetSku = product.sku;
+
+    // 1. Optimistically update local state immediately so UI has 0 latency
+    setProducts((prev) => prev.filter((p) => p.id !== targetId && p.sku !== targetSku));
+    setProductToDelete(null);
+
     try {
-      const res = await fetch(`/api/products?id=${encodeURIComponent(product.id)}`, {
+      const res = await fetch(`/api/products?id=${encodeURIComponent(targetId)}`, {
         method: "DELETE",
         headers: { ...getAdminHeaders() },
       });
       const data = await res.json();
       if (data.success) {
-        setDeleteMsg(`¡Producto ${product.sku} eliminado con éxito de Cloud Firestore!`);
-        setTimeout(() => setDeleteMsg(null), 4000);
-        loadProducts();
+        setDeleteMsg(`¡Producto ${targetSku} eliminado con éxito de Cloud Firestore y del catálogo!`);
+        setTimeout(() => setDeleteMsg(null), 5000);
+        // Refresh with fresh database query to ensure absolute sync
+        loadProducts(false);
       } else {
-        alert(data.error || "No se pudo eliminar el producto.");
+        alert(data.error || "No se pudo eliminar el producto de Firestore.");
+        loadProducts(true);
       }
     } catch (err) {
       alert("Error de conexión al eliminar el producto de Firestore.");
+      loadProducts(true);
     } finally {
       setDeletingId(null);
-      setProductToDelete(null);
     }
   };
 
-  const loadProducts = () => {
-    setLoading(true);
-    fetch("/api/products")
+  const loadProducts = (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    fetch(`/api/products?fresh=true&t=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data?.products)) {
@@ -90,7 +105,9 @@ export default function AdminProductsListPage() {
         }
       })
       .catch((err) => console.error("Error cargando productos:", err))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (showLoading) setLoading(false);
+      });
   };
 
   const checkFirebaseStatus = () => {
@@ -306,7 +323,7 @@ export default function AdminProductsListPage() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={loadProducts}
+            onClick={() => loadProducts()}
             title="Refrescar catálogo"
             className="p-2.5 rounded-xl bg-white border border-[#E5E5E5] text-[#555555] hover:text-[#1A1A1A] hover:bg-[#F7F7F5] transition shadow-sm"
           >
@@ -322,6 +339,22 @@ export default function AdminProductsListPage() {
           </Link>
         </div>
       </div>
+
+      {/* Dynamic Success Delete Message Banner */}
+      {deleteMsg && (
+        <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-between gap-3 text-emerald-300 animate-fade-in shadow-lg">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span className="text-xs font-bold">{deleteMsg}</span>
+          </div>
+          <button
+            onClick={() => setDeleteMsg(null)}
+            className="p-1 rounded-lg hover:bg-white/10 text-emerald-300 hover:text-white transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Role State Banner */}
       {currentUser?.role === "ADMIN" ? (

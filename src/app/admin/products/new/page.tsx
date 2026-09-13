@@ -284,12 +284,24 @@ export default function NewProductAdminPage() {
   const depositCLP = isPreOrder ? Math.round(price * figureDepositPercent) : price;
   const remainingCLP = Math.round(price - depositCLP);
 
+  // Determine if genres/tags input makes sense for this category
+  const shouldShowGenres = useMemo(() => {
+    if (type === "VIDEO_GAME") return true;
+    if (type === "OTHER") {
+      const l = (customCategoryLabel || "").toLowerCase();
+      return l.includes("manga") || l.includes("comic") || l.includes("libro") || l.includes("anime");
+    }
+    return false;
+  }, [type, customCategoryLabel]);
+
   // Live Preview Object for ProductCard
   const previewProduct: ProductDomainEntity = useMemo(() => {
-    const genresList = genresInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
+    const genresList = shouldShowGenres
+      ? genresInput
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean)
+      : [];
 
     const resolvedAgeRating =
       ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
@@ -416,10 +428,12 @@ export default function NewProductAdminPage() {
     setErrorMsg(null);
     setFieldErrors({});
 
-    const genresList = genresInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
+    const genresList = shouldShowGenres
+      ? genresInput
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean)
+      : [];
 
     const resolvedAgeRating =
       ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
@@ -898,16 +912,18 @@ export default function NewProductAdminPage() {
                 </p>
               </div>
 
-              <div className="sm:col-span-3 space-y-1.5">
-                <label className="text-xs font-medium text-[#9bb5c2]">Géneros & Categorías (separados por coma)</label>
-                <input
-                  type="text"
-                  value={genresInput}
-                  onChange={(e) => setGenresInput(e.target.value)}
-                  placeholder="Acción, RPG, Mundo Abierto, Shonen"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                />
-              </div>
+              {shouldShowGenres && (
+                <div className="sm:col-span-3 space-y-1.5 animate-in fade-in duration-200">
+                  <label className="text-xs font-medium text-[#9bb5c2]">Géneros & Categorías (separados por coma)</label>
+                  <input
+                    type="text"
+                    value={genresInput}
+                    onChange={(e) => setGenresInput(e.target.value)}
+                    placeholder="Acción, RPG, Mundo Abierto, Shonen"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

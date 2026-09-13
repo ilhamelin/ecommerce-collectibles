@@ -16,6 +16,8 @@ import {
   ChevronRight,
   User,
   Heart,
+  Cpu,
+  Headphones,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -53,6 +55,8 @@ function StoreNavbarContent() {
     { href: "/catalog?category=FIGURE", label: "Figuras", icon: Sparkles, categoryKey: "FIGURE" },
     { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas", icon: Trophy, categoryKey: "COLLECTIBLE" },
     { href: "/catalog?category=BUNDLE", label: "Bundles", icon: Layers, categoryKey: "BUNDLE" },
+    { href: "/catalog?category=CONSOLE", label: "Consolas", icon: Cpu, categoryKey: "CONSOLE" },
+    { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios", icon: Headphones, categoryKey: "GAMING_ACCESSORY" },
   ];
 
   return (
@@ -170,7 +174,7 @@ function StoreNavbarContent() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition ${
+                  className={`px-2.5 xl:px-3.5 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
                     isActive
                       ? "bg-[#1F3A5F] text-white shadow-sm font-bold"
                       : "text-[#1A1A1A] hover:text-[#FF6B35] hover:bg-[#F7F7F5]"

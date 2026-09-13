@@ -344,12 +344,24 @@ export default function EditProductAdminPage() {
     }
   };
 
+  // Determine if genres/tags input makes sense for this category
+  const shouldShowGenres = useMemo(() => {
+    if (type === "VIDEO_GAME") return true;
+    if (type === "OTHER") {
+      const l = (customCategoryLabel || "").toLowerCase();
+      return l.includes("manga") || l.includes("comic") || l.includes("libro") || l.includes("anime");
+    }
+    return false;
+  }, [type, customCategoryLabel]);
+
   // Preview Domain Entity
   const previewProduct: ProductDomainEntity = useMemo(() => {
-    const genresList = genresInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
+    const genresList = shouldShowGenres
+      ? genresInput
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean)
+      : [];
 
     const resolvedAgeRating =
       ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
@@ -475,10 +487,12 @@ export default function EditProductAdminPage() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const genresList = genresInput
-      .split(",")
-      .map((g) => g.trim())
-      .filter(Boolean);
+    const genresList = shouldShowGenres
+      ? genresInput
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean)
+      : [];
 
     const resolvedAgeRating =
       ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
@@ -894,18 +908,20 @@ export default function EditProductAdminPage() {
                 </p>
               </div>
 
-              <div className="sm:col-span-3 space-y-1">
-                <label className="block text-xs font-semibold text-[#9bb5c2]">
-                  Géneros & Etiquetas (separados por coma)
-                </label>
-                <input
-                  type="text"
-                  value={genresInput}
-                  onChange={(e) => setGenresInput(e.target.value)}
-                  placeholder="Acción, Aventuras, Ciencia Ficción"
-                  className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                />
-              </div>
+              {shouldShowGenres && (
+                <div className="sm:col-span-3 space-y-1 animate-in fade-in duration-200">
+                  <label className="block text-xs font-semibold text-[#9bb5c2]">
+                    Géneros & Etiquetas (separados por coma)
+                  </label>
+                  <input
+                    type="text"
+                    value={genresInput}
+                    onChange={(e) => setGenresInput(e.target.value)}
+                    placeholder="Acción, Aventuras, Ciencia Ficción"
+                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

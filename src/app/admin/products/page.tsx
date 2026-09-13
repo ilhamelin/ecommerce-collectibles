@@ -143,14 +143,56 @@ export default function AdminProductsListPage() {
 
   const filtered = useMemo(() => {
     const list = products.filter((p) => {
-      if (selectedType !== "ALL" && p.type !== selectedType) return false;
+      // Category filter matching standard types and custom categories
+      if (selectedType !== "ALL") {
+        if (p.type === selectedType) {
+          // direct standard match
+        } else if (p.type === "OTHER") {
+          const l = (p.customCategoryLabel || "").toLowerCase();
+          const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
+          if (selectedType === "OTHER") {
+            // matches any other
+          } else if (selectedType === "CONSOLE" && (specCat === "CONSOLE" || l.includes("consola") || l.includes("hardware"))) {
+            // matches console
+          } else if (selectedType === "GAMING_ACCESSORY" && (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono"))) {
+            // matches gaming accessory
+          } else if (selectedType === "APPAREL" && (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo") || l.includes("poleron") || l.includes("polera"))) {
+            // matches apparel
+          } else if (selectedType === "BOOK" && (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro"))) {
+            // matches book / manga
+          } else if (selectedType === "MERCH" && (specCat === "MERCH" || l.includes("merch") || l.includes("decoraci") || l.includes("peluche"))) {
+            // matches merch
+          } else if (selectedType === "AUDIO" && (specCat === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("vinilo"))) {
+            // matches audio
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+
+      // Comprehensive search query matching
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        return (
-          p.name.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
-        );
+        const searchParts = [
+          p.name || "",
+          p.sku || "",
+          p.description || "",
+          p.customCategoryLabel || "",
+          p.customSpecifications?.console?.baseModel || "",
+          p.customSpecifications?.console?.format || "",
+          p.customSpecifications?.gamingAccessory?.mouse?.brand || "",
+          p.customSpecifications?.gamingAccessory?.mouse?.tracking || "",
+          p.customSpecifications?.gamingAccessory?.keyboard?.brand || "",
+          p.customSpecifications?.gamingAccessory?.headset?.type || "",
+          p.customSpecifications?.apparel?.material || "",
+          p.customSpecifications?.book?.publisher || "",
+          p.customSpecifications?.merch?.franchise || "",
+          p.customSpecifications?.audio?.recordLabel || "",
+        ].join(" ").toLowerCase();
+
+        return searchParts.includes(q);
       }
       return true;
     });
@@ -160,7 +202,9 @@ export default function AdminProductsListPage() {
       if (sortKey === "sku_name") {
         comparison = a.sku.localeCompare(b.sku) || a.name.localeCompare(b.name);
       } else if (sortKey === "type") {
-        comparison = (a.type || "").localeCompare(b.type || "");
+        const labelA = a.type === "OTHER" ? (a.customCategoryLabel || "OTRA") : a.type;
+        const labelB = b.type === "OTHER" ? (b.customCategoryLabel || "OTRA") : b.type;
+        comparison = labelA.localeCompare(labelB);
       } else if (sortKey === "price") {
         comparison = a.price - b.price;
       } else if (sortKey === "costPrice") {
@@ -402,21 +446,28 @@ export default function AdminProductsListPage() {
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar">
           {[
             { id: "ALL", label: "Todos" },
             { id: "FIGURE", label: "Figuras" },
             { id: "VIDEO_GAME", label: "Juegos" },
             { id: "COLLECTIBLE", label: "TCG / Raros" },
             { id: "BUNDLE", label: "Bundles" },
+            { id: "CONSOLE", label: "Consolas" },
+            { id: "GAMING_ACCESSORY", label: "Accesorios" },
+            { id: "APPAREL", label: "Ropa" },
+            { id: "BOOK", label: "Manga" },
+            { id: "MERCH", label: "Merch" },
+            { id: "AUDIO", label: "Audio" },
+            { id: "OTHER", label: "+ Otras" },
           ].map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedType(cat.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 selectedType === cat.id
-                  ? "bg-[#004E72] text-[#F9F9F9] border border-[#FF6E42]/40 shadow-sm"
-                  : "bg-[#092634] text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9]"
+                  ? "bg-[#004E72] text-[#F9F9F9] border border-[#FF6E42] shadow-sm font-bold ring-1 ring-[#FF6E42]/50"
+                  : "bg-[#092634] text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9] border border-[#004E72]/40"
               }`}
             >
               {cat.label}
@@ -586,12 +637,16 @@ export default function AdminProductsListPage() {
                               ? "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
                               : prod.type === "COLLECTIBLE"
                               ? "bg-[#FF6E42]/15 text-[#FF6E42] border-[#FF6E42]/30"
+                              : prod.type === "VIDEO_GAME"
+                              ? "bg-purple-950/50 text-purple-300 border-purple-500/40"
                               : prod.type === "BUNDLE"
-                              ? "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
-                              : "bg-[#004E72]/50 text-[#F9F9F9] border-[#004E72]"
+                              ? "bg-emerald-950/50 text-emerald-300 border-emerald-500/40"
+                              : "bg-amber-950/50 text-amber-300 border-amber-500/40"
                           }`}
                         >
-                          {prod.type}
+                          {prod.type === "OTHER"
+                            ? prod.customCategoryLabel?.toUpperCase() || "OTRA CATEGORÍA"
+                            : prod.type}
                         </span>
                       </td>
 

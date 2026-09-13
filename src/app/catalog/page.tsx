@@ -19,10 +19,76 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Tv,
+  Headphones,
+  Shirt,
+  BookOpen,
+  Gift,
+  Disc3,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { formatCLP } from "@/lib/utils/currency";
 import { BASE_PRODUCTS, PRICE_PRESETS } from "@/lib/constants/catalog";
+import { ProductDomainEntity } from "@/lib/types/domain";
+
+const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: any; bannerBadge: string; bannerTitle: string; bannerDesc: string }> = {
+  CONSOLE: {
+    label: "Consolas / Hardware",
+    icon: Tv,
+    bannerBadge: "Catálogo Consolas & Hardware",
+    bannerTitle: "Consolas & Hardware de Colección",
+    bannerDesc: "Sistemas PlayStation 5, Nintendo Switch, Xbox y consolas de edición limitada con garantía oficial y despacho a todo Chile.",
+  },
+  GAMING_ACCESSORY: {
+    label: "Accesorios Gaming",
+    icon: Headphones,
+    bannerBadge: "Catálogo Accesorios Gaming",
+    bannerTitle: "Periféricos & Accesorios Gamer",
+    bannerDesc: "Mouse ultraligeros para esports, teclados mecánicos switches hot-swap y audífonos con audio espacial y baja latencia.",
+  },
+  APPAREL: {
+    label: "Ropa & Estilo",
+    icon: Shirt,
+    bannerBadge: "Catálogo Ropa & Estilo",
+    bannerTitle: "Moda, Polerones & Streetwear Gamer",
+    bannerDesc: "Indumentaria 100% algodón, hoodies de anime y colecciones exclusivas de videojuegos con licencia oficial.",
+  },
+  BOOK: {
+    label: "Manga & Artbooks",
+    icon: BookOpen,
+    bannerBadge: "Catálogo Manga & Artbooks",
+    bannerTitle: "Manga Importado & Libros de Arte",
+    bannerDesc: "Tomos originales en español y japonés, tankōbon, ediciones kanzenban y libros de arte de tus sagas favoritas.",
+  },
+  MERCH: {
+    label: "Merchandising",
+    icon: Gift,
+    bannerBadge: "Catálogo Merchandising",
+    bannerTitle: "Merchandising & Coleccionables",
+    bannerDesc: "Peluches oficiales de Pokémon Center, llaveros acrílicos, lámparas LED 3D y piezas de decoración para coleccionistas.",
+  },
+  AUDIO: {
+    label: "Audio / OST",
+    icon: Disc3,
+    bannerBadge: "Catálogo Audio & OST",
+    bannerTitle: "Bandas Sonoras Originales & Vinilos",
+    bannerDesc: "OSTs orquestadas en vinilo de 180g, cajas deluxe de colección y discos compactos de videojuegos y anime.",
+  },
+};
+
+function getProductCustomCategoryKey(p: any): string | null {
+  if (p.type !== "OTHER") return null;
+  const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
+  const l = (p.customCategoryLabel || "").toLowerCase();
+
+  if (specCat === "CONSOLE" || l.includes("consola") || l.includes("hardware")) return "CONSOLE";
+  if (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono") || l.includes("headset")) return "GAMING_ACCESSORY";
+  if (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo") || l.includes("poleron") || l.includes("polera")) return "APPAREL";
+  if (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro") || l.includes("comic")) return "BOOK";
+  if (specCat === "MERCH" || l.includes("merch") || l.includes("decoraci") || l.includes("peluche") || l.includes("taza")) return "MERCH";
+  if (specCat === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("soundtrack") || l.includes("vinilo")) return "AUDIO";
+  return "OTHER";
+}
 
 function CatalogContent() {
   const router = useRouter();
@@ -31,7 +97,7 @@ function CatalogContent() {
   const qParam = searchParams.get("q") || searchParams.get("search") || searchParams.get("tag") || "";
   const platformParam = searchParams.get("platform") || "ALL";
 
-  const [products, setProducts] = useState(BASE_PRODUCTS);
+  const [products, setProducts] = useState<ProductDomainEntity[]>(BASE_PRODUCTS as any);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
   const [searchQuery, setSearchQuery] = useState<string>(qParam);
   const [sortBy, setSortBy] = useState<"FEATURED" | "PRICE_ASC" | "PRICE_DESC" | "PREORDER_FIRST">("FEATURED");
@@ -77,18 +143,33 @@ function CatalogContent() {
 
   // Dynamic Category Counts
   const categoryCounts = useMemo(() => {
-    const counts = {
+    const counts: Record<string, number> = {
       ALL: products.length,
       VIDEO_GAME: 0,
       FIGURE: 0,
       COLLECTIBLE: 0,
       BUNDLE: 0,
+      CONSOLE: 0,
+      GAMING_ACCESSORY: 0,
+      APPAREL: 0,
+      BOOK: 0,
+      MERCH: 0,
+      AUDIO: 0,
+      OTHER: 0,
     };
     for (const p of products) {
-      if (p.type === "VIDEO_GAME") counts.VIDEO_GAME++;
-      else if (p.type === "FIGURE") counts.FIGURE++;
-      else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
-      else if (p.type === "BUNDLE") counts.BUNDLE++;
+      const pType = (p as any).type;
+      if (pType === "VIDEO_GAME") counts.VIDEO_GAME++;
+      else if (pType === "FIGURE") counts.FIGURE++;
+      else if (pType === "COLLECTIBLE") counts.COLLECTIBLE++;
+      else if (pType === "BUNDLE") counts.BUNDLE++;
+      else if (pType === "OTHER") {
+        const catKey = getProductCustomCategoryKey(p);
+        if (catKey && counts[catKey] !== undefined) {
+          counts[catKey]++;
+        }
+        counts.OTHER++;
+      }
     }
     return counts;
   }, [products]);
@@ -121,15 +202,29 @@ function CatalogContent() {
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      // Category Filter
-      if (selectedCategory !== "ALL" && product.type !== selectedCategory) {
-        return false;
+      // Category Filter (Standard and Custom Categories)
+      if (selectedCategory !== "ALL") {
+        if (selectedCategory === product.type) {
+          // Direct type match
+        } else if (product.type === "OTHER") {
+          const customKey = getProductCustomCategoryKey(product);
+          if (selectedCategory === "OTHER") {
+            // Match any other category
+          } else if (selectedCategory === customKey) {
+            // Match specific custom category
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
       }
 
-      // Search Filter: comprehensive match for Name, SKU, Description, Genres, Tags, Platform, Manufacturer, Publisher, Scale, Category, Authenticator
+      // Search Filter: comprehensive match for Name, SKU, Description, Genres, Tags, Custom Specs, Platform, Manufacturer
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         const queryTerms = query.split(/\s+/).filter(Boolean);
+        const customKey = getProductCustomCategoryKey(product);
 
         const searchableParts = [
           product.name || "",
@@ -137,7 +232,56 @@ function CatalogContent() {
           product.description || "",
           ...(product.genres || []),
           product.type || "",
-          product.type === "VIDEO_GAME" ? "videojuego videojuego juego gaming" : "",
+          product.customCategoryLabel || "",
+          customKey || "",
+          // Custom category keywords
+          customKey === "CONSOLE" ? "consola hardware playstation ps5 xbox switch nintendo almacenamiento ssd control mando gamepad" : "",
+          customKey === "GAMING_ACCESSORY" ? "accesorio gaming periferico mouse raton teclado keyboard audifonos headset auriculares gamer dpi switches mecanico" : "",
+          customKey === "APPAREL" ? "ropa estilo poleron polera hoodie streetwear moda textil algodon indumentaria" : "",
+          customKey === "BOOK" ? "manga artbook libro comic tomo lectura tankobon editorial novela" : "",
+          customKey === "MERCH" ? "merchandising merch peluche llavero lampara taza regalo decoracion oficial" : "",
+          customKey === "AUDIO" ? "audio ost banda sonora soundtrack vinilo disco lp compositor musica" : "",
+          // Custom technical specifications
+          product.customSpecifications?.console?.baseModel || "",
+          product.customSpecifications?.console?.capacity || "",
+          product.customSpecifications?.console?.format || "",
+          product.customSpecifications?.console?.controllersIncluded || "",
+          product.customSpecifications?.console?.bundleIncluded || "",
+          product.customSpecifications?.console?.ports || "",
+          product.customSpecifications?.console?.gameCompatibility || "",
+          product.customSpecifications?.console?.featuredHighlights || "",
+          product.customSpecifications?.gamingAccessory?.mouse?.brand || "",
+          product.customSpecifications?.gamingAccessory?.mouse?.tracking || "",
+          product.customSpecifications?.gamingAccessory?.mouse?.maxDpi || "",
+          product.customSpecifications?.gamingAccessory?.mouse?.wiring || "",
+          product.customSpecifications?.gamingAccessory?.mouse?.technology || "",
+          product.customSpecifications?.gamingAccessory?.keyboard?.brand || "",
+          product.customSpecifications?.gamingAccessory?.keyboard?.partNumber || "",
+          product.customSpecifications?.gamingAccessory?.keyboard?.type || "",
+          product.customSpecifications?.gamingAccessory?.keyboard?.switchType || "",
+          product.customSpecifications?.gamingAccessory?.keyboard?.connectionTechnology || "",
+          product.customSpecifications?.gamingAccessory?.headset?.type || "",
+          product.customSpecifications?.gamingAccessory?.headset?.microphone || "",
+          product.customSpecifications?.gamingAccessory?.headset?.frequencyResponse || "",
+          product.customSpecifications?.gamingAccessory?.headset?.connectivity || "",
+          product.customSpecifications?.gamingAccessory?.headset?.activeNoiseCancelling || "",
+          product.customSpecifications?.apparel?.size || "",
+          product.customSpecifications?.apparel?.gender || "",
+          product.customSpecifications?.apparel?.material || "",
+          product.customSpecifications?.apparel?.apparelType || "",
+          product.customSpecifications?.apparel?.license || "",
+          product.customSpecifications?.book?.publisher || "",
+          product.customSpecifications?.book?.language || "",
+          product.customSpecifications?.book?.binding || "",
+          product.customSpecifications?.book?.isbn || "",
+          product.customSpecifications?.merch?.itemType || "",
+          product.customSpecifications?.merch?.material || "",
+          product.customSpecifications?.merch?.franchise || "",
+          product.customSpecifications?.audio?.format || "",
+          product.customSpecifications?.audio?.recordLabel || "",
+          product.customSpecifications?.audio?.featuredTracks || "",
+          // Standard Category keywords
+          product.type === "VIDEO_GAME" ? "videojuego juego gaming" : "",
           product.type === "FIGURE" ? "figura estatua anime figure" : "",
           product.type === "COLLECTIBLE" ? "tcg carta coleccionable rareza pokemon" : "",
           product.type === "BUNDLE" ? "bundle pack combo" : "",
@@ -285,7 +429,7 @@ function CatalogContent() {
       {/* 1. Categorías Principales */}
       <div className="space-y-2.5">
         <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
-          Categoría
+          Categorías Principales
         </label>
         <div className="space-y-1">
           {[
@@ -309,6 +453,49 @@ function CatalogContent() {
               >
                 <div className="flex items-center gap-2">
                   {Icon && <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-[#FF6B35]" : "text-[#666666]"}`} />}
+                  <span>{cat.label}</span>
+                </div>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                    isSelected
+                      ? "bg-[#FF6B35] text-white font-bold"
+                      : "bg-[#F7F7F5] text-[#666666] border border-[#E5E5E5]"
+                  }`}
+                >
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 1.5 Nuevas Categorías Especializadas */}
+        <div className="pt-2 border-t border-[#E5E5E5]/70 space-y-1">
+          <label className="text-[10px] font-bold text-[#FF6B35] uppercase tracking-wider block px-1">
+            Nuevas Categorías Especializadas
+          </label>
+          {[
+            { id: "CONSOLE", label: "Consolas / Hardware", icon: Tv, count: categoryCounts.CONSOLE },
+            { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones, count: categoryCounts.GAMING_ACCESSORY },
+            { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt, count: categoryCounts.APPAREL },
+            { id: "BOOK", label: "Manga / Artbook", icon: BookOpen, count: categoryCounts.BOOK },
+            { id: "MERCH", label: "Merchandising", icon: Gift, count: categoryCounts.MERCH },
+            { id: "AUDIO", label: "Audio / OST", icon: Disc3, count: categoryCounts.AUDIO },
+          ].map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            const Icon = cat.icon;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleCategoryChange(cat.id)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition ${
+                  isSelected
+                    ? "bg-[#1F3A5F] text-white font-bold border border-[#1F3A5F] shadow-sm"
+                    : "text-[#1A1A1A]/80 hover:bg-[#F7F7F5] hover:text-[#1A1A1A]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-[#FF6B35]" : "text-[#666666]"}`} />
                   <span>{cat.label}</span>
                 </div>
                 <span
@@ -532,43 +719,66 @@ function CatalogContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header Banner */}
-      <div className="space-y-2 border-b border-[#E5E5E5] pb-6">
-        <div className="flex items-center gap-2 text-[#FF6B35] font-semibold text-xs uppercase tracking-wider">
-          <SlidersHorizontal className="w-4 h-4" />
-          {selectedCategory === "VIDEO_GAME"
-            ? "Catálogo Videojuegos"
-            : selectedCategory === "FIGURE"
-            ? "Catálogo Figuras"
-            : selectedCategory === "COLLECTIBLE"
-            ? "Catálogo TCG & Rarezas PSA"
-            : selectedCategory === "BUNDLE"
-            ? "Catálogo Bundles & Packs"
-            : "Catálogo General"}
-        </div>
-        <h1 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
-          {selectedCategory === "VIDEO_GAME"
-            ? "Videojuegos & Ediciones Especiales"
-            : selectedCategory === "FIGURE"
-            ? "Figuras a Escala & Model Kits"
-            : selectedCategory === "COLLECTIBLE"
-            ? "Cartas Graduadas PSA & Rarezas"
-            : selectedCategory === "BUNDLE"
-            ? "Bundles Compuestos & Ofertas"
-            : "Coleccionables, Videojuegos & Ediciones Japonesas"}
-        </h1>
-        <p className="text-sm text-[#666666] max-w-2xl">
-          {selectedCategory === "VIDEO_GAME"
-            ? "Títulos para Nintendo Switch, PS5, Xbox y PC. Preventas aseguradas con entrega el día de estreno en Chile."
-            : selectedCategory === "FIGURE"
-            ? "Figuras 100% originales importadas de Japón (Good Smile Company, Alter, Kotobukiya y más)."
-            : selectedCategory === "COLLECTIBLE"
-            ? "Cartas TCG certificadas con cápsula de seguridad y valor garantizado en pesos chilenos."
-            : selectedCategory === "BUNDLE"
-            ? "Packs seleccionados con descuento exclusivo y reserva sincronizada."
-            : "Explora preventas oficiales con precio congelado en CLP, cartas graduadas PSA de alta gama y figuras licenciadas con despacho asegurado a todo Chile."}
-        </p>
-      </div>
+      {/* Header Banner with Dynamic Category Context */}
+      {(() => {
+        const customMeta = CUSTOM_CATEGORIES_METADATA[selectedCategory];
+        const badge = selectedCategory === "VIDEO_GAME"
+          ? "Catálogo Videojuegos"
+          : selectedCategory === "FIGURE"
+          ? "Catálogo Figuras"
+          : selectedCategory === "COLLECTIBLE"
+          ? "Catálogo TCG & Rarezas PSA"
+          : selectedCategory === "BUNDLE"
+          ? "Catálogo Bundles & Packs"
+          : customMeta
+          ? customMeta.bannerBadge
+          : selectedCategory === "OTHER"
+          ? "Catálogo Categorías Especiales"
+          : "Catálogo General";
+
+        const title = selectedCategory === "VIDEO_GAME"
+          ? "Videojuegos & Ediciones Especiales"
+          : selectedCategory === "FIGURE"
+          ? "Figuras a Escala & Model Kits"
+          : selectedCategory === "COLLECTIBLE"
+          ? "Cartas Graduadas PSA & Rarezas"
+          : selectedCategory === "BUNDLE"
+          ? "Bundles Compuestos & Ofertas"
+          : customMeta
+          ? customMeta.bannerTitle
+          : selectedCategory === "OTHER"
+          ? "Coleccionables & Hardware Especializado"
+          : "Coleccionables, Videojuegos & Ediciones Japonesas";
+
+        const desc = selectedCategory === "VIDEO_GAME"
+          ? "Títulos para Nintendo Switch, PS5, Xbox y PC. Preventas aseguradas con entrega el día de estreno en Chile."
+          : selectedCategory === "FIGURE"
+          ? "Figuras 100% originales importadas de Japón (Good Smile Company, Alter, Kotobukiya y más)."
+          : selectedCategory === "COLLECTIBLE"
+          ? "Cartas TCG certificadas con cápsula de seguridad y valor garantizado en pesos chilenos."
+          : selectedCategory === "BUNDLE"
+          ? "Packs seleccionados con descuento exclusivo y reserva sincronizada."
+          : customMeta
+          ? customMeta.bannerDesc
+          : selectedCategory === "OTHER"
+          ? "Líneas de consolas, accesorios gamer, indumentaria, tomos de manga y merchandising oficial con garantía."
+          : "Explora preventas oficiales con precio congelado en CLP, cartas graduadas PSA de alta gama y figuras licenciadas con despacho asegurado a todo Chile.";
+
+        return (
+          <div className="space-y-2 border-b border-[#E5E5E5] pb-6">
+            <div className="flex items-center gap-2 text-[#FF6B35] font-semibold text-xs uppercase tracking-wider">
+              <SlidersHorizontal className="w-4 h-4" />
+              {badge}
+            </div>
+            <h1 className="text-3xl font-black text-[#1A1A1A] tracking-tight">
+              {title}
+            </h1>
+            <p className="text-sm text-[#666666] max-w-2xl">
+              {desc}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Main Catalog Grid: Left Filter Sidebar + Right Products Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -632,6 +842,7 @@ function CatalogContent() {
           </div>
 
           {/* Quick Tag Chips Bar */}
+          {/* Quick Tags Bar with New Categories */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
             <span className="text-[11px] font-bold text-[#666666] flex items-center gap-1 shrink-0">
               <Tag className="w-3 h-3 text-[#FF6B35]" /> Tags Rápidos:
@@ -639,13 +850,17 @@ function CatalogContent() {
             {[
               { label: "Nintendo Switch", query: "Nintendo Switch" },
               { label: "PlayStation 5", query: "PS5" },
+              { label: "Consolas", query: "Consola" },
+              { label: "Mouse Gamer", query: "Mouse" },
+              { label: "Teclados", query: "Teclado" },
+              { label: "Audífonos", query: "Audífonos" },
+              { label: "Manga", query: "Manga" },
+              { label: "Ropa", query: "Ropa" },
+              { label: "Audio OST", query: "Audio" },
               { label: "Escala 1/7", query: "1/7" },
               { label: "PSA 10", query: "PSA" },
               { label: "Preventas", query: "Preventa" },
               { label: "RPG", query: "RPG" },
-              { label: "Acción", query: "Acción" },
-              { label: "Zelda", query: "Zelda" },
-              { label: "Cyberpunk", query: "Cyberpunk" },
               { label: "Good Smile", query: "Good Smile" },
             ].map((t) => {
               const isActive = searchQuery.toLowerCase() === t.query.toLowerCase();
@@ -678,7 +893,7 @@ function CatalogContent() {
               <div className="flex flex-wrap items-center gap-1.5">
                 {selectedCategory !== "ALL" && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#1F3A5F] text-white text-[11px] font-medium border border-[#1F3A5F]">
-                    Cat: {selectedCategory}
+                    Cat: {CUSTOM_CATEGORIES_METADATA[selectedCategory]?.label || selectedCategory}
                     <button onClick={() => handleCategoryChange("ALL")} className="hover:text-[#FF6B35]">
                       <X className="w-3 h-3" />
                     </button>

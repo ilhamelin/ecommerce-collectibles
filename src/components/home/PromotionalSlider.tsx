@@ -333,8 +333,8 @@ export function PromotionalSlider() {
             <CreditCard className="w-4 h-4" />
           </div>
           <div className="text-left min-w-0">
-            <span className="text-xs font-bold text-[#1A1A1A] block truncate">Hasta 12 Cuotas</span>
-            <span className="text-[10px] text-[#666666] block truncate">Webpay Plus & MP</span>
+            <span className="text-xs font-bold text-[#1A1A1A] block truncate">Hasta 6 Cuotas</span>
+            <span className="text-[10px] text-[#666666] block truncate">Sin interés con MP</span>
           </div>
         </div>
 

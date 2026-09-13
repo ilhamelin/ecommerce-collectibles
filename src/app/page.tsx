@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -13,306 +13,501 @@ import {
   Truck,
   CheckCircle2,
   Star,
+  Gamepad2,
+  Tv,
+  Headphones,
+  Flame,
+  Tag,
+  Package,
+  Check,
+  ChevronRight,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
+import { BASE_PRODUCTS } from "@/lib/constants/catalog";
+import { formatCLP } from "@/lib/utils/currency";
 
-const FEATURED_PREORDERS = [
+// Quick-nav categories with vibrant icons and badges
+const CATEGORIES_NAV = [
   {
-    id: "prod-fig-01",
-    sku: "FIG-MAKIMA-17",
-    name: "Makima 1/7 Scale PVC Figure (Chainsaw Man)",
-    description: "Escala 1/7 licenciada de alta fidelidad, pintada a mano con base de diorama exclusiva.",
-    type: "FIGURE" as const,
-    price: 249990,
-    costPrice: 160000,
-    stockAvailable: 15,
-    stockReserved: 0,
-    isPreOrder: true,
-    preOrderState: "PREORDER_OPEN" as const,
-    figureMetadata: {
-      id: "meta-fig-01",
-      productId: "prod-fig-01",
-      scale: "SCALE_1_7" as const,
-      manufacturer: "GOOD_SMILE_COMPANY" as const,
-      estimatedArrivalDate: "Noviembre 2026",
-      allowsPartialDeposit: true,
-      minimumDepositPercent: 0.2, // 20%
-    },
+    id: "VIDEO_GAME",
+    title: "Videojuegos",
+    subtitle: "PS5, Switch, Xbox & PC",
+    href: "/catalog?category=VIDEO_GAME",
+    icon: Gamepad2,
+    badge: "Sellados",
+    accent: "hover:border-blue-500/50 hover:bg-blue-50/30",
+    iconBg: "bg-blue-50 text-blue-600 border-blue-200/60",
   },
   {
-    id: "prod-fig-02",
-    sku: "FIG-LINK-NENDO",
-    name: "Nendoroid Link: Tears of the Kingdom Ver.",
-    description: "Figura articulada no a escala con partes intercambiables y espada maestra.",
-    type: "FIGURE" as const,
-    price: 64990,
-    costPrice: 42000,
-    stockAvailable: 40,
-    stockReserved: 0,
-    isPreOrder: true,
-    preOrderState: "MANUFACTURING" as const,
-    figureMetadata: {
-      id: "meta-fig-02",
-      productId: "prod-fig-02",
-      scale: "NENDOROID" as const,
-      manufacturer: "GOOD_SMILE_COMPANY" as const,
-      estimatedArrivalDate: "Diciembre 2026",
-      allowsPartialDeposit: true,
-      minimumDepositPercent: 0.3, // 30%
-    },
+    id: "FIGURE",
+    title: "Figuras & Anime",
+    subtitle: "Escalas 1/7 & Nendoroid",
+    href: "/catalog?category=FIGURE",
+    icon: Sparkles,
+    badge: "Reserva 20%",
+    accent: "hover:border-[#FF6B35]/50 hover:bg-orange-50/30",
+    iconBg: "bg-orange-50 text-[#FF6B35] border-orange-200/60",
+  },
+  {
+    id: "COLLECTIBLE",
+    title: "TCG & Cartas",
+    subtitle: "Pokémon & PSA Mint",
+    href: "/catalog?category=COLLECTIBLE",
+    icon: Trophy,
+    badge: "Graduadas",
+    accent: "hover:border-amber-500/50 hover:bg-amber-50/30",
+    iconBg: "bg-amber-50 text-amber-600 border-amber-200/60",
+  },
+  {
+    id: "BUNDLE",
+    title: "Packs & Bundles",
+    subtitle: "Juego + Pines + Arte",
+    href: "/catalog?category=BUNDLE",
+    icon: Layers,
+    badge: "Ahorro Pack",
+    accent: "hover:border-emerald-500/50 hover:bg-emerald-50/30",
+    iconBg: "bg-emerald-50 text-emerald-600 border-emerald-200/60",
+  },
+  {
+    id: "CONSOLE",
+    title: "Consolas",
+    subtitle: "Ediciones Especiales",
+    href: "/catalog?category=CONSOLE",
+    icon: Tv,
+    badge: "Oficiales",
+    accent: "hover:border-purple-500/50 hover:bg-purple-50/30",
+    iconBg: "bg-purple-50 text-purple-600 border-purple-200/60",
+  },
+  {
+    id: "ACCESSORY",
+    title: "Accesorios",
+    subtitle: "Mandos & Acrílicos UV",
+    href: "/catalog?category=ACCESSORY",
+    icon: Headphones,
+    badge: "Gaming Pro",
+    accent: "hover:border-rose-500/50 hover:bg-rose-50/30",
+    iconBg: "bg-rose-50 text-rose-600 border-rose-200/60",
   },
 ];
 
-const EXCLUSIVE_BUNDLE = {
-  id: "prod-bun-01",
-  sku: "BUN-ELDEN-MASTER",
-  name: "Elden Lord Ultimate Collector Bundle (Game + Pins + Artbook)",
-  description:
-    "Pack exclusivo de colección: Videojuego físico PS5 + Trío de Pines esmaltados en oro envejecido + Artbook oficial de 250 páginas a todo color con descuento especial por pack.",
-  type: "BUNDLE" as const,
-  price: 124990,
-  costPrice: 97990,
-  stockAvailable: 0,
-  stockReserved: 0,
-  isPreOrder: false,
-  calculatedAvailableStock: 25,
-  aggregateMarginPercent: 21.6,
-  nominalSumOfItems: 149970,
-};
-
-const CERTIFIED_COLLECTIBLES = [
-  {
-    id: "prod-col-01",
-    sku: "TCG-CHARIZARD-PSA9",
-    name: "Charizard 1st Edition Shadowless Base Set 4/102 (PSA 9 Mint)",
-    description: "Carta coleccionable certificada con cápsula hermética UV y código QR de autenticación.",
-    type: "COLLECTIBLE" as const,
-    price: 4890000,
-    costPrice: 4100000,
-    stockAvailable: 1,
-    stockReserved: 0,
-    isPreOrder: false,
-    collectibleMetadata: {
-      id: "meta-col-01",
-      productId: "prod-col-01",
-      category: "TCG" as const,
-      condition: "MINT_9" as const,
-      cardLanguage: "English",
-      authenticationBody: "PSA" as const,
-      serialNumber: "PSA-88492019",
-    },
-  },
-  {
-    id: "prod-vg-01",
-    sku: "VG-ELDEN-PS5",
-    name: "Elden Ring: Shadow of the Erdtree Edition (PS5)",
-    description: "Edición física oficial sellada de fábrica con voucher de expansión Shadow of the Erdtree y despacho prioritario a todo Chile.",
-    type: "VIDEO_GAME" as const,
-    price: 79990,
-    costPrice: 69990,
-    stockAvailable: 25,
-    stockReserved: 0,
-    isPreOrder: false,
-    gameMetadata: {
-      id: "meta-vg-01",
-      productId: "prod-vg-01",
-      platform: "PS5" as const,
-      edition: "STANDARD" as const,
-      isDigital: false,
-      publisher: "Bandai Namco",
-    },
-  },
+// Interactive filter tabs
+const TABS = [
+  { id: "ALL", label: "🔥 Destacados de Colección", icon: Flame },
+  { id: "FIGURE", label: "🎌 Figuras & Preventas", icon: Sparkles },
+  { id: "VIDEO_GAME", label: "🎮 Videojuegos Físicos", icon: Gamepad2 },
+  { id: "COLLECTIBLE", label: "🃏 TCG & Rarezas PSA", icon: Trophy },
+  { id: "BUNDLE", label: "📦 Bundles con Descuento", icon: Layers },
+  { id: "CONSOLE", label: "🕹️ Consolas & Hardware", icon: Tv },
 ];
 
 export default function StorefrontHomePage() {
-  const [products, setProducts] = React.useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>(BASE_PRODUCTS);
+  const [activeTab, setActiveTab] = useState<string>("ALL");
+  const [isLoading, setIsLoading] = useState(false);
 
-  React.useEffect(() => {
+  // Fetch updated products from API, falling back safely to rich BASE_PRODUCTS
+  useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && Array.isArray(data.data?.products)) {
-          setProducts(data.data.products);
+        if (data.success && Array.isArray(data.data?.products) && data.data.products.length > 0) {
+          // Merge API products with BASE_PRODUCTS to preserve full high-res images and metadata
+          const apiProducts = data.data.products;
+          const merged = [...apiProducts];
+          BASE_PRODUCTS.forEach((bp) => {
+            if (!merged.some((p) => p.sku === bp.sku || p.id === bp.id)) {
+              merged.push(bp);
+            }
+          });
+          setProducts(merged);
         }
       })
-      .catch((err) => console.error("Error cargando productos de inicio:", err));
+      .catch((err) => console.error("Error cargando productos:", err));
   }, []);
 
-  const preOrders = React.useMemo(() => {
-    const list = products.filter((p) => p.isPreOrder);
-    return list.length > 0 ? list.slice(0, 4) : FEATURED_PREORDERS;
+  // Products filtered by selected tab
+  const tabFilteredProducts = useMemo(() => {
+    if (activeTab === "ALL") {
+      // Pick a balanced curated mix from all categories
+      const featured: any[] = [];
+      const types = ["FIGURE", "VIDEO_GAME", "COLLECTIBLE", "BUNDLE", "CONSOLE", "ACCESSORY"];
+      types.forEach((t) => {
+        const found = products.filter((p) => p.type === t).slice(0, 2);
+        featured.push(...found);
+      });
+      return featured.slice(0, 8);
+    }
+    return products.filter((p) => p.type === activeTab).slice(0, 8);
+  }, [products, activeTab]);
+
+  // Dedicated sections
+  const preOrderFigures = useMemo(() => {
+    return products.filter((p) => p.type === "FIGURE").slice(0, 4);
   }, [products]);
 
-  const bundleProduct = React.useMemo(() => {
-    return products.find((p) => p.type === "BUNDLE") || EXCLUSIVE_BUNDLE;
+  const videoGames = useMemo(() => {
+    return products.filter((p) => p.type === "VIDEO_GAME").slice(0, 4);
   }, [products]);
 
-  const collectibleProducts = React.useMemo(() => {
-    const list = products.filter((p) => !p.isPreOrder);
-    return list.length > 0 ? list.slice(0, 4) : CERTIFIED_COLLECTIBLES;
+  const tcgCollectibles = useMemo(() => {
+    return products.filter((p) => p.type === "COLLECTIBLE").slice(0, 4);
+  }, [products]);
+
+  const bundles = useMemo(() => {
+    return products.filter((p) => p.type === "BUNDLE").slice(0, 3);
+  }, [products]);
+
+  const consolesAndAccessories = useMemo(() => {
+    return products.filter((p) => p.type === "CONSOLE" || p.type === "ACCESSORY").slice(0, 4);
   }, [products]);
 
   return (
-    <div className="space-y-16 pb-16">
-      {/* Automatic Promotional Slider */}
+    <div className="space-y-16 pb-20">
+      {/* 1. AUTOMATIC PROMOTIONAL SLIDER (Left untouched at top as requested) */}
       <PromotionalSlider />
 
-      {/* Section 1: Pre-orders */}
+      {/* 2. VISUAL CATEGORY EXPLORER BAR */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center sm:text-left mb-5">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B35]">
+            Navegación Rápida
+          </span>
+          <h2 className="text-xl sm:text-2xl font-black text-[#1A1A1A] tracking-tight mt-0.5">
+            Explora por Categoría Oficial
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {CATEGORIES_NAV.map((cat) => {
+            const IconComponent = cat.icon;
+            return (
+              <Link
+                key={cat.id}
+                href={cat.href}
+                className={`group relative p-4 rounded-2xl bg-white border border-[#E5E5E5] transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between ${cat.accent}`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-xs transition-transform duration-300 group-hover:scale-110 ${cat.iconBg}`}
+                    >
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1F3A5F]/5 text-[#1F3A5F] border border-[#1F3A5F]/15">
+                      {cat.badge}
+                    </span>
+                  </div>
+                  <h3 className="font-black text-sm text-[#1A1A1A] group-hover:text-[#FF6B35] transition">
+                    {cat.title}
+                  </h3>
+                  <p className="text-[11px] text-[#666666] line-clamp-1 mt-0.5">
+                    {cat.subtitle}
+                  </p>
+                </div>
+                <div className="mt-3 flex items-center gap-1 text-[10px] font-bold text-[#FF6B35] group-hover:translate-x-1 transition-transform">
+                  <span>Ver colección</span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. INTERACTIVE CATEGORY TABS SHOWCASE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E5E5E5] pb-4">
           <div>
             <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Clock className="w-4 h-4" /> Preventas Oficiales
+              <Sparkles className="w-3.5 h-3.5" /> Catálogo en Vivo
             </div>
-            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Figuras Japonesas de Escala & Nendoroid
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1A1A1A] tracking-tight mt-1">
+              Descubre lo Más Buscado en Chile
             </h2>
             <p className="text-xs text-[#666666] mt-0.5">
-              Reserva con solo el 20% o 30% inicial en CLP. Saldo diferido al ingresar al país.
+              Productos 100% licenciados en pesos chilenos con stock en bodega Santiago o preventa garantizada.
+            </p>
+          </div>
+
+          <Link
+            href="/catalog"
+            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 self-start md:self-auto transition shrink-0 bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 px-3.5 py-2 rounded-xl border border-[#FF6B35]/30"
+          >
+            Ver Catálogo Completo <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Tab Selector Buttons */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {TABS.map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-200 border flex items-center gap-2 shrink-0 ${
+                  isSelected
+                    ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-sm shadow-[#1F3A5F]/20 scale-102"
+                    : "bg-white text-[#666666] border-[#E5E5E5] hover:border-[#FF6B35]/40 hover:text-[#1A1A1A]"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Responsive 4-Column Product Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {tabFilteredProducts.map((prod) => (
+            <ProductCard key={prod.id || prod.sku} product={prod} />
+          ))}
+        </div>
+      </section>
+
+      {/* 4. SECTION: JAPANESE FIGURES & NENDOROIDS (PREVENTAS) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
+              <Clock className="w-3.5 h-3.5" /> Importación Japón • Preventas
+            </div>
+            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
+              Figuras de Escala & Nendoroids Oficiales
+            </h2>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Asegura tu cupo con solo el 20% o 30% inicial en CLP. Saldo diferido cuando el lote arribe a Chile.
             </p>
           </div>
 
           <Link
             href="/catalog?category=FIGURE"
-            className="text-xs font-semibold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
           >
             Ver Todas las Figuras <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {preOrders.map((fig) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {preOrderFigures.map((fig) => (
             <ProductCard key={fig.id || fig.sku} product={fig} />
           ))}
         </div>
       </section>
 
-      {/* Section 2: Bundling */}
+      {/* 5. DUAL PROMOTIONAL CALLOUT BANNER */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Banner A: Preorder Formula */}
+          <div className="relative rounded-3xl overflow-hidden p-7 bg-gradient-to-br from-[#1F3A5F] to-[#152842] text-white border border-[#2D5180] shadow-md flex flex-col justify-between">
+            <div className="space-y-2 relative z-10">
+              <span className="inline-block px-2.5 py-1 rounded-full bg-[#FF6B35] text-white text-[10px] font-black uppercase tracking-wider">
+                Sistema Pre-Orden
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
+                Congela el Precio en CLP con solo 20% de Pie
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-md">
+                Evita sobreprecios y la volatilidad del dólar o yen. Te garantizamos la entrega de tus figuras Good Smile y Kotobukiya con boleta legal.
+              </p>
+            </div>
+
+            <div className="pt-6 relative z-10 flex items-center gap-3">
+              <Link
+                href="/catalog?category=FIGURE"
+                className="px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-black uppercase tracking-wider transition shadow-sm flex items-center gap-1.5"
+              >
+                <span>Reservar Ahora</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Banner B: Mint Grading Standard */}
+          <div className="relative rounded-3xl overflow-hidden p-7 bg-gradient-to-br from-[#2D2A26] to-[#1A1A1A] text-white border border-[#403B35] shadow-md flex flex-col justify-between">
+            <div className="space-y-2 relative z-10">
+              <span className="inline-block px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider">
+                Certificación PSA & BGS
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
+                Cartas TCG & Rarezas Certificadas Mint
+              </h3>
+              <p className="text-xs text-stone-300 leading-relaxed max-w-md">
+                Cada pieza cuenta con cápsula sónica hermética UV y número de serie verificable al instante en los registros oficiales internacionales.
+              </p>
+            </div>
+
+            <div className="pt-6 relative z-10 flex items-center gap-3">
+              <Link
+                href="/catalog?category=COLLECTIBLE"
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-[#1A1A1A] text-xs font-black uppercase tracking-wider transition shadow-sm flex items-center gap-1.5"
+              >
+                <span>Ver Cartas PSA</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. SECTION: VIDEO GAMES (PHYSICAL EDITIONS) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
           <div>
             <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Layers className="w-4 h-4" /> Bundles Exclusivos
+              <Gamepad2 className="w-3.5 h-3.5" /> Videojuegos Físicos
             </div>
             <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Paquetes de Colección con Ahorro Garantizado
+              Ediciones Físicas Selladas para PlayStation, Switch & Xbox
             </h2>
             <p className="text-xs text-[#666666] mt-0.5">
-              Combos exclusivos de colección: videojuego + coleccionables oficiales con hasta 20% de descuento.
+              Juegos originales nuevos de fábrica, ediciones estándar y de coleccionista listas para despacho en 24h.
             </p>
           </div>
 
           <Link
-            href="/catalog?category=BUNDLE"
-            className="text-xs font-semibold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            href="/catalog?category=VIDEO_GAME"
+            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
           >
-            Ver Bundles <ArrowRight className="w-3.5 h-3.5" />
+            Ver Todos los Juegos <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="max-w-xl mx-auto md:max-w-none">
-          <ProductCard product={bundleProduct} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {videoGames.map((game) => (
+            <ProductCard key={game.id || game.sku} product={game} />
+          ))}
         </div>
       </section>
 
-      {/* Section 3: Certified Collectibles */}
+      {/* 7. SECTION: TCG & PSA GRADED CARDS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
           <div>
             <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Trophy className="w-4 h-4" /> TCG & Rarezas Certificadas
+              <Trophy className="w-3.5 h-3.5" /> Coleccionismo Certificado
             </div>
             <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Cartas PSA Mint & Videojuegos Físicos Sellados
+              Cartas PSA Mint & Sellados de Inversión
             </h2>
             <p className="text-xs text-[#666666] mt-0.5">
-              Piezas únicas con certificación internacional listas para despacho express a todo Chile.
+              Piezas de colección de alta gama: Pokémon Base Set, Magic The Gathering y rarezas con autenticación garantizada.
             </p>
           </div>
 
           <Link
             href="/catalog?category=COLLECTIBLE"
-            className="text-xs font-semibold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
           >
             Ver Coleccionables <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {collectibleProducts.map((item) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {tcgCollectibles.map((col) => (
+            <ProductCard key={col.id || col.sku} product={col} />
+          ))}
+        </div>
+      </section>
+
+      {/* 8. SECTION: BUNDLES & CONSOLES / ACCESSORIES */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
+              <Layers className="w-3.5 h-3.5" /> Bundles & Hardware
+            </div>
+            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
+              Packs con Ahorro, Consolas & Accesorios Pro
+            </h2>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Ahorra hasta $25.000 CLP en paquetes unificados o equipa tu setup con periféricos y consolas originales.
+            </p>
+          </div>
+
+          <Link
+            href="/catalog?category=BUNDLE"
+            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+          >
+            Ver Todos los Bundles <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {bundles.concat(consolesAndAccessories).slice(0, 4).map((item) => (
             <ProductCard key={item.id || item.sku} product={item} />
           ))}
         </div>
       </section>
 
-      {/* Commercial Section 4: Why choose us */}
+      {/* 9. THE OMNICOLLECTOR STANDARD (VALUE PROPOSITION) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white border border-[#E5E5E5] rounded-3xl p-8 lg:p-10 shadow-sm">
+        <div className="bg-white border border-[#E5E5E5] rounded-3xl p-8 lg:p-10 shadow-xs">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B35] bg-[#FF6B35]/10 px-3 py-1 rounded-full border border-[#FF6B35]/20">
               Compromiso OmniCollector
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1A1A1A] mt-3">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#1A1A1A] mt-3 tracking-tight">
               ¿Por qué confiar en nosotros para tu colección?
             </h2>
             <p className="text-xs sm:text-sm text-[#666666] mt-2">
-              Somos coleccionistas apasionados entregando seguridad, autenticidad garantizada y la mejor experiencia de compra en Chile.
+              Somos coleccionistas apasionados entregando máxima seguridad, autenticidad comprobada y el mejor embalaje de Chile.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-2xl p-5 hover:border-[#FF6B35]/50 hover:shadow-md transition space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-sm">
-                <ShieldCheck className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-xs">
+                <ShieldCheck className="w-5 h-5 text-[#FF6B35]" />
               </div>
-              <h3 className="text-base font-bold text-[#1A1A1A]">100% Original Licenciado</h3>
+              <h3 className="text-sm font-black text-[#1A1A1A]">100% Original Licenciado</h3>
               <p className="text-xs text-[#666666] leading-relaxed">
-                Importamos directamente desde Japón y distribuidores oficiales. Sin réplicas ni bootlegs, cajas con sellos de autenticidad.
+                Importamos directamente desde Japón y distribuidoras oficiales. Cero réplicas ni bootlegs, con sellos holográficos de fábrica.
               </p>
             </div>
 
             <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-2xl p-5 hover:border-[#FF6B35]/50 hover:shadow-md transition space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-sm">
-                <Clock className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-xs">
+                <Clock className="w-5 h-5 text-[#FF6B35]" />
               </div>
-              <h3 className="text-base font-bold text-[#1A1A1A]">Precio Congelado</h3>
+              <h3 className="text-sm font-black text-[#1A1A1A]">Precio Congelado en CLP</h3>
               <p className="text-xs text-[#666666] leading-relaxed">
-                Asegura tus preventas con solo un pie del 20% o 30%. El precio en CLP queda congelado sin importar las variaciones del dólar o yen.
+                Reserva preventas con el 20% o 30% de pie. Tu precio en pesos chilenos queda congelado sin importar las alzas del dólar o yen.
               </p>
             </div>
 
             <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-2xl p-5 hover:border-[#FF6B35]/50 hover:shadow-md transition space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-sm">
-                <Truck className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-xs">
+                <Truck className="w-5 h-5 text-[#FF6B35]" />
               </div>
-              <h3 className="text-base font-bold text-[#1A1A1A]">Embalaje Mint de Colección</h3>
+              <h3 className="text-sm font-black text-[#1A1A1A]">Embalaje Blindado Mint</h3>
               <p className="text-xs text-[#666666] leading-relaxed">
-                Triple capa de plástico burbuja, esquineros reforzados y cajas de cartón corrugado grueso para proteger tus figuras y cajas originales.
+                Triple capa de plástico burbuja, esquineros rígidos anti-golpes y cajas corrugadas gruesas para cuidar la caja original.
               </p>
             </div>
 
             <div className="bg-[#F7F7F5] border border-[#E5E5E5] rounded-2xl p-5 hover:border-[#FF6B35]/50 hover:shadow-md transition space-y-3">
-              <div className="w-12 h-12 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-sm">
-                <CreditCard className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-white border border-[#E5E5E5] text-[#1F3A5F] flex items-center justify-center font-bold shadow-xs">
+                <CreditCard className="w-5 h-5 text-[#FF6B35]" />
               </div>
-              <h3 className="text-base font-bold text-[#1A1A1A]">Hasta 12 Cuotas sin Interés</h3>
+              <h3 className="text-sm font-black text-[#1A1A1A]">Hasta 6 Cuotas sin Interés</h3>
               <p className="text-xs text-[#666666] leading-relaxed">
-                Paga de forma 100% segura con Webpay Plus, tarjetas de crédito, débito Redcompra y transferencia bancaria directa.
+                Paga de forma 100% segura mediante Mercado Pago, tarjetas de crédito bancarias, Redcompra y transferencia directa.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Commercial Section 5: Official Brands & Licenses */}
+      {/* 10. OFFICIAL BRANDS & LICENSES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-6">
-          <p className="text-xs uppercase font-bold tracking-widest text-[#666666]">
+          <p className="text-xs uppercase font-black tracking-widest text-[#666666]">
             Distribuidores Oficiales de las Mejores Marcas del Mundo
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6">
           {[
             { name: "Good Smile Company", tag: "Nendoroid & Pop Up Parade" },
             { name: "Bandai Namco", tag: "SH Figuarts & Ichibankuji" },
@@ -321,23 +516,24 @@ export default function StorefrontHomePage() {
             { name: "Square Enix", tag: "Bring Arts & Masterline" },
             { name: "Nintendo", tag: "Videojuegos & Amiibo" },
             { name: "Alter Japan", tag: "Escalas Premium 1/7" },
+            { name: "Capcom", tag: "Monster Hunter & Resident Evil" },
           ].map((brand) => (
             <div
               key={brand.name}
-              className="px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35] transition text-center shadow-sm"
+              className="px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35] transition text-center shadow-xs"
             >
-              <div className="text-sm font-black text-[#1A1A1A]">{brand.name}</div>
+              <div className="text-xs font-black text-[#1A1A1A]">{brand.name}</div>
               <div className="text-[10px] text-[#666666]">{brand.tag}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Commercial Section 6: Collector Club & Coupon Promo */}
+      {/* 11. COLLECTOR CLUB & WELCOME COUPON */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-[#1F3A5F] via-[#244673] to-[#1F3A5F] border border-[#1F3A5F] shadow-xl relative overflow-hidden text-white">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-[#FF6B35]/20 rounded-full blur-3xl pointer-events-none" />
-          
+
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8 relative z-10">
             <div className="space-y-3 text-center lg:text-left">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6B35] text-white text-xs font-black uppercase tracking-wider shadow-sm">
@@ -347,15 +543,19 @@ export default function StorefrontHomePage() {
                 Únete al Club de Coleccionistas y obtén $5.000 CLP de Descuento
               </h3>
               <p className="text-xs sm:text-sm text-[#F7F7F5]/90 max-w-xl">
-                Suscríbete con tu correo para recibir alertas prioritarias de preventas japonesas, reposición de stock difícil de conseguir y un cupón de bienvenida para tu primera orden.
+                Aplica este cupón de bienvenida en tu carrito de compras para cualquier figura, videojuego o coleccionable.
               </p>
             </div>
 
             <div className="w-full lg:w-auto flex-shrink-0 flex flex-col sm:flex-row items-center gap-3">
               <div className="bg-[#152842] border border-[#2D5180] px-4 py-3 rounded-xl flex items-center gap-3 w-full sm:w-auto shadow-inner">
                 <div className="text-left">
-                  <span className="text-[10px] uppercase font-bold text-slate-300 block">Cupón de Bienvenida</span>
-                  <span className="text-base font-black text-[#FF6B35] tracking-wider font-mono">COLECCIONISTA5K</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-300 block">
+                    Cupón de Bienvenida
+                  </span>
+                  <span className="text-base font-black text-[#FF6B35] tracking-wider font-mono">
+                    COLECCIONISTA5K
+                  </span>
                 </div>
               </div>
               <Link
@@ -369,7 +569,7 @@ export default function StorefrontHomePage() {
         </div>
       </section>
 
-      {/* Commercial Section 7: Verified Customer Reviews */}
+      {/* 12. VERIFIED CUSTOMER REVIEWS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="text-center max-w-2xl mx-auto">
           <div className="flex items-center justify-center gap-1 text-amber-500 mb-2">
@@ -387,7 +587,7 @@ export default function StorefrontHomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm space-y-3">
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-xs space-y-3">
             <div className="flex items-center gap-1 text-amber-500">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
@@ -407,7 +607,7 @@ export default function StorefrontHomePage() {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm space-y-3">
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-xs space-y-3">
             <div className="flex items-center gap-1 text-amber-500">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
@@ -427,7 +627,7 @@ export default function StorefrontHomePage() {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm space-y-3">
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-xs space-y-3">
             <div className="flex items-center gap-1 text-amber-500">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />

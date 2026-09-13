@@ -67,9 +67,24 @@ export function ProductCard({ product }: ProductCardProps) {
       ? Math.round(product.nominalSumOfItems - product.price)
       : 0;
 
+  const defaultFallbackImage =
+    product.type === "FIGURE"
+      ? "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80"
+      : product.type === "COLLECTIBLE"
+      ? "https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=800&auto=format&fit=crop&q=80"
+      : product.type === "CONSOLE"
+      ? "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&auto=format&fit=crop&q=80"
+      : product.type === "ACCESSORY"
+      ? "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80"
+      : product.type === "BUNDLE"
+      ? "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80"
+      : "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80";
+
   const displayImage =
     product.imageUrl ||
     (product.images && product.images.length > 0 ? product.images[0] : null);
+
+  const finalImage = displayImage || defaultFallbackImage;
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -98,7 +113,7 @@ export function ProductCard({ product }: ProductCardProps) {
       isPartialDeposit: Boolean(product.isPreOrder),
       depositPercent: isPreOrder ? depositPercent : 1.0,
       badge: isBundle ? "Bundle Compuesto" : isPreOrder ? "Preventa" : "En Stock",
-      imageUrl: displayImage ?? undefined,
+      imageUrl: finalImage,
     });
 
     setJustAdded(true);
@@ -106,7 +121,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="relative group rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/60 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#1F3A5F]/10">
+    <div className="relative group rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/60 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl hover:shadow-[#1F3A5F]/10">
       {/* Ephemeral Toast Feedback */}
       {wishlistToast && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-[#FF6B35] text-white text-[10px] font-black tracking-wide shadow-xl pointer-events-none whitespace-nowrap animate-bounce">
@@ -115,106 +130,61 @@ export function ProductCard({ product }: ProductCardProps) {
       )}
 
       <div>
-        {/* Product Image Cover (if present) */}
-        {displayImage ? (
-          <div className="relative w-full h-44 sm:h-48 overflow-hidden bg-[#F7F7F5] border-b border-[#E5E5E5]">
-            <img
-              src={displayImage}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-60 pointer-events-none" />
-            <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
-              <span className="text-[10px] font-mono font-bold text-[#1A1A1A] bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-md border border-[#E5E5E5] shadow-sm">
-                {product.sku}
+        {/* Product Image Cover (Always Guaranteed) */}
+        <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-[#F7F7F5] border-b border-[#E5E5E5]">
+          <img
+            src={finalImage}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-60 pointer-events-none" />
+          
+          {/* Top Badges */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 pointer-events-none">
+            <span className="text-[10px] font-mono font-bold text-[#1A1A1A] bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-md border border-[#E5E5E5] shadow-xs">
+              {product.sku}
+            </span>
+            {isPreOrder && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
+                <Clock className="w-3 h-3 text-[#FF6B35]" /> PREVENTA ({Math.round(depositPercent * 100)}%)
               </span>
-              {isPreOrder && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
-                  <Clock className="w-3 h-3 text-[#FF6B35]" /> PREVENTA ({Math.round(depositPercent * 100)}%)
-                </span>
-              )}
-              {isBundle && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
-                  <Layers className="w-3 h-3 text-[#FF6B35]" /> BUNDLE
-                </span>
-              )}
-              {!isPreOrder && !isBundle && product.customCategoryLabel && (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
-                  {product.customCategoryLabel}
-                </span>
-              )}
-            </div>
-
-            {/* Floating Heart Button on Image */}
-            <button
-              type="button"
-              onClick={handleToggleWishlist}
-              aria-label={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
-              title={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
-              className={`absolute bottom-2.5 right-2.5 z-20 p-2 rounded-full backdrop-blur-md transition-all duration-200 shadow-md border ${
-                isLiked
-                  ? "bg-[#FF6B35] border-[#FF6B35] text-white scale-105"
-                  : "bg-white/90 border-[#E5E5E5] text-[#666666] hover:text-[#FF6B35] hover:border-[#FF6B35] hover:scale-105"
-              }`}
-            >
-              <Heart
-                className={`w-4 h-4 transition-transform duration-200 ${
-                  isLiked ? "fill-white text-white" : "text-current"
-                }`}
-              />
-            </button>
+            )}
+            {isBundle && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
+                <Layers className="w-3 h-3 text-[#FF6B35]" /> BUNDLE
+              </span>
+            )}
+            {isCollectible && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FF6B35] text-white border border-[#FF6B35] flex items-center gap-1 shadow-sm">
+                <Trophy className="w-3 h-3" /> PSA 9 MINT
+              </span>
+            )}
+            {!isPreOrder && !isBundle && !isCollectible && product.customCategoryLabel && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1 shadow-sm">
+                {product.customCategoryLabel}
+              </span>
+            )}
           </div>
-        ) : (
-          /* Top Badges Strip when no image */
-          <div className="p-4 pb-0 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-mono text-[#666666]">{product.sku}</span>
 
-              {isPreOrder && (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#FF6B35]" /> PREVENTA (PIE {Math.round(depositPercent * 100)}%)
-                </span>
-              )}
-
-              {isBundle && (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-[#FF6B35]" /> PACK COLECCIÓN
-                </span>
-              )}
-
-              {isCollectible && (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] border border-[#FF6B35]/30 flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> PSA 9 MINT
-                </span>
-              )}
-
-              {isGame && (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white border border-[#1F3A5F] flex items-center gap-1">
-                  <Gamepad2 className="w-3 h-3 text-[#FF6B35]" /> EN STOCK 24H
-                </span>
-              )}
-            </div>
-
-            {/* Heart Button when no image */}
-            <button
-              type="button"
-              onClick={handleToggleWishlist}
-              aria-label={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
-              title={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
-              className={`p-1.5 rounded-full transition-all duration-200 border ${
-                isLiked
-                  ? "bg-[#FF6B35] border-[#FF6B35] text-white"
-                  : "bg-[#F7F7F5] border-[#E5E5E5] text-[#666666] hover:text-[#FF6B35]"
+          {/* Floating Heart Button */}
+          <button
+            type="button"
+            onClick={handleToggleWishlist}
+            aria-label={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
+            title={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
+            className={`absolute bottom-2.5 right-2.5 z-20 p-2 rounded-full backdrop-blur-md transition-all duration-200 shadow-md border ${
+              isLiked
+                ? "bg-[#FF6B35] border-[#FF6B35] text-white scale-105"
+                : "bg-white/90 border-[#E5E5E5] text-[#666666] hover:text-[#FF6B35] hover:border-[#FF6B35] hover:scale-105"
+            }`}
+          >
+            <Heart
+              className={`w-4 h-4 transition-transform duration-200 ${
+                isLiked ? "fill-white text-white" : "text-current"
               }`}
-            >
-              <Heart
-                className={`w-3.5 h-3.5 transition-transform ${
-                  isLiked ? "fill-current" : ""
-                }`}
-              />
-            </button>
-          </div>
-        )}
+            />
+          </button>
+        </div>
 
         {/* Product Info */}
         <div className="p-5 space-y-2.5">

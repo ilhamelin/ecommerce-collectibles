@@ -20,6 +20,11 @@ import {
   Package,
   MapPin,
   Plus,
+  Store,
+  Copy,
+  Check,
+  Sparkles,
+  Coins,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore, type UserAddress } from "@/lib/store/authStore";
@@ -89,8 +94,19 @@ export default function CheckoutPage() {
   const [courier, setCourier] = useState<"STARKEN" | "CHILEXPRESS" | "PICKUP">("STARKEN");
 
   // Payment
-  const [paymentMethod, setPaymentMethod] = useState<"WEBPAY" | "BANK_TRANSFER" | "MERCADO_PAGO">("MERCADO_PAGO");
+  const [paymentMethod, setPaymentMethod] = useState<"WEBPAY" | "BANK_TRANSFER" | "MERCADO_PAGO">("WEBPAY");
+  const [selectedOptionId, setSelectedOptionId] = useState<string>("rec_bancoestado");
+  const [combineMethods, setCombineMethods] = useState<boolean>(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [installments, setInstallments] = useState("1");
+
+  const copyToClipboard = (text: string, fieldId: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(fieldId);
+      setTimeout(() => setCopiedField(null), 2500);
+    }
+  };
 
   // Coupon state
   const [couponInput, setCouponInput] = useState("");
@@ -170,6 +186,8 @@ export default function CheckoutPage() {
 
   const finalShippingCost = totals.isFreeShipping ? 0 : baseShippingCost;
   const finalTotalToday = totals.totalDueToday + finalShippingCost;
+  const omniPointsDiscount = combineMethods ? Math.min(5000, finalTotalToday > 5000 ? 5000 : 0) : 0;
+  const finalPayAmount = finalTotalToday - omniPointsDiscount;
 
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,6 +234,21 @@ export default function CheckoutPage() {
       PICKUP: "Retiro en Bodega Providencia, Santiago",
     };
 
+    // Determine effective backend method based on Mercado Libre style option
+    let effectiveMethod: "MERCADO_PAGO" | "WEBPAY" | "BANK_TRANSFER" = "MERCADO_PAGO";
+    if (selectedOptionId === "other_bank_transfer") {
+      effectiveMethod = "BANK_TRANSFER";
+    } else if (
+      selectedOptionId === "rec_bancoestado" ||
+      selectedOptionId === "rec_falabella_debito" ||
+      selectedOptionId === "card_bancoestado_debito_sec" ||
+      selectedOptionId === "card_nueva_debito"
+    ) {
+      effectiveMethod = "WEBPAY";
+    } else {
+      effectiveMethod = "MERCADO_PAGO";
+    }
+
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
@@ -226,7 +259,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           cartSessionId,
           userId: email || "usuario-invitado",
-          paymentMethod,
+          paymentMethod: effectiveMethod,
           idempotencyKey,
           couponCode: appliedCoupon?.code,
           customerInfo: {
@@ -737,160 +770,555 @@ export default function CheckoutPage() {
             </form>
           )}
 
-          {/* STEP 3: PASARELA DE PAGO */}
+          {/* STEP 3: PASARELA DE PAGO (Estilo Mercado Libre refinado para OmniCollector) */}
           {currentStep === 3 && (
-            <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B35]">Paso 3 de 3</span>
-                  <h2 className="text-xl font-black text-[#1A1A1A] mt-1">Método de Pago Seguro</h2>
-                  <p className="text-xs text-[#666666] mt-1">
-                    Selecciona tu medio de pago chileno preferido con protección al comprador.
-                  </p>
+            <div className="space-y-6">
+              <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B35]">Paso 3 de 3</span>
+                    <h2 className="text-2xl font-black text-[#1A1A1A] mt-0.5">Elige cómo pagar</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="text-xs text-[#666666] hover:text-[#1A1A1A] flex items-center gap-1 font-semibold transition"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Volver a Envío
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(2)}
-                  className="text-xs text-[#666666] hover:text-[#1A1A1A] flex items-center gap-1"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Volver
-                </button>
-              </div>
 
-              {/* Payment Methods Accordion */}
-              <div className="space-y-3">
-                {/* 1. Mercado Pago Chile (Tarjetas, Cuotas, Webpay) */}
-                <div
-                  onClick={() => setPaymentMethod("MERCADO_PAGO")}
-                  className={`p-5 rounded-2xl border cursor-pointer transition space-y-3 ${
-                    paymentMethod === "MERCADO_PAGO"
-                      ? "bg-white border-2 border-[#FF6B35] shadow-md"
-                      : "bg-[#F7F7F5] border border-[#E5E5E5] hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#009EE3] text-white flex items-center justify-center font-black text-xs shadow">
-                        MP
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-[#1A1A1A]">Tarjetas de Crédito, Débito & Mercado Pago</h4>
-                          <span className="text-[10px] font-bold text-[#2E9E5B] bg-[#2E9E5B]/10 border border-[#2E9E5B]/30 px-2 py-0.5 rounded-full">
-                            Recomendado
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-[#666666]">
-                          Visa, Mastercard, Redcompra, Webpay Plus, MACH, Tenpo y saldo MP
-                        </p>
-                      </div>
-                    </div>
-                    <span className="font-mono text-xs font-black text-[#FF6B35]">
-                      Hasta 12 Cuotas
+                {/* Omni+ / Meli+ style benefits banner */}
+                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs text-[#1A1A1A] shadow-xs">
+                  <span className="bg-gradient-to-r from-[#D81B60] to-[#E91E63] text-white font-black text-[11px] px-2.5 py-0.5 rounded-full tracking-wide shrink-0">
+                    omni+
+                  </span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    Pagas con más beneficios y Compra Protegida Mint.
+                  </span>
+                </div>
+
+                {/* Combinar 2 medios de pago switch */}
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-[#E5E5E5] shadow-xs hover:border-slate-300 transition">
+                  <div className="space-y-0.5 pr-4">
+                    <span className="text-sm font-bold text-[#1A1A1A] block">Combinar 2 medios de pago</span>
+                    <span className="text-xs text-[#666666] block">
+                      Aplica tu saldo disponible OmniPoints ($ 5.000 CLP) y cubre la diferencia con tu tarjeta o transferencia.
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={combineMethods}
+                    onClick={() => setCombineMethods(!combineMethods)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      combineMethods ? "bg-[#009EE3]" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        combineMethods ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
 
-                  {paymentMethod === "MERCADO_PAGO" && (
-                    <div className="pt-3 border-t border-[#E5E5E5] space-y-3 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                {/* 1. SECCIÓN RECOMENDADOS */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-[#666666] px-1">Recomendados</h3>
+                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden divide-y divide-[#F0F0F0] shadow-xs">
+                    {/* Banco Estado Débito 6980 */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("rec_bancoestado");
+                        setPaymentMethod("WEBPAY");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "rec_bancoestado" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "rec_bancoestado"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "rec_bancoestado" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-white flex items-center justify-center font-black italic text-[#00579F] text-xs tracking-tighter shrink-0 shadow-xs">
+                        VISA
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Banco Estado Débito **** 6980
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Banco Falabella 1181 (Cuotas) */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("rec_falabella_credito");
+                        setPaymentMethod("MERCADO_PAGO");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "rec_falabella_credito" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "rec_falabella_credito"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "rec_falabella_credito" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-white flex items-center justify-center shrink-0 shadow-xs">
+                        <div className="flex -space-x-1.5 items-center">
+                          <div className="w-3.5 h-3.5 rounded-full bg-[#EB001B]" />
+                          <div className="w-3.5 h-3.5 rounded-full bg-[#F79E1B]/90" />
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Banco Falabella **** 1181
+                        </span>
+                        <span className="inline-block mt-1 text-[11px] font-semibold text-[#00A650] bg-[#E8F8F0] px-2 py-0.5 rounded">
+                          Hasta 6 cuotas sin interés
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Banco Falabella Débito 7888 */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("rec_falabella_debito");
+                        setPaymentMethod("WEBPAY");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "rec_falabella_debito" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "rec_falabella_debito"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "rec_falabella_debito" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-white flex flex-col items-center justify-center shrink-0 shadow-xs">
+                        <div className="flex -space-x-1 items-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#EB001B]" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#F79E1B]/90" />
+                        </div>
+                        <span className="text-[7px] font-bold text-[#666666] leading-none mt-0.5">Débito</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Banco Falabella Débito **** 7888
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. SECCIÓN MERCADO PAGO */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#666666] px-1">
+                    <span>Mercado Pago</span>
+                    <span className="text-[#009EE3]">🤝</span>
+                  </div>
+                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden shadow-xs">
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("mp_dinero_disponible");
+                        setPaymentMethod("MERCADO_PAGO");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "mp_dinero_disponible" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "mp_dinero_disponible"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "mp_dinero_disponible" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-[#FFE600] flex items-center justify-center text-[#1A1A1A] shrink-0 shadow-xs">
+                        <Wallet className="w-5 h-5 text-[#1A1A1A]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Dinero disponible
+                        </span>
+                        <span className="text-xs text-[#666666] block">
+                          Combínalo con otro medio o paga al instante con tu cuenta
+                        </span>
+                        <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-[#B06000] bg-[#FEF7E0] px-2 py-0.5 rounded">
+                          <Coins className="w-3 h-3 text-[#B06000]" /> Hasta $ 2.100 de cashback
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. SECCIÓN TARJETAS */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-[#666666] px-1">Tarjetas</h3>
+                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden divide-y divide-[#F0F0F0] shadow-xs">
+                    {/* Banco Estado Débito 1493 */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("card_bancoestado_debito_sec");
+                        setPaymentMethod("WEBPAY");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "card_bancoestado_debito_sec" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "card_bancoestado_debito_sec"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "card_bancoestado_debito_sec" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-white flex items-center justify-center font-black italic text-[#00579F] text-xs tracking-tighter shrink-0 shadow-xs">
+                        VISA
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Banco Estado Débito **** 1493
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Nueva tarjeta de crédito */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("card_nueva_credito");
+                        setPaymentMethod("MERCADO_PAGO");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "card_nueva_credito" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "card_nueva_credito"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "card_nueva_credito" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#F7F7F5] flex items-center justify-center text-[#666666] shrink-0 shadow-xs">
+                        <CreditCard className="w-4 h-4 text-[#1A1A1A]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Nueva tarjeta de crédito
+                        </span>
+                        <span className="inline-block mt-1 text-[11px] font-semibold text-[#00A650] bg-[#E8F8F0] px-2 py-0.5 rounded">
+                          Hasta 12 cuotas sin interés
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Nueva tarjeta de débito */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("card_nueva_debito");
+                        setPaymentMethod("WEBPAY");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "card_nueva_debito" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "card_nueva_debito"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "card_nueva_debito" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#F7F7F5] flex items-center justify-center text-[#666666] shrink-0 shadow-xs">
+                        <CreditCard className="w-4 h-4 text-[#1A1A1A]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Nueva tarjeta de débito
+                        </span>
+                        <span className="text-xs text-[#666666] block">
+                          Con código de seguridad (CVV) • Redcompra / Webpay Plus
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. SECCIÓN OTROS MEDIOS DE PAGO */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-[#666666] px-1">Otros medios de pago</h3>
+                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden divide-y divide-[#F0F0F0] shadow-xs">
+                    {/* Transferencia bancaria */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("other_bank_transfer");
+                        setPaymentMethod("BANK_TRANSFER");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "other_bank_transfer" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "other_bank_transfer"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "other_bank_transfer" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#EAEFF5] flex items-center justify-center text-[#1F3A5F] shrink-0 shadow-xs">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Transferencia bancaria electrónica
+                        </span>
+                        <span className="text-xs text-[#666666] block">
+                          BancoEstado, Banco de Chile, Santander, BCI (Verificación en 15 min)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Efectivo en puntos de pago */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("other_cash_points");
+                        setPaymentMethod("MERCADO_PAGO");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "other_cash_points" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "other_cash_points"
+                            ? "border-[#009EE3] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "other_cash_points" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#FEF7E0] flex items-center justify-center text-[#B06000] shrink-0 shadow-xs">
+                        <Store className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-[#1A1A1A] block">
+                          Efectivo en puntos de pago
+                        </span>
+                        <span className="text-xs text-[#666666] block">
+                          Paga en Servipag, Sencillito o CajaVecina con tu código
+                        </span>
+                        <span className="inline-block mt-1 text-[11px] font-semibold text-[#666666] bg-[#F0F0F0] px-2 py-0.5 rounded">
+                          1 a 2 horas para pagar
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SIMULADOR DE CUOTAS (Cuando se selecciona Falabella o Nueva Tarjeta de Crédito) */}
+                {(selectedOptionId === "rec_falabella_credito" ||
+                  selectedOptionId === "card_nueva_credito" ||
+                  selectedOptionId === "mp_dinero_disponible") && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#FAFBFD] border border-[#E0E7FF] space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                        <CreditCard className="w-4 h-4 text-[#009EE3]" />
+                        Simular cuotas con tu tarjeta:
+                      </span>
+                      <span className="text-xs font-mono font-bold text-[#FF6B35]">
+                        Cuota estimada: {formatCLP(Math.round(finalPayAmount / Number(installments)))} / mes
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { num: "1", label: "1 Cuota", note: "Al contado" },
+                        { num: "3", label: "3 Cuotas", note: "Sin interés" },
+                        { num: "6", label: "6 Cuotas", note: "Sin interés" },
+                        { num: "12", label: "12 Cuotas", note: "Sin interés" },
+                      ].map((c) => (
+                        <button
+                          key={c.num}
+                          type="button"
+                          onClick={() => setInstallments(c.num)}
+                          className={`p-2.5 rounded-xl border text-center transition ${
+                            installments === c.num
+                              ? "border-[#009EE3] bg-white text-[#009EE3] font-bold shadow-sm ring-1 ring-[#009EE3]"
+                              : "border-[#E5E5E5] bg-white text-[#666666] hover:border-slate-300"
+                          }`}
+                        >
+                          <span className="text-xs block font-bold">{c.label}</span>
+                          <span className="text-[10px] block opacity-75">{c.note}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-[#2E9E5B] flex items-center gap-1.5 pt-1">
+                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                      Cuotas sin interés aplicadas automáticamente por tu entidad bancaria.
+                    </p>
+                  </div>
+                )}
+
+                {/* DETALLES PARA TRANSFERENCIA BANCARIA */}
+                {selectedOptionId === "other_bank_transfer" && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#F4F9FF] border border-[#BFDBFE] space-y-3 text-xs shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-[#1E40AF] flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4" /> Datos de cuenta corriente OmniCollector:
+                      </h4>
+                      <span className="text-[10px] text-[#1E40AF] bg-[#DBEAFE] px-2 py-0.5 rounded-full font-bold">
+                        Acreditación en 15 min
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#1A1A1A]">
+                      <div className="p-2.5 rounded-xl bg-white border border-[#E5E5E5] flex items-center justify-between">
                         <div>
-                          <label className="text-[10px] text-[#666666] block mb-1">Simular Cuotas sin Interés</label>
-                          <select
-                            value={installments}
-                            onChange={(e) => setInstallments(e.target.value)}
-                            className="w-full px-3 py-2 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A]"
-                          >
-                            <option value="1">1 Cuota (Al contado)</option>
-                            <option value="3">3 Cuotas sin interés</option>
-                            <option value="6">6 Cuotas sin interés</option>
-                            <option value="12">12 Cuotas sin interés</option>
-                          </select>
-                        </div>
-                        <div className="flex flex-col justify-end sm:text-right">
-                          <span className="text-[10px] text-[#666666]">Valor cuota estimado:</span>
-                          <span className="font-mono font-bold text-[#FF6B35] text-sm">
-                            {formatCLP(Math.round(finalTotalToday / Number(installments)))} / mes
-                          </span>
+                          <span className="text-[10px] text-[#666666] block">Banco:</span>
+                          <strong className="text-xs">BancoEstado</strong>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 text-[11px] text-[#2E9E5B] bg-[#2E9E5B]/10 p-2.5 rounded-xl border border-[#2E9E5B]/30">
-                        <Lock className="w-3.5 h-3.5 text-[#2E9E5B] shrink-0" />
-                        <span>Pago protegido por Mercado Pago Chile. Acepta tarjetas nacionales e internacionales.</span>
+                      <div className="p-2.5 rounded-xl bg-white border border-[#E5E5E5] flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-[#666666] block">Tipo y N° Cuenta:</span>
+                          <strong className="text-xs">Cta Cte 827104928</strong>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("827104928", "acc")}
+                          className="text-[#009EE3] hover:text-[#007EB5] p-1 text-[11px] font-bold flex items-center gap-1"
+                        >
+                          {copiedField === "acc" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedField === "acc" ? "Copiado" : "Copiar"}
+                        </button>
                       </div>
-                    </div>
-                  )}
-                </div>
 
-                {/* 2. Webpay Plus / Transbank */}
-                <div
-                  onClick={() => setPaymentMethod("WEBPAY")}
-                  className={`p-5 rounded-2xl border cursor-pointer transition space-y-3 ${
-                    paymentMethod === "WEBPAY"
-                      ? "bg-white border-2 border-[#FF6B35] shadow-md"
-                      : "bg-[#F7F7F5] border border-[#E5E5E5] hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#1F3A5F] text-white flex items-center justify-center shadow-sm">
-                        <CreditCard className="w-5 h-5" />
+                      <div className="p-2.5 rounded-xl bg-white border border-[#E5E5E5] flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-[#666666] block">RUT Titular:</span>
+                          <strong className="text-xs">76.543.210-K</strong>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("76.543.210-K", "rut")}
+                          className="text-[#009EE3] hover:text-[#007EB5] p-1 text-[11px] font-bold flex items-center gap-1"
+                        >
+                          {copiedField === "rut" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedField === "rut" ? "Copiado" : "Copiar"}
+                        </button>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-[#1A1A1A]">Webpay Plus Directo (Transbank / Flow)</h4>
-                        <p className="text-[11px] text-[#666666]">Pago directo con Redcompra y bancos chilenos</p>
+
+                      <div className="p-2.5 rounded-xl bg-white border border-[#E5E5E5] flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-[#666666] block">Email comprobante:</span>
+                          <strong className="text-xs">pagos@omnicollector.cl</strong>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard("pagos@omnicollector.cl", "email")}
+                          className="text-[#009EE3] hover:text-[#007EB5] p-1 text-[11px] font-bold flex items-center gap-1"
+                        >
+                          {copiedField === "email" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedField === "email" ? "Copiado" : "Copiar"}
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* 3. Transferencia Bancaria Directa */}
-                <div
-                  onClick={() => setPaymentMethod("BANK_TRANSFER")}
-                  className={`p-5 rounded-2xl border cursor-pointer transition space-y-3 ${
-                    paymentMethod === "BANK_TRANSFER"
-                      ? "bg-white border-2 border-[#FF6B35] shadow-md"
-                      : "bg-[#F7F7F5] border border-[#E5E5E5] hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#1F3A5F] text-white flex items-center justify-center shadow-sm">
-                        <Building2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-[#1A1A1A]">Transferencia Bancaria Electrónica</h4>
-                        <p className="text-[11px] text-[#666666]">BancoEstado, Banco de Chile, Santander, BCI</p>
-                      </div>
-                    </div>
+                {/* DETALLES PARA EFECTIVO EN PUNTOS DE PAGO */}
+                {selectedOptionId === "other_cash_points" && (
+                  <div className="p-4 rounded-2xl bg-[#FFFBEB] border border-[#FCD34D] space-y-1.5 text-xs text-[#92400E] shadow-xs">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <Store className="w-4 h-4 text-[#B45309]" /> Pago en efectivo sin tarjeta bancaria
+                    </p>
+                    <p>
+                      Al confirmar el pedido generaremos tu <strong>cupón de pago oficial con código de barras</strong> y código de 8 dígitos para pagar en cualquier sucursal de Servipag, Sencillito o CajaVecina de Chile.
+                    </p>
                   </div>
+                )}
 
-                  {paymentMethod === "BANK_TRANSFER" && (
-                    <div className="pt-3 border-t border-[#E5E5E5] space-y-1 text-xs text-[#666666]">
-                      <p className="text-[#1A1A1A] font-bold">Datos para transferir:</p>
-                      <p>Banco: <strong className="text-[#1A1A1A]">BancoEstado</strong> | Cuenta Corriente: <strong className="text-[#1A1A1A]">827104928</strong></p>
-                      <p>RUT: <strong className="text-[#1A1A1A]">76.543.210-K</strong> | Email: <strong className="text-[#1A1A1A]">pagos@omnicollector.cl</strong></p>
-                    </div>
-                  )}
+                {/* INFORMACIÓN SOBRE MERCADO PAGO */}
+                {selectedOptionId === "mp_dinero_disponible" && (
+                  <div className="p-4 rounded-2xl bg-[#F0F9FF] border border-[#BAE6FD] space-y-1.5 text-xs text-[#0369A1] shadow-xs">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-[#009EE3]" /> Pago con saldo en cuenta Mercado Pago
+                    </p>
+                    <p>
+                      Serás conectado con la plataforma oficial de Mercado Pago para autorizar el cobro con tu saldo disponible o tus tarjetas registradas de forma 100% protegida.
+                    </p>
+                  </div>
+                )}
+
+                {/* CTA CONFIRMAR Y PAGAR */}
+                <div className="pt-2 space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleCompleteOrder}
+                    disabled={isProcessing}
+                    className="w-full py-4 rounded-2xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-xl shadow-[#FF6B35]/25 disabled:opacity-50"
+                  >
+                    {isProcessing ? (
+                      <>Conectando con pasarela de pago segura...</>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Continuar y Pagar {formatCLP(finalPayAmount)}</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2 text-[11px] text-[#666666] text-center">
+                    <ShieldCheck className="w-4 h-4 text-[#2E9E5B] shrink-0" />
+                    <span>Tus pagos están protegidos con encriptación SSL de 256 bits y Garantía Mint de devolución.</span>
+                  </div>
                 </div>
               </div>
-
-              {/* Confirm & Pay Button */}
-              <button
-                type="button"
-                onClick={handleCompleteOrder}
-                disabled={isProcessing}
-                className="w-full py-4 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-xl shadow-[#FF6B35]/25 disabled:opacity-50"
-              >
-                {isProcessing ? (
-                  <>Procesando pedido y actualizando stock...</>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    <span>Pagar {formatCLP(finalTotalToday)} en CLP</span>
-                  </>
-                )}
-              </button>
             </div>
           )}
         </div>
@@ -1004,10 +1432,17 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {combineMethods && omniPointsDiscount > 0 && (
+                <div className="flex justify-between text-[#00A650] font-medium bg-[#E8F8F0] px-3 py-1.5 rounded-xl border border-[#00A650]/20">
+                  <span>Saldo OmniPoints (2 medios):</span>
+                  <span className="font-mono font-bold">-{formatCLP(omniPointsDiscount)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-baseline pt-3 border-t border-[#E5E5E5] text-base">
                 <span className="font-black text-[#1A1A1A]">Total a Pagar Hoy:</span>
                 <span className="font-mono font-black text-2xl text-[#FF6B35]">
-                  {formatCLP(finalTotalToday)}
+                  {formatCLP(finalPayAmount)}
                 </span>
               </div>
             </div>

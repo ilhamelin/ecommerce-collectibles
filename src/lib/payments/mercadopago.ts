@@ -119,10 +119,14 @@ export async function createMercadoPagoPreference(
         phone: {
           number: order.customer.phone.replace(/[^0-9]/g, "").slice(-9),
         },
-        identification: cleanRut ? {
-          type: "RUT",
-          number: cleanRut,
-        } : undefined,
+        identification: isSandbox
+          ? undefined
+          : cleanRut
+          ? {
+              type: "RUT",
+              number: cleanRut,
+            }
+          : undefined,
         address: {
           street_name: order.customer.address,
         },

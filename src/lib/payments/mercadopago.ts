@@ -61,7 +61,7 @@ export async function createMercadoPagoPreference(
     quantity: item.quantity,
     unit_price: item.isPartialDeposit ? Math.round(item.unitDeposit) : Math.round(item.unitPrice),
     currency_id: "CLP",
-    picture_url: item.imageUrl,
+    picture_url: item.imageUrl?.startsWith("http") ? item.imageUrl : undefined,
   }));
 
   // If shipping cost exists, add shipping as an item or fee
@@ -102,35 +102,28 @@ export async function createMercadoPagoPreference(
 
   const cleanRut = (order.customer.rut || "").replace(/[^0-9kK]/g, "").toUpperCase();
 
-  // In Sandbox mode, if a real customer email registered in Mercado Libre is passed,
-  // Mercado Pago blocks the transaction with "Una de las partes con la que intentas hacer el pago es de prueba".
-  // We sanitize to a sandbox test email for Mercado Pago preference while keeping customer's real email in Firestore.
-  const payerEmail = isSandbox && !order.customer.email.toLowerCase().includes("testuser")
-    ? `test_payer_${order.id.replace(/[^a-zA-Z0-9]/g, "").slice(-8).toLowerCase()}@testuser.com`
-    : order.customer.email;
-
   const response = await preference.create({
     body: {
       items,
-      payer: {
-        name: firstName,
-        surname: lastName,
-        email: payerEmail,
-        phone: {
-          number: order.customer.phone.replace(/[^0-9]/g, "").slice(-9),
-        },
-        identification: isSandbox
-          ? undefined
-          : cleanRut
-          ? {
-              type: "RUT",
-              number: cleanRut,
-            }
-          : undefined,
-        address: {
-          street_name: order.customer.address,
-        },
-      },
+      payer: isSandbox
+        ? undefined
+        : {
+            name: firstName,
+            surname: lastName,
+            email: order.customer.email,
+            phone: {
+              number: order.customer.phone.replace(/[^0-9]/g, "").slice(-9),
+            },
+            identification: cleanRut
+              ? {
+                  type: "RUT",
+                  number: cleanRut,
+                }
+              : undefined,
+            address: {
+              street_name: order.customer.address,
+            },
+          },
       back_urls: {
         success: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=approved`,
         pending: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=pending`,

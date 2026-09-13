@@ -41,7 +41,7 @@ export async function initiatePaymentGateway(
         const preference = await createMercadoPagoPreference({ order, baseUrl });
         if (preference) {
           const isSandbox = process.env.MERCADOPAGO_SANDBOX_MODE !== "false";
-          const redirectUrl = isSandbox ? preference.sandboxInitPoint : preference.initPoint;
+          const redirectUrl = preference.initPoint || preference.sandboxInitPoint;
 
           return {
             requiresRedirect: true,

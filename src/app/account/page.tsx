@@ -37,6 +37,8 @@ import {
   BadgeAlert,
   Navigation,
   Lock,
+  Bell,
+  Tag,
 } from "lucide-react";
 import { useAuthStore, UserAddress, SavedPaymentMethod } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -79,9 +81,15 @@ function AccountContent() {
 
   const { addItem } = useCartStore();
 
-  const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST">("ORDERS");
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS">("ORDERS");
   const [catalogProducts, setCatalogProducts] = useState<any[]>(BASE_PRODUCTS);
   const [addedWishlistId, setAddedWishlistId] = useState<string | null>(null);
+
+  // Live Alerts State (Stock & Price Drops subscribed by user)
+  const [userAlerts, setUserAlerts] = useState<any[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [cancellingAlertId, setCancellingAlertId] = useState<string | null>(null);
+  const [alertSuccessMsg, setAlertSuccessMsg] = useState<string | null>(null);
 
   // Live Orders State (Connected directly to database & Firestore)
   const [userOrders, setUserOrders] = useState<ConfirmedOrderEntity[]>([]);
@@ -99,6 +107,8 @@ function AccountContent() {
       setActiveTab("WISHLIST");
     } else if (tabParam === "profile") {
       setActiveTab("PROFILE");
+    } else if (tabParam === "alerts") {
+      setActiveTab("ALERTS");
     }
   }, [tabParam, settledParam]);
 
@@ -154,15 +164,64 @@ function AccountContent() {
     }
   };
 
-  // Trigger fetch when user is available or tab changes to ORDERS
+  // Fetch real-time alerts subscribed by user
+  const fetchUserAlerts = async () => {
+    if (!currentUser?.email) return;
+    setLoadingAlerts(true);
+    try {
+      const res = await fetch(
+        `/api/users/alerts?email=${encodeURIComponent(currentUser.email.toLowerCase().trim())}&userId=${encodeURIComponent(
+          currentUser.id || ""
+        )}`
+      );
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data?.alerts)) {
+        setUserAlerts(data.data.alerts);
+      }
+    } catch (err) {
+      console.error("Error fetching user alerts:", err);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  // Trigger fetch when user is available or tab changes to ORDERS / ALERTS
   useEffect(() => {
     if (currentUser?.email) {
       fetchUserOrders();
+      fetchUserAlerts();
     }
   }, [currentUser?.email, activeTab]);
 
+  const handleCancelAlert = async (alertId: string) => {
+    if (
+      !confirm(
+        "¿Deseas cancelar el aviso para este producto? Ya no recibirás notificaciones por correo sobre su disponibilidad o precio."
+      )
+    ) {
+      return;
+    }
+    setCancellingAlertId(alertId);
+    try {
+      const res = await fetch(`/api/users/alerts?id=${alertId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setUserAlerts((prev) => prev.filter((a) => a.id !== alertId));
+        setAlertSuccessMsg("Aviso cancelado correctamente.");
+        setTimeout(() => setAlertSuccessMsg(null), 3000);
+      } else {
+        alert(data.error || "No se pudo cancelar el aviso");
+      }
+    } catch (err) {
+      console.error("Error al cancelar alerta:", err);
+    } finally {
+      setCancellingAlertId(null);
+    }
+  };
+
   const handleManualRefresh = async () => {
     await fetchUserOrders();
+    await fetchUserAlerts();
     setRefreshSuccessMsg(true);
     setTimeout(() => setRefreshSuccessMsg(false), 2500);
   };
@@ -438,6 +497,13 @@ function AccountContent() {
               label: "Mis Favoritos",
               icon: Heart,
               count: currentUser.wishlist?.length ?? 0,
+            },
+            {
+              id: "ALERTS",
+              label: "Mis Alertas de Stock & Descuentos",
+              icon: Bell,
+              count: userAlerts.length,
+              badgeHighlight: userAlerts.length > 0 ? `${userAlerts.length} activa(s)` : undefined,
             },
             { id: "PROFILE", label: "Información Personal", icon: User },
             { id: "ADDRESSES", label: "Libreta de Direcciones", icon: MapPin },
@@ -1619,6 +1685,164 @@ function AccountContent() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB: MIS ALERTAS DE PRODUCTOS & STOCK */}
+          {activeTab === "ALERTS" && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-black text-[#1A1A1A]">Mis Alertas de Stock & Descuentos</h2>
+                    <span className="text-xs font-bold font-mono px-2.5 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35]">
+                      {userAlerts.length} {userAlerts.length === 1 ? "aviso activo" : "avisos activos"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#666666] mt-1">
+                    Productos a los que les activaste la campana de aviso. Te notificaremos automáticamente por correo a{" "}
+                    <strong className="text-[#1F3A5F]">{currentUser?.email}</strong> en cuanto reingrese stock o detectemos ofertas especiales.
+                  </p>
+                </div>
+
+                <button
+                  onClick={fetchUserAlerts}
+                  disabled={loadingAlerts}
+                  title="Refrescar alertas"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[#E5E5E5] text-xs font-bold text-[#555555] hover:text-[#1A1A1A] hover:bg-[#F7F7F5] transition shadow-sm self-start sm:self-auto"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingAlerts ? "animate-spin text-[#FF6B35]" : ""}`} />
+                  Actualizar
+                </button>
+              </div>
+
+              {alertSuccessMsg && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  {alertSuccessMsg}
+                </div>
+              )}
+
+              {/* Alerts List or Empty State */}
+              {userAlerts.length === 0 ? (
+                <div className="p-12 text-center rounded-3xl bg-[#F7F7F5] border border-dashed border-[#E5E5E5] space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-white border border-[#E5E5E5] flex items-center justify-center mx-auto text-[#FF6B35] shadow-sm">
+                    <Bell className="w-7 h-7" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-1">
+                    <h3 className="text-base font-black text-[#1A1A1A]">No tienes avisos de productos activos</h3>
+                    <p className="text-xs text-[#666666]">
+                      Cuando un coleccionable esté sin stock o quieras monitorear su precio, presiona el botón <strong>"Avisarme si hay Stock"</strong> en su ficha para recibir notificaciones directas en tu email.
+                    </p>
+                  </div>
+                  <Link
+                    href="/catalogo"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#ff5517] text-white font-bold text-xs uppercase tracking-wider transition shadow-sm"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Explorar Catálogo
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {userAlerts.map((alt) => {
+                    const matchedProd = catalogProducts.find(
+                      (p) => p.sku === alt.productSku || p.id === alt.productId
+                    );
+                    const img =
+                      alt.productImageUrl ||
+                      matchedProd?.images?.[0] ||
+                      matchedProd?.image ||
+                      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600";
+                    const price = alt.productPrice || matchedProd?.price || 0;
+                    const dateFormatted = new Date(alt.createdAt).toLocaleDateString("es-CL", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    });
+
+                    return (
+                      <div
+                        key={alt.id}
+                        className="bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/50 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between gap-4"
+                      >
+                        <div className="flex items-start gap-3.5">
+                          {/* Image */}
+                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#F7F7F5] border border-[#E5E5E5] shrink-0 relative">
+                            <img
+                              src={img}
+                              alt={alt.productName}
+                              className="w-full h-full object-cover"
+                            />
+                            {alt.isOutOfStock ? (
+                              <span className="absolute bottom-1 left-1 right-1 bg-rose-600/90 text-white text-[9px] font-bold text-center rounded py-0.5">
+                                Agotado
+                              </span>
+                            ) : (
+                              <span className="absolute bottom-1 left-1 right-1 bg-emerald-600/90 text-white text-[9px] font-bold text-center rounded py-0.5">
+                                Disponible
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {alt.isOutOfStock ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <Clock className="w-3 h-3" /> Aviso de Stock
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  <Tag className="w-3 h-3" /> Alerta de Descuento
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-[#666666]">
+                                SKU: {alt.productSku || alt.productId}
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-black text-[#1A1A1A] line-clamp-2 leading-snug" title={alt.productName}>
+                              {alt.productName}
+                            </h4>
+
+                            <div className="text-xs font-bold text-[#FF6B35] font-mono">
+                              {formatCLP(price)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Footer & Actions */}
+                        <div className="pt-3 border-t border-[#E5E5E5] flex items-center justify-between gap-2 text-xs">
+                          <span className="text-[11px] text-[#666666]">
+                            Activado: <strong className="text-[#1A1A1A] font-mono">{dateFormatted}</strong>
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/product/${(alt.productSku || alt.productId).toLowerCase()}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] text-white font-bold text-xs transition shadow-sm"
+                            >
+                              Ver Producto
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+
+                            <button
+                              onClick={() => handleCancelAlert(alt.id)}
+                              disabled={cancellingAlertId === alt.id}
+                              title="Cancelar aviso de este producto"
+                              className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition disabled:opacity-50"
+                            >
+                              <Trash2 className={`w-3.5 h-3.5 ${cancellingAlertId === alt.id ? "animate-spin" : ""}`} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

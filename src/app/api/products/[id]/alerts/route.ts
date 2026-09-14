@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendProductAlertEmail } from "@/lib/services/emailService";
+import { alertService } from "@/lib/services/alertService";
 import { adminDb } from "@/lib/firebase/admin";
 
 // In-memory fallback storage for product alerts
@@ -40,29 +41,27 @@ export async function POST(
       );
     }
 
+    const isGuest = !userId;
     const alertRecord = {
       id: `alert-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       productId,
       productSku,
       productName,
+      productPrice: Number(price) || 0,
+      productOriginalPrice: originalPrice ? Number(originalPrice) : undefined,
+      productImageUrl: body.productImageUrl || undefined,
       email: email.toLowerCase().trim(),
       userId: userId || null,
-      alertType,
+      userName: body.userName || (isGuest ? "Invitado Web" : email.split("@")[0]),
+      isGuest,
+      alertType: alertType as any,
+      isOutOfStock: Boolean(isOutOfStock),
       createdAt: new Date().toISOString(),
       active: true,
     };
 
-    // Save to Firestore if configured
-    if (adminDb) {
-      try {
-        await adminDb.collection("product_alerts").doc(alertRecord.id).set(alertRecord);
-      } catch (dbErr) {
-        console.warn("[Alerts API] Could not save to Firestore, saving in memory:", dbErr);
-        inMemoryAlerts.push(alertRecord);
-      }
-    } else {
-      inMemoryAlerts.push(alertRecord);
-    }
+    // Save to shared alertService (Firestore + Memory)
+    await alertService.saveAlert(alertRecord);
 
     // Send formal confirmation email to recipient
     const emailResult = await sendProductAlertEmail({
@@ -109,8 +108,9 @@ export async function GET(
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const hasAlert = inMemoryAlerts.some(
-    (a) => a.productId === params.id && a.email === normalizedEmail && (a as any).active !== false
+  const userAlerts = await alertService.getUserAlerts(normalizedEmail);
+  const hasAlert = userAlerts.some(
+    (a) => (a.productId === params.id || a.productSku === params.id) && a.active !== false
   );
 
   return NextResponse.json({

@@ -20,8 +20,35 @@ import {
   Sparkles,
   BarChart3,
   Layers,
+  Bell,
+  Mail,
+  UserCheck,
+  UserX,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Filter,
 } from "lucide-react";
 import { useAuthStore, UserAccount } from "@/lib/store/authStore";
+
+interface ProductAlertRecord {
+  id: string;
+  productId: string;
+  productSku: string;
+  productName: string;
+  productPrice: number;
+  productOriginalPrice?: number;
+  productImageUrl?: string;
+  email: string;
+  userId?: string | null;
+  userName?: string | null;
+  isGuest: boolean;
+  alertType: "STOCK_AVAILABLE" | "PRICE_DROP" | "BOTH";
+  isOutOfStock: boolean;
+  createdAt: string;
+  active: boolean;
+}
 
 interface ProductClickStat {
   sku: string;
@@ -43,9 +70,13 @@ export default function AdminUsersAnalyticsPage() {
   const { currentUser } = useAuthStore();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<ProductAlertRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"USERS" | "ATTRACTION">("USERS");
+  const [activeTab, setActiveTab] = useState<"USERS" | "ATTRACTION" | "ALERTS">("USERS");
+  const [alertFilter, setAlertFilter] = useState<"ALL" | "GUEST" | "REGISTERED" | "OUT_OF_STOCK" | "PRICE_DROP">("ALL");
+  const [alertSearchQuery, setAlertSearchQuery] = useState("");
+  const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
 
   // Analytics data
   const [summary, setSummary] = useState({
@@ -88,6 +119,13 @@ export default function AdminUsersAnalyticsPage() {
         setCategories(analyticsJson.data.categoryBreakdown || []);
         setPopularTags(analyticsJson.data.popularTags || []);
       }
+
+      // 4. Fetch Stock & Email Alerts
+      const alertsRes = await fetch("/api/admin/alerts");
+      const alertsJson = await alertsRes.json();
+      if (alertsJson.success && Array.isArray(alertsJson.data?.alerts)) {
+        setAlerts(alertsJson.data.alerts);
+      }
     } catch (err) {
       console.error("Error loading admin users analytics:", err);
     } finally {
@@ -126,6 +164,51 @@ export default function AdminUsersAnalyticsPage() {
         u.phone?.toLowerCase().includes(q)
     );
   }, [users, searchQuery]);
+
+  // Alert counts
+  const guestCount = useMemo(() => alerts.filter((a) => a.isGuest).length, [alerts]);
+  const registeredCount = useMemo(() => alerts.filter((a) => !a.isGuest).length, [alerts]);
+  const outOfStockCount = useMemo(() => alerts.filter((a) => a.isOutOfStock).length, [alerts]);
+  const priceDropCount = useMemo(() => alerts.filter((a) => !a.isOutOfStock).length, [alerts]);
+
+  // Filtered alerts
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((a) => {
+      if (alertFilter === "GUEST" && !a.isGuest) return false;
+      if (alertFilter === "REGISTERED" && a.isGuest) return false;
+      if (alertFilter === "OUT_OF_STOCK" && !a.isOutOfStock) return false;
+      if (alertFilter === "PRICE_DROP" && a.isOutOfStock) return false;
+
+      if (alertSearchQuery.trim()) {
+        const q = alertSearchQuery.toLowerCase().trim();
+        const matchEmail = a.email?.toLowerCase().includes(q);
+        const matchName = a.userName?.toLowerCase().includes(q);
+        const matchProduct = a.productName?.toLowerCase().includes(q);
+        const matchSku = a.productSku?.toLowerCase().includes(q);
+        return matchEmail || matchName || matchProduct || matchSku;
+      }
+      return true;
+    });
+  }, [alerts, alertFilter, alertSearchQuery]);
+
+  // Delete alert handler
+  const handleDeleteAlert = async (id: string) => {
+    if (!confirm("¿Estás seguro de cancelar y eliminar esta suscripción de alerta de correo?")) return;
+    setDeletingAlertId(id);
+    try {
+      const res = await fetch(`/api/admin/alerts?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setAlerts((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        alert(data.error || "No se pudo eliminar la alerta");
+      }
+    } catch (err) {
+      console.error("Error al eliminar alerta:", err);
+    } finally {
+      setDeletingAlertId(null);
+    }
+  };
 
   // Most popular category
   const topCategory = useMemo(() => {
@@ -169,7 +252,7 @@ export default function AdminUsersAnalyticsPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Users Card */}
         <div className="p-5 rounded-2xl bg-[#092634] border border-[#004E72]/50 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-[#9bb5c2] text-xs font-semibold">
@@ -180,6 +263,27 @@ export default function AdminUsersAnalyticsPage() {
           <p className="text-[11px] text-[#9bb5c2]">
             {users.filter((u) => u.role === "ADMIN").length} Administradores •{" "}
             {users.filter((u) => u.role !== "ADMIN").length} Clientes Activos
+          </p>
+        </div>
+
+        {/* Stock & Email Alerts Card */}
+        <div
+          onClick={() => setActiveTab("ALERTS")}
+          className="p-5 rounded-2xl bg-[#092634] border border-[#004E72]/50 shadow-sm space-y-2 cursor-pointer hover:border-[#FF6B35]/70 transition group"
+        >
+          <div className="flex items-center justify-between text-[#9bb5c2] text-xs font-semibold">
+            <span>Alertas de Stock & Correo</span>
+            <Bell className="w-4 h-4 text-[#FF6B35] group-hover:scale-110 transition-transform" />
+          </div>
+          <div className="text-3xl font-black text-[#F9F9F9] flex items-center gap-2">
+            {alerts.length}
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] uppercase font-mono">
+              En Vivo
+            </span>
+          </div>
+          <p className="text-[11px] text-[#9bb5c2]">
+            <span className="text-amber-400 font-bold">{guestCount} Invitados</span> •{" "}
+            <span className="text-emerald-400 font-bold">{registeredCount} Cuentas</span>
           </p>
         </div>
 
@@ -221,10 +325,10 @@ export default function AdminUsersAnalyticsPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-[#E5E5E5] pb-2">
+      <div className="flex items-center gap-2 border-b border-[#E5E5E5] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("USERS")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "USERS"
               ? "bg-[#1F3A5F] text-white shadow-sm"
               : "text-[#555555] hover:bg-[#E5E5E5]/60 hover:text-[#1A1A1A]"
@@ -235,8 +339,20 @@ export default function AdminUsersAnalyticsPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab("ALERTS")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shrink-0 ${
+            activeTab === "ALERTS"
+              ? "bg-[#1F3A5F] text-white shadow-sm"
+              : "text-[#555555] hover:bg-[#E5E5E5]/60 hover:text-[#1A1A1A]"
+          }`}
+        >
+          <Bell className="w-4 h-4 text-[#FF6B35]" />
+          Alertas de Stock & Correos Suscritos ({alerts.length})
+        </button>
+
+        <button
           onClick={() => setActiveTab("ATTRACTION")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shrink-0 ${
             activeTab === "ATTRACTION"
               ? "bg-[#1F3A5F] text-white shadow-sm"
               : "text-[#555555] hover:bg-[#E5E5E5]/60 hover:text-[#1A1A1A]"
@@ -498,6 +614,269 @@ export default function AdminUsersAnalyticsPage() {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: STOCK ALERTS & SUBSCRIBED EMAILS (GUESTS & REGISTERED) */}
+      {activeTab === "ALERTS" && (
+        <div className="space-y-6">
+          {/* Header & Description Card */}
+          <div className="bg-[#092634] border border-[#004E72]/50 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-black text-white flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-[#FF6B35]" />
+                  Registro de Notificaciones de Stock & Ofertas
+                </h2>
+                <p className="text-xs text-[#9bb5c2] mt-1 max-w-2xl">
+                  Audita a todos los clientes que han solicitado aviso por correo. Se registran tanto <strong>usuarios invitados</strong> (que dejaron su email en la ficha) como <strong>clientes con cuenta</strong> que activaron la campana de aviso.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs font-mono text-emerald-400 font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  SMTP Gmail Activo
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Filters */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#004E72]/40">
+              <span className="text-[11px] font-bold text-[#9bb5c2] uppercase tracking-wider mr-1 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-[#FF6B35]" /> Filtrar:
+              </span>
+
+              <button
+                onClick={() => setAlertFilter("ALL")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  alertFilter === "ALL"
+                    ? "bg-[#FF6B35] text-white shadow-sm"
+                    : "bg-[#05161f] text-[#9bb5c2] hover:text-white border border-[#004E72]/50"
+                }`}
+              >
+                Todas ({alerts.length})
+              </button>
+
+              <button
+                onClick={() => setAlertFilter("GUEST")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  alertFilter === "GUEST"
+                    ? "bg-amber-500 text-slate-950 shadow-sm"
+                    : "bg-[#05161f] text-[#9bb5c2] hover:text-amber-300 border border-[#004E72]/50"
+                }`}
+              >
+                <UserX className="w-3.5 h-3.5" />
+                Invitados Web ({guestCount})
+              </button>
+
+              <button
+                onClick={() => setAlertFilter("REGISTERED")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  alertFilter === "REGISTERED"
+                    ? "bg-emerald-500 text-slate-950 shadow-sm"
+                    : "bg-[#05161f] text-[#9bb5c2] hover:text-emerald-300 border border-[#004E72]/50"
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                Cuentas Registradas ({registeredCount})
+              </button>
+
+              <button
+                onClick={() => setAlertFilter("OUT_OF_STOCK")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  alertFilter === "OUT_OF_STOCK"
+                    ? "bg-rose-500 text-white shadow-sm"
+                    : "bg-[#05161f] text-[#9bb5c2] hover:text-rose-300 border border-[#004E72]/50"
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Sin Stock ({outOfStockCount})
+              </button>
+
+              <button
+                onClick={() => setAlertFilter("PRICE_DROP")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  alertFilter === "PRICE_DROP"
+                    ? "bg-indigo-500 text-white shadow-sm"
+                    : "bg-[#05161f] text-[#9bb5c2] hover:text-indigo-300 border border-[#004E72]/50"
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                Oferta / Descuento ({priceDropCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Search Bar & Result Count */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
+              <input
+                type="text"
+                placeholder="Buscar por correo, usuario, producto o SKU..."
+                value={alertSearchQuery}
+                onChange={(e) => setAlertSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-[#1A1A1A] placeholder-[#666666]/60 text-xs focus:outline-none focus:border-[#FF6B35] transition shadow-sm"
+              />
+            </div>
+            <span className="text-xs text-[#666666]">
+              Mostrando <strong>{filteredAlerts.length}</strong> de {alerts.length} alertas suscritas
+            </span>
+          </div>
+
+          {/* Alerts Table */}
+          <div className="bg-[#092634] border border-[#004E72]/50 rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#004E72]/60 text-[11px] font-bold text-[#9bb5c2] uppercase tracking-wider bg-[#05161f]">
+                    <th className="py-3.5 px-4">Usuario / Correo</th>
+                    <th className="py-3.5 px-4">Tipo de Cuenta</th>
+                    <th className="py-3.5 px-4">Producto & SKU</th>
+                    <th className="py-3.5 px-4">Motivo de Notificación</th>
+                    <th className="py-3.5 px-4">Fecha de Alta</th>
+                    <th className="py-3.5 px-4">Canal</th>
+                    <th className="py-3.5 px-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#004E72]/30 text-xs text-[#F9F9F9]">
+                  {filteredAlerts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-[#9bb5c2]">
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <Bell className="w-8 h-8 text-[#004E72]" />
+                          <p className="font-semibold text-white">No se encontraron alertas</p>
+                          <p className="text-[11px] text-[#9bb5c2]/70">
+                            {alertSearchQuery || alertFilter !== "ALL"
+                              ? "Prueba cambiando o limpiando los filtros de búsqueda."
+                              : "Aún no hay clientes que hayan registrado alertas de stock o precio."}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAlerts.map((alt) => {
+                      const dateFormatted = new Date(alt.createdAt).toLocaleDateString("es-CL", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+
+                      return (
+                        <tr key={alt.id} className="hover:bg-[#004E72]/20 transition">
+                          {/* User & Email */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold text-xs ${
+                                  alt.isGuest
+                                    ? "bg-amber-500/10 border-amber-500/40 text-amber-300"
+                                    : "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                                }`}
+                              >
+                                {alt.userName ? alt.userName.charAt(0).toUpperCase() : alt.email.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <span className="font-bold text-white block">
+                                  {alt.userName || (alt.isGuest ? "Invitado Web" : "Usuario Registrado")}
+                                </span>
+                                <span className="text-[11px] text-[#9bb5c2] font-mono flex items-center gap-1">
+                                  <Mail className="w-3 h-3 text-[#FF6B35]" />
+                                  {alt.email}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Account Type Badge */}
+                          <td className="py-3.5 px-4">
+                            {alt.isGuest ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                <UserX className="w-3 h-3" /> INVITADO
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <UserCheck className="w-3 h-3" /> REGISTRADO
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Product & Price */}
+                          <td className="py-3.5 px-4">
+                            <div>
+                              <span className="font-bold text-white block truncate max-w-[220px]" title={alt.productName}>
+                                {alt.productName}
+                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-mono text-[#FF6B35] font-bold">
+                                  {alt.productSku || alt.productId}
+                                </span>
+                                <span className="text-[10px] text-[#9bb5c2] font-mono">
+                                  ${alt.productPrice?.toLocaleString("es-CL")} CLP
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Notification Type */}
+                          <td className="py-3.5 px-4">
+                            {alt.isOutOfStock ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                <AlertTriangle className="w-3 h-3" /> Falta Stock / Reingreso
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                <Tag className="w-3 h-3" /> Oferta & Descuento
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Date */}
+                          <td className="py-3.5 px-4 font-mono text-[#9bb5c2] text-[11px]">
+                            {dateFormatted}
+                          </td>
+
+                          {/* Channel */}
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-[#9bb5c2]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              Gmail Oficial
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/product/${(alt.productSku || alt.productId).toLowerCase()}`}
+                                target="_blank"
+                                title="Ver ficha de producto en tienda"
+                                className="p-1.5 rounded-lg bg-[#05161f] border border-[#004E72]/50 text-[#9bb5c2] hover:text-[#FF6B35] hover:border-[#FF6B35] transition"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </Link>
+
+                              <button
+                                onClick={() => handleDeleteAlert(alt.id)}
+                                disabled={deletingAlertId === alt.id}
+                                title="Dar de baja o eliminar esta alerta"
+                                className="p-1.5 rounded-lg bg-[#05161f] border border-[#004E72]/50 text-[#9bb5c2] hover:text-rose-400 hover:border-rose-500/50 transition disabled:opacity-50"
+                              >
+                                <Trash2 className={`w-3.5 h-3.5 ${deletingAlertId === alt.id ? "animate-spin" : ""}`} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

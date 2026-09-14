@@ -85,19 +85,46 @@ const CHILE_REGIONS: Record<string, RegionData> = {
   },
 };
 
-export function ShippingCalculator() {
-  const [selectedRegionKey, setSelectedRegionKey] = useState<string>("RM");
-  const [selectedComuna, setSelectedComuna] = useState<string>("Santiago Centro");
-  const [selectedCourier, setSelectedCourier] = useState<"STARKEN" | "CHILEXPRESS" | "BLUE_EXPRESS" | "PICKUP">("STARKEN");
+export interface ShippingCalculatorProps {
+  initialRegion?: string;
+  initialComuna?: string;
+  initialCourier?: "STARKEN" | "CHILEXPRESS" | "BLUE_EXPRESS" | "PICKUP";
+  onSelectCourier?: (courier: "STARKEN" | "CHILEXPRESS" | "BLUE_EXPRESS" | "PICKUP", rate: number) => void;
+  onSelectRegion?: (regionKey: string) => void;
+  onSelectComuna?: (comuna: string) => void;
+  isFreeShipping?: boolean;
+  compact?: boolean;
+}
+
+export function ShippingCalculator({
+  initialRegion = "RM",
+  initialComuna = "Santiago Centro",
+  initialCourier = "STARKEN",
+  onSelectCourier,
+  onSelectRegion,
+  onSelectComuna,
+  isFreeShipping = false,
+  compact = false,
+}: ShippingCalculatorProps) {
+  const [selectedRegionKey, setSelectedRegionKey] = useState<string>(initialRegion);
+  const [selectedComuna, setSelectedComuna] = useState<string>(initialComuna);
+  const [selectedCourier, setSelectedCourier] = useState<"STARKEN" | "CHILEXPRESS" | "BLUE_EXPRESS" | "PICKUP">(initialCourier);
 
   const activeRegion = CHILE_REGIONS[selectedRegionKey] || CHILE_REGIONS.RM;
 
   const handleRegionChange = (newKey: string) => {
     setSelectedRegionKey(newKey);
+    onSelectRegion?.(newKey);
     const reg = CHILE_REGIONS[newKey];
     if (reg && reg.comunas.length > 0) {
       setSelectedComuna(reg.comunas[0]);
+      onSelectComuna?.(reg.comunas[0]);
     }
+  };
+
+  const handleCourierClick = (c: "STARKEN" | "CHILEXPRESS" | "BLUE_EXPRESS" | "PICKUP", rate: number) => {
+    setSelectedCourier(c);
+    onSelectCourier?.(c, isFreeShipping ? 0 : rate);
   };
 
   return (
@@ -171,7 +198,7 @@ export function ShippingCalculator() {
           {/* Starken */}
           <button
             type="button"
-            onClick={() => setSelectedCourier("STARKEN")}
+            onClick={() => handleCourierClick("STARKEN", activeRegion.starkenRate)}
             className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition ${
               selectedCourier === "STARKEN"
                 ? "bg-orange-50/60 border-[#FF6B35] shadow-xs"
@@ -193,14 +220,14 @@ export function ShippingCalculator() {
               </div>
             </div>
             <span className="font-mono font-black text-[#1A1A1A]">
-              {formatCLP(activeRegion.starkenRate)}
+              {isFreeShipping ? "¡GRATIS!" : formatCLP(activeRegion.starkenRate)}
             </span>
           </button>
 
           {/* Chilexpress */}
           <button
             type="button"
-            onClick={() => setSelectedCourier("CHILEXPRESS")}
+            onClick={() => handleCourierClick("CHILEXPRESS", activeRegion.chilexpressRate)}
             className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition ${
               selectedCourier === "CHILEXPRESS"
                 ? "bg-orange-50/60 border-[#FF6B35] shadow-xs"
@@ -217,14 +244,14 @@ export function ShippingCalculator() {
               </div>
             </div>
             <span className="font-mono font-black text-[#1A1A1A]">
-              {formatCLP(activeRegion.chilexpressRate)}
+              {isFreeShipping ? "¡GRATIS!" : formatCLP(activeRegion.chilexpressRate)}
             </span>
           </button>
 
           {/* Blue Express */}
           <button
             type="button"
-            onClick={() => setSelectedCourier("BLUE_EXPRESS")}
+            onClick={() => handleCourierClick("BLUE_EXPRESS", activeRegion.blueExpressRate)}
             className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition ${
               selectedCourier === "BLUE_EXPRESS"
                 ? "bg-orange-50/60 border-[#FF6B35] shadow-xs"
@@ -241,7 +268,7 @@ export function ShippingCalculator() {
               </div>
             </div>
             <span className="font-mono font-black text-[#1A1A1A]">
-              {formatCLP(activeRegion.blueExpressRate)}
+              {isFreeShipping ? "¡GRATIS!" : formatCLP(activeRegion.blueExpressRate)}
             </span>
           </button>
 
@@ -249,7 +276,7 @@ export function ShippingCalculator() {
           {selectedRegionKey === "RM" && (
             <button
               type="button"
-              onClick={() => setSelectedCourier("PICKUP")}
+              onClick={() => handleCourierClick("PICKUP", 0)}
               className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition ${
                 selectedCourier === "PICKUP"
                   ? "bg-emerald-50 border-emerald-500 shadow-xs"

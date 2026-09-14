@@ -29,6 +29,8 @@ import {
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore, type UserAddress } from "@/lib/store/authStore";
 import { formatCLP } from "@/lib/utils/currency";
+import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
+import { InstallmentCalculator } from "@/components/product/InstallmentCalculator";
 
 const CHILEAN_REGIONS = [
   {
@@ -91,7 +93,8 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [apartment, setApartment] = useState("");
   const [notes, setNotes] = useState("");
-  const [courier, setCourier] = useState<"STARKEN" | "CHILEXPRESS" | "PICKUP">("STARKEN");
+  const [courier, setCourier] = useState<"STARKEN" | "CHILEXPRESS" | "BLUE_EXPRESS" | "PICKUP">("STARKEN");
+  const [customShippingCost, setCustomShippingCost] = useState<number | null>(null);
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<"WEBPAY" | "BANK_TRANSFER" | "MERCADO_PAGO">("MERCADO_PAGO");
@@ -186,10 +189,14 @@ export default function CheckoutPage() {
 
   // Shipping cost computation
   const baseShippingCost =
-    courier === "PICKUP"
+    customShippingCost !== null
+      ? customShippingCost
+      : courier === "PICKUP"
       ? 0
       : courier === "CHILEXPRESS"
       ? 6490
+      : courier === "BLUE_EXPRESS"
+      ? 3990
       : 4990;
 
   const finalShippingCost = totals.isFreeShipping ? 0 : baseShippingCost;
@@ -237,6 +244,7 @@ export default function CheckoutPage() {
     const courierNames: Record<string, string> = {
       STARKEN: "Starken Express (1 a 2 días hábiles)",
       CHILEXPRESS: "Chilexpress Prioritario (24h hábiles)",
+      BLUE_EXPRESS: "Blue Express Domicilio (Tarifa Económica)",
       PICKUP: "Retiro en Bodega Providencia, Santiago",
     };
 
@@ -540,64 +548,24 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* Courier Selector Cards */}
-              <div className="space-y-3">
-                <label className="block text-xs font-bold text-[#1A1A1A]">Empresa de Transporte / Retiro</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div
-                    onClick={() => setCourier("STARKEN")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition space-y-1 ${
-                      courier === "STARKEN"
-                        ? "bg-white border-2 border-[#FF6B35] text-[#1A1A1A] shadow-md"
-                        : "bg-[#F7F7F5] border border-[#E5E5E5] text-[#666666] hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-[#1A1A1A]">Starken Express</span>
-                      <Truck className="w-4 h-4 text-[#FF6B35]" />
-                    </div>
-                    <p className="text-[11px] text-[#666666]">1 a 2 días hábiles</p>
-                    <div className="font-mono font-bold text-xs text-[#FF6B35] pt-1">
-                      {totals.isFreeShipping ? "GRATIS" : "$ 4.990 CLP"}
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setCourier("CHILEXPRESS")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition space-y-1 ${
-                      courier === "CHILEXPRESS"
-                        ? "bg-white border-2 border-[#FF6B35] text-[#1A1A1A] shadow-md"
-                        : "bg-[#F7F7F5] border border-[#E5E5E5] text-[#666666] hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-[#1A1A1A]">Chilexpress Prioritario</span>
-                      <Truck className="w-4 h-4 text-amber-500" />
-                    </div>
-                    <p className="text-[11px] text-[#666666]">Entrega en 24h hábiles</p>
-                    <div className="font-mono font-bold text-xs text-[#FF6B35] pt-1">
-                      {totals.isFreeShipping ? "GRATIS" : "$ 6.490 CLP"}
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => setCourier("PICKUP")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition space-y-1 ${
-                      courier === "PICKUP"
-                        ? "bg-white border-2 border-[#FF6B35] text-[#1A1A1A] shadow-md"
-                        : "bg-[#F7F7F5] border border-[#E5E5E5] text-[#666666] hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-[#1A1A1A]">Retiro en Bodega</span>
-                      <Building2 className="w-4 h-4 text-[#2E9E5B]" />
-                    </div>
-                    <p className="text-[11px] text-[#666666]">Providencia, Santiago</p>
-                    <div className="font-mono font-bold text-xs text-[#2E9E5B] pt-1">
-                      GRATIS ($0 CLP)
-                    </div>
-                  </div>
-                </div>
+              {/* Calculadora de Envíos para Chile Integrada */}
+              <div className="space-y-2">
+                <ShippingCalculator
+                  initialRegion={selectedRegion}
+                  initialComuna={selectedComuna}
+                  initialCourier={courier}
+                  isFreeShipping={totals.isFreeShipping}
+                  onSelectCourier={(c, rate) => {
+                    setCourier(c);
+                    setCustomShippingCost(rate);
+                  }}
+                  onSelectRegion={(regKey) => {
+                    setSelectedRegion(regKey);
+                  }}
+                  onSelectComuna={(comunaName) => {
+                    setSelectedComuna(comunaName);
+                  }}
+                />
               </div>
 
               {/* Address Form (only if not pickup) */}
@@ -1041,43 +1009,13 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* SIMULADOR DE CUOTAS (Hasta 6 cuotas sin interés - Estándar Mercado Pago Chile) */}
+                {/* SIMULADOR DE CUOTAS & MEDIOS DE PAGO */}
                 {(selectedOptionId === "credit_card" || selectedOptionId.startsWith("saved_")) && (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-[#FAFBFD] border border-[#E0E7FF] space-y-3 shadow-xs">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5">
-                        <CreditCard className="w-4 h-4 text-[#009EE3]" />
-                        Simular cuotas sin interés con Mercado Pago:
-                      </span>
-                      <span className="text-xs font-mono font-bold text-[#FF6B35]">
-                        Cuota estimada: {formatCLP(Math.round(finalTotalToday / Number(installments)))} / mes
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { num: "1", label: "1 Cuota", note: "Al contado" },
-                        { num: "3", label: "3 Cuotas", note: "Sin interés" },
-                        { num: "6", label: "6 Cuotas", note: "Sin interés" },
-                      ].map((c) => (
-                        <button
-                          key={c.num}
-                          type="button"
-                          onClick={() => setInstallments(c.num)}
-                          className={`p-2.5 rounded-xl border text-center transition ${
-                            installments === c.num
-                              ? "border-[#009EE3] bg-white text-[#009EE3] font-bold shadow-sm ring-1 ring-[#009EE3]"
-                              : "border-[#E5E5E5] bg-white text-[#666666] hover:border-slate-300"
-                          }`}
-                        >
-                          <span className="text-xs block font-bold">{c.label}</span>
-                          <span className="text-[10px] block opacity-75">{c.note}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-[#2E9E5B] flex items-center gap-1.5 pt-1">
-                      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                      Mercado Pago Chile acepta hasta 6 cuotas sin interés con tarjetas bancarias nacionales.
-                    </p>
+                  <div className="pt-1">
+                    <InstallmentCalculator
+                      price={finalTotalToday}
+                      isPreOrder={items.some((i) => Boolean(i.isPreOrder))}
+                    />
                   </div>
                 )}
 

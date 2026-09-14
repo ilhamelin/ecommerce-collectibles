@@ -29,9 +29,6 @@ import { analytics } from "@/lib/services/AnalyticsTracker";
 import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
 import { HolographicCard } from "@/components/catalog/HolographicCard";
 import { InspectionZoom } from "@/components/product/InspectionZoom";
-import { CertificateVerifierModal } from "@/components/product/CertificateVerifierModal";
-import { InstallmentCalculator } from "@/components/product/InstallmentCalculator";
-import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
 import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
@@ -527,15 +524,6 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Official Certificate Verifier Modal (for collectibles) */}
-          {product.collectibleMetadata && (
-            <CertificateVerifierModal
-              productName={product.name}
-              sku={product.sku}
-              metadata={product.collectibleMetadata}
-            />
-          )}
-
           {/* Mint Collector Packaging Seal */}
           <MintPackagingBadge />
 
@@ -723,16 +711,6 @@ export default function ProductDetailPage() {
               </div>
             )}
           </div>
-
-          {/* Chilean Installments & Pre-order Milestones Calculator */}
-          <InstallmentCalculator
-            price={product.price}
-            isPreOrder={isPreOrder}
-            depositPercent={defaultDepositPercent}
-          />
-
-          {/* National Shipping Calculator by Region and Comuna */}
-          <ShippingCalculator />
 
           {/* Official YouTube Trailer Player */}
           <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] shadow-sm space-y-2 p-3">

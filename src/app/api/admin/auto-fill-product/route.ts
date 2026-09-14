@@ -651,7 +651,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)?.trim();
+    let lastErrorText = "";
 
     if (geminiApiKey) {
       try {
@@ -746,18 +747,19 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 }`;
 
         const candidateModels = [
+          "gemini-flash-latest",
           "gemini-1.5-flash",
-          "gemini-1.5-flash-latest",
           "gemini-2.0-flash",
+          "gemini-1.5-flash-latest",
           "gemini-1.5-pro",
         ];
         let geminiRes: Response | null = null;
-        let lastErrorText = "";
 
         for (const model of candidateModels) {
           try {
+            // Use header authentication (required for AQ. format keys from Google AI Studio)
             const res = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
               {
                 method: "POST",
                 headers: {
@@ -877,6 +879,13 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     let geminiErrorDetail: string | null = null;
     if (!geminiApiKey) {
       geminiErrorDetail = "Variable GEMINI_API_KEY no detectada en este entorno (ejecuta Redeploy en Vercel o agrégala a .env.local)";
+    } else if (lastErrorText) {
+      try {
+        const p = JSON.parse(lastErrorText);
+        geminiErrorDetail = p?.error?.message || lastErrorText.slice(0, 100);
+      } catch {
+        geminiErrorDetail = lastErrorText.slice(0, 100);
+      }
     }
 
     // Fallback to Smart Heuristic Collector Engine (with admin selected category priority)

@@ -1345,7 +1345,10 @@ export default function NewProductAdminPage() {
                   >
                     <option value="SCALE_1_7">Escala 1/7 (Estándar Coleccionista)</option>
                     <option value="SCALE_1_4">Escala 1/4 (Gran Formato Premium)</option>
+                    <option value="SCALE_1_6">Escala 1/6</option>
                     <option value="SCALE_1_8">Escala 1/8</option>
+                    <option value="SCALE_1_12">Escala 1/12</option>
+                    <option value="NON_SCALE">Non-Scale (Sin Escala / Myth Cloth / Prize)</option>
                     <option value="NENDOROID">Nendoroid (Chibi Articulado)</option>
                     <option value="POP_UP_PARADE">Pop Up Parade</option>
                     <option value="ACTION_FIGURE">Figura de Acción Articulada</option>
@@ -1360,11 +1363,18 @@ export default function NewProductAdminPage() {
                     className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
                   >
                     <option value="GOOD_SMILE_COMPANY">Good Smile Company</option>
-                    <option value="BANPRESTO">Banpresto / Bandai Spirits</option>
+                    <option value="BANDAI_SPIRITS">Bandai Spirits / Tamashii Nations</option>
+                    <option value="BANPRESTO">Banpresto</option>
                     <option value="KOTOBUKIYA">Kotobukiya</option>
                     <option value="ALTER">Alter</option>
                     <option value="MEGAHOUSE">Megahouse</option>
                     <option value="MAX_FACTORY">Max Factory</option>
+                    <option value="FREEING">FREEing</option>
+                    <option value="ANIPLEX">Aniplex</option>
+                    <option value="SEGA">Sega</option>
+                    <option value="TAITO">Taito</option>
+                    <option value="FURYU">FuRyu</option>
+                    <option value="OTHER">Otro Fabricante</option>
                   </select>
                 </div>
 

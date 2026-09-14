@@ -16,7 +16,10 @@ export const GameEditionEnum = z.enum(["STANDARD", "DELUXE", "COLLECTORS"]);
 export const FigureScaleEnum = z.enum([
   "SCALE_1_7",
   "SCALE_1_4",
+  "SCALE_1_6",
   "SCALE_1_8",
+  "SCALE_1_12",
+  "NON_SCALE",
   "NENDOROID",
   "POP_UP_PARADE",
   "ACTION_FIGURE",
@@ -24,10 +27,17 @@ export const FigureScaleEnum = z.enum([
 export const FigureManufacturerEnum = z.enum([
   "GOOD_SMILE_COMPANY",
   "BANPRESTO",
+  "BANDAI_SPIRITS",
   "KOTOBUKIYA",
   "ALTER",
   "MEGAHOUSE",
   "MAX_FACTORY",
+  "FREEING",
+  "ANIPLEX",
+  "SEGA",
+  "TAITO",
+  "FURYU",
+  "OTHER",
 ]);
 
 export const CollectibleCategoryEnum = z.enum(["TCG", "REPLICA", "STATUE", "MEMORABILIA"]);
@@ -143,7 +153,7 @@ export const CreateProductSchema = z.object({
     .object({
       scale: FigureScaleEnum,
       manufacturer: FigureManufacturerEnum,
-      estimatedArrivalDate: z.string().min(1, "Fecha estimada requerida"),
+      estimatedArrivalDate: z.string().optional().or(z.literal("")).default("Inmediata"),
       allowsPartialDeposit: z.boolean().default(true),
       minimumDepositPercent: z.number().min(0.05).max(1.0).default(0.2),
       material: z.string().optional(),

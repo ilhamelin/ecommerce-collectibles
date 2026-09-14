@@ -1212,7 +1212,10 @@ export default function EditProductAdminPage() {
                   >
                     <option value="SCALE_1_7">Escala 1/7</option>
                     <option value="SCALE_1_4">Escala 1/4</option>
+                    <option value="SCALE_1_6">Escala 1/6</option>
                     <option value="SCALE_1_8">Escala 1/8</option>
+                    <option value="SCALE_1_12">Escala 1/12</option>
+                    <option value="NON_SCALE">Non-Scale (Sin Escala / Myth Cloth / Prize)</option>
                     <option value="NENDOROID">Nendoroid</option>
                     <option value="POP_UP_PARADE">Pop Up Parade</option>
                     <option value="ACTION_FIGURE">Figura Articulada</option>
@@ -1226,11 +1229,18 @@ export default function EditProductAdminPage() {
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
                   >
                     <option value="GOOD_SMILE_COMPANY">Good Smile Company</option>
+                    <option value="BANDAI_SPIRITS">Bandai Spirits / Tamashii Nations</option>
                     <option value="BANPRESTO">Banpresto</option>
                     <option value="KOTOBUKIYA">Kotobukiya</option>
                     <option value="ALTER">Alter</option>
                     <option value="MEGAHOUSE">Megahouse</option>
                     <option value="MAX_FACTORY">Max Factory</option>
+                    <option value="FREEING">FREEing</option>
+                    <option value="ANIPLEX">Aniplex</option>
+                    <option value="SEGA">Sega</option>
+                    <option value="TAITO">Taito</option>
+                    <option value="FURYU">FuRyu</option>
+                    <option value="OTHER">Otro Fabricante</option>
                   </select>
                 </div>
                 <div>

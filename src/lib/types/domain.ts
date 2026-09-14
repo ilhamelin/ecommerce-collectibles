@@ -14,7 +14,10 @@ export type GameEdition = "STANDARD" | "DELUXE" | "COLLECTORS";
 export type FigureScale =
   | "SCALE_1_7"
   | "SCALE_1_4"
+  | "SCALE_1_6"
   | "SCALE_1_8"
+  | "SCALE_1_12"
+  | "NON_SCALE"
   | "NENDOROID"
   | "POP_UP_PARADE"
   | "ACTION_FIGURE";
@@ -22,11 +25,17 @@ export type FigureScale =
 export type FigureManufacturer =
   | "GOOD_SMILE_COMPANY"
   | "BANPRESTO"
+  | "BANDAI_SPIRITS"
   | "KOTOBUKIYA"
   | "ALTER"
   | "MEGAHOUSE"
   | "MAX_FACTORY"
-  | "BANDAI_SPIRITS";
+  | "FREEING"
+  | "ANIPLEX"
+  | "SEGA"
+  | "TAITO"
+  | "FURYU"
+  | "OTHER";
 
 export type CollectibleCategory = "TCG" | "REPLICA" | "STATUE" | "MEMORABILIA";
 export type CollectibleCondition = "GEM_MINT_10" | "MINT_9" | "NEAR_MINT_8" | "EXCELLENT_7";

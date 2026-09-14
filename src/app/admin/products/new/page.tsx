@@ -171,6 +171,87 @@ export default function NewProductAdminPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [createdProduct, setCreatedProduct] = useState<ProductDomainEntity | null>(null);
 
+  // AI Auto-Fill State
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autoFillSuccessMsg, setAutoFillSuccessMsg] = useState<string | null>(null);
+
+  const handleAutoFillWithAI = async () => {
+    if (!name.trim()) {
+      setErrorMsg("Por favor ingresa primero el Nombre del Producto para autocompletar la ficha.");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    setErrorMsg(null);
+    setAutoFillSuccessMsg(null);
+
+    try {
+      const res = await fetch("/api/admin/auto-fill-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "No se pudo auto-completar el producto.");
+      }
+
+      const d = data.data;
+
+      if (d.sku && !sku) setSku(d.sku);
+      if (d.type) setType(d.type);
+      if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+      if (d.description) setDescription(d.description);
+      if (typeof d.price === "number") setPrice(d.price);
+      if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
+      if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
+      if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
+      if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
+      if (d.ageRating) setAgeRating(d.ageRating);
+      if (d.genres) setGenresInput(d.genres);
+
+      // Category-specific specs
+      if (d.type === "FIGURE" && d.figureSpecs) {
+        if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
+        if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
+        if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
+        if (d.figureSpecs.dimensions) setFigureDimensions(d.figureSpecs.dimensions);
+        if (d.figureSpecs.sculptor) setFigureSculptor(d.figureSpecs.sculptor);
+        if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
+        if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
+        if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
+      } else if (d.type === "VIDEO_GAME" && d.gameSpecs) {
+        if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
+        if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
+        if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
+        if (d.gameSpecs.audioLanguages) setGameAudioLanguages(d.gameSpecs.audioLanguages);
+        if (d.gameSpecs.subtitleLanguages) setGameSubtitleLanguages(d.gameSpecs.subtitleLanguages);
+        if (d.gameSpecs.players) setGamePlayers(d.gameSpecs.players);
+        if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
+        if (d.gameSpecs.resolution) setGameResolution(d.gameSpecs.resolution);
+      } else if (d.type === "COLLECTIBLE" && d.collectibleSpecs) {
+        if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
+        if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
+        if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
+        if (d.collectibleSpecs.language) setCollectibleLang(d.collectibleSpecs.language);
+        if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
+      }
+
+      if (d.imageUrl && images.length === 0) {
+        setImages([d.imageUrl]);
+      }
+
+      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Inteligencia Artificial";
+      setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados.`);
+      setTimeout(() => setAutoFillSuccessMsg(null), 7000);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al autocompletar con IA.");
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
   // SKU Generator & Real-time Database Validation State
   const [isGeneratingSku, setIsGeneratingSku] = useState(false);
   const [skuValidation, setSkuValidation] = useState<{
@@ -719,10 +800,40 @@ export default function NewProductAdminPage() {
 
           {/* Section 2: General Information */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
-            <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-              2. Información General
-            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
+                2. Información General
+              </h2>
+
+              {/* Botón Auto-completar con IA en la posición indicada */}
+              <button
+                type="button"
+                onClick={handleAutoFillWithAI}
+                disabled={isAutoFilling || !name.trim()}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#ff5421] text-[#092634] font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                title="Genera automáticamente todos los datos del producto (categoría, SKU, precios, ficha técnica y descripción) a partir del Nombre"
+              >
+                {isAutoFilling ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-[#092634] border-t-transparent rounded-full animate-spin" />
+                    <span>Generando con IA...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-[#092634]" />
+                    <span>Auto-completar con IA</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {autoFillSuccessMsg && (
+              <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in-50">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{autoFillSuccessMsg}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-1 space-y-1.5">

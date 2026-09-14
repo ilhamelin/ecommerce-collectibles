@@ -112,8 +112,8 @@ function CatalogContent() {
   const [scaleFilter, setScaleFilter] = useState<string>("ALL");
   const [conditionFilter, setConditionFilter] = useState<string>("ALL");
 
-  // Pagination State (Up to 22 products per page)
-  const ITEMS_PER_PAGE = 22;
+  // Pagination State (Up to 21 products per page - 7 rows of 3 products)
+  const ITEMS_PER_PAGE = 21;
   const [currentPage, setCurrentPage] = useState<number>(1);
   const catalogGridRef = useRef<HTMLDivElement>(null);
 
@@ -997,7 +997,7 @@ function CatalogContent() {
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#E5E5E5]">
                     <div className="text-xs text-[#666666]">
                       Página <span className="font-bold text-[#1A1A1A]">{safePage}</span> de{" "}
-                      <span className="font-bold text-[#1A1A1A]">{totalPages}</span> (máximo 22 productos por página)
+                      <span className="font-bold text-[#1A1A1A]">{totalPages}</span> (21 productos por página • 7 filas de 3)
                     </div>
 
                     <div className="flex items-center gap-1.5">

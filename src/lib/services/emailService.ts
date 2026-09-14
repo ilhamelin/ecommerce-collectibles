@@ -363,7 +363,7 @@ export async function sendProductAlertEmail(params: AlertEmailParams): Promise<{
     return {
       success: false,
       error: isGoogleAuthError
-        ? "Google requiere autorizar el acceso SMTP en https://accounts.google.com/DisplayUnlockCaptcha"
+        ? "Google bloqueó el acceso SMTP (Error 534 WebLoginRequired). Debes habilitar la Verificación en 2 pasos y crear una 'Contraseña de Aplicación' en https://myaccount.google.com/apppasswords"
         : err.message || "Error al despachar el correo",
     };
   }

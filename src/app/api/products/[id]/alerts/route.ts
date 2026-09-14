@@ -100,21 +100,46 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get("email");
+  try {
+    const { searchParams } = new URL(req.url);
+    const email = searchParams.get("email");
+    const sku = searchParams.get("sku");
+    const userId = searchParams.get("userId");
 
-  if (!email) {
-    return NextResponse.json({ success: true, active: false });
+    if (!email && !userId) {
+      return NextResponse.json({ success: true, active: false });
+    }
+
+    const allAlerts = await alertService.getAllAlerts();
+    const normalizedEmail = email ? email.toLowerCase().trim() : "";
+    const normalizedUserId = userId ? userId.trim() : "";
+    const targetId = params.id;
+
+    const foundAlert = allAlerts.find((a) => {
+      if (a.active === false) return false;
+
+      // Check user match
+      const matchesUser =
+        (normalizedEmail && a.email && a.email.toLowerCase().trim() === normalizedEmail) ||
+        (normalizedUserId && a.userId && a.userId === normalizedUserId);
+
+      if (!matchesUser) return false;
+
+      // Check product match (by id or sku)
+      const matchesProduct =
+        a.productId === targetId ||
+        a.productSku === targetId ||
+        (sku && (a.productSku === sku || a.productId === sku));
+
+      return Boolean(matchesProduct);
+    });
+
+    return NextResponse.json({
+      success: true,
+      active: Boolean(foundAlert),
+      alert: foundAlert || null,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message, active: false }, { status: 500 });
   }
-
-  const normalizedEmail = email.toLowerCase().trim();
-  const userAlerts = await alertService.getUserAlerts(normalizedEmail);
-  const hasAlert = userAlerts.some(
-    (a) => (a.productId === params.id || a.productSku === params.id) && a.active !== false
-  );
-
-  return NextResponse.json({
-    success: true,
-    active: hasAlert,
-  });
 }

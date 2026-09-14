@@ -47,20 +47,41 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const alertId = searchParams.get("id");
+    const email = searchParams.get("email");
+    const sku = searchParams.get("sku");
+    const productId = searchParams.get("productId");
 
-    if (!alertId) {
-      return NextResponse.json(
-        { success: false, error: "ID de alerta no especificado" },
-        { status: 400 }
-      );
+    if (alertId) {
+      await alertService.deleteAlert(alertId);
+      return NextResponse.json({
+        success: true,
+        message: "Alerta cancelada exitosamente",
+      });
     }
 
-    await alertService.deleteAlert(alertId);
+    if (email && (sku || productId)) {
+      const allAlerts = await alertService.getAllAlerts();
+      const normEmail = email.toLowerCase().trim();
+      const match = allAlerts.find(
+        (a) =>
+          a.active !== false &&
+          a.email &&
+          a.email.toLowerCase().trim() === normEmail &&
+          (a.productId === (productId || sku) || a.productSku === (sku || productId))
+      );
+      if (match) {
+        await alertService.deleteAlert(match.id);
+        return NextResponse.json({
+          success: true,
+          message: "Alerta cancelada exitosamente",
+        });
+      }
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Alerta cancelada exitosamente",
-    });
+    return NextResponse.json(
+      { success: false, error: "ID de alerta no especificado" },
+      { status: 400 }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Error al cancelar alerta" },

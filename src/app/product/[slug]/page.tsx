@@ -30,6 +30,7 @@ import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
 import { HolographicCard } from "@/components/catalog/HolographicCard";
 import { InspectionZoom } from "@/components/product/InspectionZoom";
 import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
+import { ProductAlertSubscription } from "@/components/product/ProductAlertSubscription";
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
@@ -756,6 +757,17 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Stock & Price Drop Email Alert Subscription (Guests & Logged-in Users) */}
+            <ProductAlertSubscription
+              productId={product.id || product.sku}
+              productSku={product.sku}
+              productName={product.name}
+              productPrice={product.price}
+              productOriginalPrice={product.originalPrice}
+              isOutOfStock={!isPreOrder && (product.stockAvailable <= 0)}
+              isPreOrder={isPreOrder}
+            />
           </div>
 
           {/* Official YouTube Trailer Player */}

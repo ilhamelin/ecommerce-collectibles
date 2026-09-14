@@ -27,11 +27,13 @@ import {
   BookOpen,
   Gift,
   Disc3,
+  Camera,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { formatCLP } from "@/lib/utils/currency";
 import { BASE_PRODUCTS, PRICE_PRESETS } from "@/lib/constants/catalog";
 import { ProductDomainEntity } from "@/lib/types/domain";
+import { VisualSearchModal } from "@/components/catalog/VisualSearchModal";
 
 const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: any; bannerBadge: string; bannerTitle: string; bannerDesc: string }> = {
   CONSOLE: {
@@ -111,6 +113,17 @@ function CatalogContent() {
   const [platformFilter, setPlatformFilter] = useState<string>(platformParam);
   const [scaleFilter, setScaleFilter] = useState<string>("ALL");
   const [conditionFilter, setConditionFilter] = useState<string>("ALL");
+
+  // Specialized Filters for Custom Categories
+  const [consoleTypeFilter, setConsoleTypeFilter] = useState<string>("ALL");
+  const [accessoryTypeFilter, setAccessoryTypeFilter] = useState<string>("ALL");
+  const [bookLangFilter, setBookLangFilter] = useState<string>("ALL");
+  const [apparelSizeFilter, setApparelSizeFilter] = useState<string>("ALL");
+  const [merchTypeFilter, setMerchTypeFilter] = useState<string>("ALL");
+  const [audioFormatFilter, setAudioFormatFilter] = useState<string>("ALL");
+
+  // Visual search modal state
+  const [isVisualSearchOpen, setIsVisualSearchOpen] = useState(false);
 
   // Pagination State (Up to 21 products per page - 7 rows of 3 products)
   const ITEMS_PER_PAGE = 21;
@@ -194,9 +207,30 @@ function CatalogContent() {
     if (platformFilter !== "ALL") count++;
     if (scaleFilter !== "ALL") count++;
     if (conditionFilter !== "ALL") count++;
+    if (consoleTypeFilter !== "ALL") count++;
+    if (accessoryTypeFilter !== "ALL") count++;
+    if (bookLangFilter !== "ALL") count++;
+    if (apparelSizeFilter !== "ALL") count++;
+    if (merchTypeFilter !== "ALL") count++;
+    if (audioFormatFilter !== "ALL") count++;
     if (searchQuery.trim() !== "") count++;
     return count;
-  }, [selectedCategory, minPrice, maxPrice, stockFilter, platformFilter, scaleFilter, conditionFilter, searchQuery]);
+  }, [
+    selectedCategory,
+    minPrice,
+    maxPrice,
+    stockFilter,
+    platformFilter,
+    scaleFilter,
+    conditionFilter,
+    consoleTypeFilter,
+    accessoryTypeFilter,
+    bookLangFilter,
+    apparelSizeFilter,
+    merchTypeFilter,
+    audioFormatFilter,
+    searchQuery,
+  ]);
 
   const resetAllFilters = () => {
     setSelectedCategory("ALL");
@@ -206,6 +240,12 @@ function CatalogContent() {
     setPlatformFilter("ALL");
     setScaleFilter("ALL");
     setConditionFilter("ALL");
+    setConsoleTypeFilter("ALL");
+    setAccessoryTypeFilter("ALL");
+    setBookLangFilter("ALL");
+    setApparelSizeFilter("ALL");
+    setMerchTypeFilter("ALL");
+    setAudioFormatFilter("ALL");
     setSearchQuery("");
     setCurrentPage(1);
     router.replace("/catalog", { scroll: false });
@@ -394,6 +434,59 @@ function CatalogContent() {
         }
       }
 
+      // Console Filter
+      if (consoleTypeFilter !== "ALL") {
+        const consoleFmt = (product.customSpecifications?.console?.format || "").toUpperCase();
+        const pName = (product.name || "").toUpperCase();
+        if (consoleTypeFilter === "DESKTOP" && !consoleFmt.includes("SOBREMESA") && !pName.includes("PS5") && !pName.includes("XBOX")) return false;
+        if (consoleTypeFilter === "PORTABLE" && !consoleFmt.includes("PORTÁTIL") && !consoleFmt.includes("PORTATIL") && !pName.includes("SWITCH") && !pName.includes("DECK")) return false;
+        if (consoleTypeFilter === "LIMITED" && !consoleFmt.includes("ESPECIAL") && !consoleFmt.includes("LIMITED") && !pName.includes("EDICIÓN")) return false;
+      }
+
+      // Accessory Filter
+      if (accessoryTypeFilter !== "ALL") {
+        const pName = (product.name || "").toUpperCase();
+        const acc = product.customSpecifications?.gamingAccessory;
+        if (accessoryTypeFilter === "MOUSE" && !acc?.mouse && !pName.includes("MOUSE") && !pName.includes("RATÓN")) return false;
+        if (accessoryTypeFilter === "KEYBOARD" && !acc?.keyboard && !pName.includes("TECLADO") && !pName.includes("KEYBOARD")) return false;
+        if (accessoryTypeFilter === "HEADSET" && !acc?.headset && !pName.includes("AUDÍFONO") && !pName.includes("HEADSET") && !pName.includes("BLACKSHARK")) return false;
+        if (accessoryTypeFilter === "CONTROLLER" && !acc?.controller && !pName.includes("CONTROL") && !pName.includes("JOYSTICK") && !pName.includes("MANDO")) return false;
+      }
+
+      // Book / Manga Filter
+      if (bookLangFilter !== "ALL") {
+        const lang = (product.customSpecifications?.book?.language || "").toUpperCase();
+        const pName = (product.name || "").toUpperCase();
+        if (bookLangFilter === "ES" && !lang.includes("ESPAÑOL") && !lang.includes("NORMA") && !lang.includes("IVREA")) return false;
+        if (bookLangFilter === "JP" && !lang.includes("JAPONÉS") && !lang.includes("JAPONES") && !lang.includes("JAPAN")) return false;
+        if (bookLangFilter === "ARTBOOK" && !pName.includes("ARTBOOK") && !pName.includes("ARTE")) return false;
+      }
+
+      // Apparel Filter
+      if (apparelSizeFilter !== "ALL") {
+        const size = (product.customSpecifications?.apparel?.size || "").toUpperCase();
+        const pName = (product.name || "").toUpperCase();
+        if (apparelSizeFilter === "HOODIE" && !pName.includes("HOODIE") && !pName.includes("POLERÓN")) return false;
+        else if (apparelSizeFilter !== "HOODIE" && !size.includes(apparelSizeFilter) && !pName.includes(apparelSizeFilter)) return false;
+      }
+
+      // Merch Filter
+      if (merchTypeFilter !== "ALL") {
+        const itemType = (product.customSpecifications?.merch?.itemType || "").toUpperCase();
+        const pName = (product.name || "").toUpperCase();
+        if (merchTypeFilter === "PLUSH" && !itemType.includes("PELUCHE") && !pName.includes("PELUCHE")) return false;
+        if (merchTypeFilter === "STAND" && !itemType.includes("ACRÍLICO") && !itemType.includes("STAND") && !pName.includes("STAND")) return false;
+        if (merchTypeFilter === "KEYCHAIN" && !itemType.includes("LLAVERO") && !pName.includes("LLAVERO")) return false;
+      }
+
+      // Audio Filter
+      if (audioFormatFilter !== "ALL") {
+        const fmt = (product.customSpecifications?.audio?.format || "").toUpperCase();
+        const pName = (product.name || "").toUpperCase();
+        if (audioFormatFilter === "VINYL" && !fmt.includes("VINILO") && !fmt.includes("LP") && !pName.includes("VINILO")) return false;
+        if (audioFormatFilter === "CD" && !fmt.includes("CD") && !pName.includes("CD")) return false;
+      }
+
       return true;
     }).sort((a, b) => {
       if (sortBy === "PRICE_ASC") return a.price - b.price;
@@ -413,6 +506,12 @@ function CatalogContent() {
     platformFilter,
     scaleFilter,
     conditionFilter,
+    consoleTypeFilter,
+    accessoryTypeFilter,
+    bookLangFilter,
+    apparelSizeFilter,
+    merchTypeFilter,
+    audioFormatFilter,
     sortBy,
   ]);
 
@@ -750,6 +849,181 @@ function CatalogContent() {
         </div>
       )}
 
+      {/* Filtros Especializados: Consolas / Hardware */}
+      {(selectedCategory === "ALL" || selectedCategory === "CONSOLE") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Formato de Consola
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todas" },
+              { id: "DESKTOP", label: "Sobremesa" },
+              { id: "PORTABLE", label: "Portátil" },
+              { id: "LIMITED", label: "Edición Limitada" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setConsoleTypeFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  consoleTypeFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros Especializados: Accesorios Gaming */}
+      {(selectedCategory === "ALL" || selectedCategory === "GAMING_ACCESSORY") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Tipo de Periférico Gamer
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todos" },
+              { id: "MOUSE", label: "Mouse" },
+              { id: "KEYBOARD", label: "Teclados" },
+              { id: "HEADSET", label: "Audífonos" },
+              { id: "CONTROLLER", label: "Mandos" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setAccessoryTypeFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  accessoryTypeFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros Especializados: Manga / Artbooks */}
+      {(selectedCategory === "ALL" || selectedCategory === "BOOK") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Idioma & Formato Manga
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todos" },
+              { id: "ES", label: "Español Neutro" },
+              { id: "JP", label: "Japonés Original" },
+              { id: "ARTBOOK", label: "Artbooks" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setBookLangFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  bookLangFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros Especializados: Ropa & Estilo */}
+      {(selectedCategory === "ALL" || selectedCategory === "APPAREL") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Talla & Prenda
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todas" },
+              { id: "HOODIE", label: "Hoodies" },
+              { id: "M", label: "Talla M" },
+              { id: "L", label: "Talla L" },
+              { id: "XL", label: "Talla XL" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setApparelSizeFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  apparelSizeFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros Especializados: Merchandising */}
+      {(selectedCategory === "ALL" || selectedCategory === "MERCH") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Tipo de Merchandising
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todos" },
+              { id: "PLUSH", label: "Peluches" },
+              { id: "STAND", label: "Acrílicos" },
+              { id: "KEYCHAIN", label: "Llaveros" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setMerchTypeFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  merchTypeFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros Especializados: Audio & OST */}
+      {(selectedCategory === "ALL" || selectedCategory === "AUDIO") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Formato de Audio
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todos" },
+              { id: "VINYL", label: "Vinilos LP 180g" },
+              { id: "CD", label: "CD Original" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setAudioFormatFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  audioFormatFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Seller Confidence Micro-card */}
       <div className="p-3 rounded-xl bg-[#F7F7F5] border border-[#E5E5E5] space-y-2 text-xs">
         <div className="flex items-center gap-1.5 text-[#1F3A5F] font-semibold">
@@ -856,6 +1130,18 @@ function CatalogContent() {
                 </button>
               )}
             </div>
+
+            {/* Visual Search Button with Gemini Vision */}
+            <button
+              type="button"
+              onClick={() => setIsVisualSearchOpen(true)}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#1F3A5F] to-[#152842] hover:from-[#FF6B35] hover:to-[#E85A24] text-white text-xs font-bold transition shadow-sm group shrink-0"
+              title="Buscar por imagen o foto con IA Gemini Vision"
+            >
+              <Camera className="w-4 h-4 text-[#FF6B35] group-hover:text-white transition" />
+              <span className="hidden sm:inline">Buscar por Foto</span>
+              <span className="text-[10px] px-1 py-0.2 rounded bg-white/20 text-white font-mono">IA</span>
+            </button>
 
             {/* Mobile Filters Drawer Button */}
             <button
@@ -1100,6 +1386,19 @@ function CatalogContent() {
           </div>
         </div>
       )}
+
+      {/* Visual Search with Gemini Vision Modal */}
+      <VisualSearchModal
+        isOpen={isVisualSearchOpen}
+        onClose={() => setIsVisualSearchOpen(false)}
+        onApplySearch={(query, category) => {
+          setSearchQuery(query);
+          if (category) {
+            setSelectedCategory(category);
+          }
+          setCurrentPage(1);
+        }}
+      />
     </div>
   );
 }

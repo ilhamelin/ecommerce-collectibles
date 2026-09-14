@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -14,10 +14,16 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
+  Filter,
   User,
   Heart,
   Cpu,
   Headphones,
+  Shirt,
+  BookOpen,
+  Gift,
+  Disc3,
   Flame,
   Shield,
   Crown,
@@ -47,6 +53,82 @@ function StoreNavbarContent() {
     : 0;
 
   const [branding, setBranding] = useState<StoreBrandingData>(DEFAULT_BRANDING_DATA);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
+    VIDEO_GAME: 10,
+    FIGURE: 7,
+    COLLECTIBLE: 3,
+    BUNDLE: 0,
+    CONSOLE: 3,
+    GAMING_ACCESSORY: 3,
+    APPAREL: 0,
+    BOOK: 1,
+    MERCH: 0,
+    AUDIO: 0,
+    OTHER: 0,
+    ALL: 27,
+  });
+
+  // Click-outside listener
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  // Fetch dynamic product counts per category
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data?.products)) {
+          const prods = data.data.products;
+          const counts: Record<string, number> = {
+            VIDEO_GAME: 0,
+            FIGURE: 0,
+            COLLECTIBLE: 0,
+            BUNDLE: 0,
+            CONSOLE: 0,
+            GAMING_ACCESSORY: 0,
+            APPAREL: 0,
+            BOOK: 0,
+            MERCH: 0,
+            AUDIO: 0,
+            OTHER: 0,
+            ALL: prods.length,
+          };
+          for (const p of prods) {
+            if (p.type === "VIDEO_GAME") counts.VIDEO_GAME++;
+            else if (p.type === "FIGURE") counts.FIGURE++;
+            else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
+            else if (p.type === "BUNDLE") counts.BUNDLE++;
+            else if (p.type === "OTHER") {
+              const spec = (p.customSpecifications?.categoryType || "").toUpperCase();
+              const l = (p.customCategoryLabel || "").toLowerCase();
+              if (spec === "CONSOLE" || l.includes("consola") || l.includes("hardware")) counts.CONSOLE++;
+              else if (spec === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono") || l.includes("headset")) counts.GAMING_ACCESSORY++;
+              else if (spec === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
+              else if (spec === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;
+              else if (spec === "MERCH" || l.includes("merch") || l.includes("decoraci") || l.includes("peluche")) counts.MERCH++;
+              else if (spec === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("vinilo")) counts.AUDIO++;
+              else counts.OTHER++;
+            }
+          }
+          setCategoryCounts(counts);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -238,6 +320,108 @@ function StoreNavbarContent() {
                 </Link>
               );
             })}
+
+            {/* Dropdown for All / More Categories - As requested by user */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                aria-expanded={isDropdownOpen}
+                aria-label="Desplegar todas las categorías"
+                className={`p-2 rounded-xl border transition flex items-center justify-center gap-1 text-xs font-bold ${
+                  isDropdownOpen
+                    ? "bg-[#0F1D30] text-[#FF6B35] border-[#FF6B35] shadow-md ring-2 ring-[#FF6B35]/20"
+                    : "bg-white border-[#E5E5E5] text-[#1F3A5F] hover:border-[#FF6B35] hover:text-[#FF6B35]"
+                }`}
+                title="Ver todas las categorías del catálogo"
+              >
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    isDropdownOpen ? "rotate-180 text-[#FF6B35]" : ""
+                  }`}
+                />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#0F1D30] border border-[#1F3A5F] shadow-2xl shadow-black/40 overflow-hidden z-50 text-white animate-in fade-in slide-in-from-top-2 duration-150">
+                  {/* Dropdown Header */}
+                  <Link
+                    href="/catalog"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center justify-between px-4 py-3 bg-[#152842] border-b border-[#1F3A5F] hover:bg-[#1b3456] transition group"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider group-hover:text-[#FF6B35]">
+                      <Filter className="w-3.5 h-3.5 text-[#FF6B35]" />
+                      <span>Todas las Categorías ({categoryCounts.ALL})</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition" />
+                  </Link>
+
+                  <div className="p-2 space-y-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {/* Sección 1: Categorías Principales */}
+                    <div className="px-2 pt-1.5 pb-1 flex items-center gap-2 text-[10px] font-bold text-[#FF6B35] uppercase tracking-wider">
+                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
+                      <span>Categorías Principales</span>
+                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
+                    </div>
+
+                    {[
+                      { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", icon: "🎮", count: categoryCounts.VIDEO_GAME },
+                      { href: "/catalog?category=FIGURE", label: "Figuras de Escala", icon: "🎎", count: categoryCounts.FIGURE },
+                      { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas PSA", icon: "🏆", count: categoryCounts.COLLECTIBLE },
+                      { href: "/catalog?category=BUNDLE", label: "Bundles Compuestos", icon: "📦", count: categoryCounts.BUNDLE },
+                    ].map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="text-sm">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </span>
+                        <span className="text-[11px] font-mono font-bold text-slate-400">
+                          ({item.count})
+                        </span>
+                      </Link>
+                    ))}
+
+                    {/* Sección 2: Categorías Especializadas */}
+                    <div className="px-2 pt-3 pb-1 flex items-center gap-2 text-[10px] font-bold text-[#FF6B35] uppercase tracking-wider">
+                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
+                      <span>Categorías Especializadas</span>
+                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
+                    </div>
+
+                    {[
+                      { href: "/catalog?category=CONSOLE", label: "Consolas / Hardware", icon: "🖥️", count: categoryCounts.CONSOLE },
+                      { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: "🎧", count: categoryCounts.GAMING_ACCESSORY },
+                      { href: "/catalog?category=APPAREL", label: "Ropa & Estilo", icon: "👕", count: categoryCounts.APPAREL },
+                      { href: "/catalog?category=BOOK", label: "Manga / Artbooks", icon: "📖", count: categoryCounts.BOOK },
+                      { href: "/catalog?category=MERCH", label: "Merchandising", icon: "🎁", count: categoryCounts.MERCH },
+                      { href: "/catalog?category=AUDIO", label: "Audio / OST", icon: "💿", count: categoryCounts.AUDIO },
+                      { href: "/catalog?category=OTHER", label: "Otras Categorías", icon: "🧩", count: categoryCounts.OTHER },
+                    ].map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="text-sm">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </span>
+                        <span className="text-[11px] font-mono font-bold text-slate-400">
+                          ({item.count})
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Wishlist, Cart & Quick Actions */}

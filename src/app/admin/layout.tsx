@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Palette,
   Image as ImageIcon,
+  Radio,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -50,6 +51,12 @@ export default function AdminLayout({
       label: "Catálogo & Inventario",
       icon: Package,
       active: pathname === "/admin/products",
+    },
+    {
+      href: "/admin/radar",
+      label: "Radar Japón IA",
+      icon: Radio,
+      active: pathname === "/admin/radar",
     },
     {
       href: "/admin/products/new",

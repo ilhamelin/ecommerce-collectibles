@@ -4,6 +4,11 @@ const nextConfig = {
   // 1. Remove x-powered-by header to prevent fingerprinting
   poweredByHeader: false,
 
+  // Images configuration to allow any CDN/remote storage
+  images: {
+    unoptimized: true,
+  },
+
   // 2. Global Security Headers
   async headers() {
     return [

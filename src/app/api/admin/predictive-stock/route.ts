@@ -164,7 +164,12 @@ async function computeInventoryMetrics() {
       id: prod.id,
       name: prod.name,
       slug: (prod as any).slug || prod.id,
-      images: prod.images || [],
+      images:
+        prod.images && prod.images.length > 0
+          ? prod.images
+          : (prod as any).imageUrl
+          ? [(prod as any).imageUrl]
+          : [],
       type: prod.type,
       platform: (prod as any).gameMetadata?.platform || null,
       price,

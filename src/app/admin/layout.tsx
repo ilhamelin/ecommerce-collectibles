@@ -28,36 +28,31 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [isVisualMenuOpen, setIsVisualMenuOpen] = useState(false);
   const visualMenuRef = useRef<HTMLDivElement>(null);
+  const [isMetricsMenuOpen, setIsMetricsMenuOpen] = useState(false);
+  const metricsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
+  // Close dropdowns on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (visualMenuRef.current && !visualMenuRef.current.contains(e.target as Node)) {
         setIsVisualMenuOpen(false);
+      }
+      if (metricsMenuRef.current && !metricsMenuRef.current.contains(e.target as Node)) {
+        setIsMetricsMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isMetricsActive = pathname === "/admin" || pathname.startsWith("/admin/predictive-stock");
+
   const navItems = [
-    {
-      href: "/admin",
-      label: "Métricas & KPI",
-      icon: LayoutDashboard,
-      active: pathname === "/admin",
-    },
     {
       href: "/admin/products",
       label: "Catálogo & Inventario",
       icon: Package,
       active: pathname === "/admin/products",
-    },
-    {
-      href: "/admin/predictive-stock",
-      label: "Rotación & Stock IA",
-      icon: TrendingUp,
-      active: pathname === "/admin/predictive-stock",
     },
     {
       href: "/admin/radar",
@@ -115,6 +110,91 @@ export default function AdminLayout({
 
             {/* Navigation Modules Tabs */}
             <nav className="flex items-center gap-1.5 sm:gap-2">
+              {/* Dropdown Menu: Métricas & KPI / Rotación & Análisis Predictivo */}
+              <div className="relative" ref={metricsMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsMetricsMenuOpen(!isMetricsMenuOpen)}
+                  onMouseEnter={() => setIsMetricsMenuOpen(true)}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isMetricsActive
+                      ? "bg-[#FF6B35] text-white shadow-sm"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  }`}
+                  aria-expanded={isMetricsMenuOpen}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span className="hidden md:inline">Métricas & KPI</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isMetricsMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isMetricsMenuOpen && (
+                  <div
+                    onMouseLeave={() => setIsMetricsMenuOpen(false)}
+                    className="absolute left-0 mt-1.5 w-72 rounded-2xl bg-white text-[#1A1A1A] border border-[#E5E5E5] shadow-xl p-2 space-y-1 z-50 animate-in fade-in-50 zoom-in-95 duration-150"
+                  >
+                    <div className="px-3 py-1.5 border-b border-[#F0F0F0]">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
+                        Métricas & Analítica
+                      </span>
+                    </div>
+
+                    <Link
+                      href="/admin"
+                      onClick={() => setIsMetricsMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#1F3A5F]/10 text-[#1F3A5F] shrink-0 mt-0.5">
+                        <LayoutDashboard className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Métricas & KPI (General)
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Ventas, órdenes, ingresos y rendimiento general
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/predictive-stock"
+                      onClick={() => setIsMetricsMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/predictive-stock"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] shrink-0 mt-0.5">
+                        <TrendingUp className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                            Rotación & Análisis Predictivo de Stock
+                          </span>
+                          <span className="text-[9px] font-bold bg-orange-100 text-[#FF6B35] px-1.5 py-0.2 rounded-full shrink-0">
+                            IA
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Burn rate, runway, demanda reprimida y reorden sugerido
+                        </span>
+                      </div>
+                    </Link>
+                  </div>
+                )}
+              </div>
+
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (

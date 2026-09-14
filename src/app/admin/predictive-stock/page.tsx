@@ -24,9 +24,51 @@ import {
   ShieldAlert,
   Boxes,
   Layers,
+  Gamepad2,
+  Monitor,
 } from "lucide-react";
 import { SkuPredictiveMetric } from "@/app/api/admin/predictive-stock/route";
 import { formatCLP } from "@/lib/utils/currency";
+
+function ProductTableThumbnail({
+  images,
+  name,
+  type,
+}: {
+  images?: string[];
+  name: string;
+  type?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+  const src = images && images.length > 0 && images[0] ? images[0] : null;
+
+  if (!src || hasError) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-200 shrink-0 flex items-center justify-center text-slate-500 shadow-xs">
+        {type === "VIDEO_GAME" ? (
+          <Gamepad2 className="w-5 h-5 text-blue-500" />
+        ) : type === "FIGURE" ? (
+          <Sparkles className="w-5 h-5 text-amber-500" />
+        ) : type === "CONSOLE" ? (
+          <Monitor className="w-5 h-5 text-indigo-500" />
+        ) : (
+          <Package className="w-5 h-5 text-slate-400" />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+      <img
+        src={src}
+        alt=""
+        className="w-full h-full object-cover"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
+}
 
 type FilterType = "ALL" | "CRITICAL" | "STAGNANT" | "DEMAND" | "HEALTHY";
 
@@ -533,21 +575,11 @@ export default function PredictiveStockPage() {
                       {/* Product details */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                            {item.images && item.images[0] ? (
-                              <Image
-                                src={item.images[0]}
-                                alt={item.name}
-                                fill
-                                sizes="40px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
-                                🎮
-                              </div>
-                            )}
-                          </div>
+                          <ProductTableThumbnail
+                            images={item.images}
+                            name={item.name}
+                            type={item.type}
+                          />
                           <div className="min-w-0 max-w-[200px] sm:max-w-[240px]">
                             <div className="flex items-center gap-1.5 mb-0.5">
                               {item.platform && (

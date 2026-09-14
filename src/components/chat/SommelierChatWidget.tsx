@@ -40,6 +40,33 @@ interface ChatMessage {
   timestamp: string;
 }
 
+function ChatProductThumbnail({
+  src,
+  alt,
+}: {
+  src?: string;
+  alt: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-800/80">
+        <Gamepad2 className="w-6 h-6 text-slate-500" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt=""
+      className="w-full h-full object-cover"
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
 const QUICK_PROMPTS = [
   {
     icon: Gift,
@@ -381,20 +408,11 @@ export function SommelierChatWidget() {
                           key={prod.sku}
                           className="bg-[#111C26] hover:bg-[#162534] border border-slate-800 hover:border-[#FF6B35]/60 rounded-xl p-2.5 flex items-center gap-3 transition-colors shadow-sm"
                         >
-                          <div className="relative w-14 h-14 bg-white/5 rounded-lg overflow-hidden shrink-0 border border-slate-750">
-                            {prod.images && prod.images[0] ? (
-                              <Image
-                                src={prod.images[0]}
-                                alt={prod.name}
-                                fill
-                                sizes="56px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
-                                🎮
-                              </div>
-                            )}
+                          <div className="relative w-14 h-14 bg-white/5 rounded-lg overflow-hidden shrink-0 border border-slate-750 flex items-center justify-center">
+                            <ChatProductThumbnail
+                              src={prod.images && prod.images[0]}
+                              alt={prod.name}
+                            />
                           </div>
 
                           <div className="flex-1 min-w-0">

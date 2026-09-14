@@ -36,32 +36,57 @@ export async function POST(req: NextRequest) {
       ? imageBase64.split(",")[1]
       : imageBase64;
 
-    const prompt = `Eres el sommelier y tasador experto en coleccionismo, figuras originales, anime, mangas, hardware gamer y videojuegos de la tienda OmniCollector Chile.
-Analiza detenidamente esta imagen fotográfica o captura de pantalla.
-Identifica con exactitud:
-1. La franquicia, anime, videojuego o marca (ej: Solo Leveling, Persona 5, Evangelion, Dragon Ball, Razer, Logitech, Nintendo, PlayStation, etc.).
-2. El personaje, artículo o modelo específico (ej: Sung Jinwoo, Makima, Nendoroid Gojo, Mouse Superlight, DualSense Edge, Tomo Manga, etc.).
-3. La categoría de producto más probable entre:
-   - "FIGURE" (Figuras de escala, Nendoroids, estatuas)
-   - "VIDEO_GAME" (Videojuegos, cartuchos, discos)
-   - "CONSOLE" (Consolas y hardware de juego)
-   - "GAMING_ACCESSORY" (Periféricos, mouse, teclados, audífonos, mandos)
-   - "BOOK" (Mangas, artbooks, novelas ligeras)
-   - "APPAREL" (Ropa, polerones, poleras, gorros)
-   - "COLLECTIBLE" (Cartas TCG, PSA, rarezas)
-   - "MERCH" (Peluches, llaveros, acrílicos, decoración)
-   - "AUDIO" (OSTs, vinilos, bandas sonoras)
-4. Palabras clave de búsqueda optimizadas (keywords en español e inglés, sin signos de puntuación) para encontrar este producto o similares en el inventario.
-5. Un resumen breve y entusiasta en español chileno (máximo 2 líneas) explicando qué reconociste en la imagen.
+    // Retrieve active catalog products from Firestore and base catalog
+    const firestoreProducts = await getProductsFromFirestore(false);
+    const allProducts = (firestoreProducts && firestoreProducts.length > 0 ? firestoreProducts : BASE_PRODUCTS) as any[];
 
-Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin markdown, sin bloques de código tipo \`\`\`json):
+    // Build a clean, structured inventory index to ground Gemini Vision with real store products
+    const inventoryListText = allProducts
+      .map((p, idx) => {
+        const platform = p.gameMetadata?.platform ? ` (${p.gameMetadata.platform})` : "";
+        const stockInfo = (p.stockAvailable ?? 10) > 0 ? `[Stock: ${p.stockAvailable ?? 10} un.]` : "[Sin Stock]";
+        return `${idx + 1}. SKU: "${p.sku}" | Nombre: "${p.name}"${platform} | Categoría: ${p.type} | ${stockInfo}`;
+      })
+      .join("\n");
+
+    const prompt = `Eres el sommelier, tasador y clasificador oficial de la tienda OmniCollector Chile.
+Analiza detenidamente esta imagen fotográfica o captura de pantalla.
+
+CONOCIMIENTO DIRECTO DE LA BASE DE DATOS Y CATÁLOGO DE OMNICOLLECTOR CHILE:
+A continuación tienes la lista completa y actualizada de los productos que OmniCollector tiene en su inventario:
+--------------------------------------------------------------------------------
+${inventoryListText}
+--------------------------------------------------------------------------------
+
+INSTRUCCIONES CLAVE DE RECONOCIMIENTO Y VINCULACIÓN:
+1. Analiza la imagen y determina con precisión qué videojuego, figura, consola o artículo es (franquicia, título o personaje exacto).
+2. Compara cuidadosamente el artículo de la imagen contra la LISTA DE PRODUCTOS DE OMNICOLLECTOR:
+   - Si el artículo de la foto corresponde a uno de los productos de nuestro inventario (por ejemplo, si la foto es la portada de Pragmata para PS5 y en la lista existe 'Pragmata' con SKU 'VG-PRAGMATA-PS5' o 'VG-PRAGMATA', o Persona 3 Reload, Elden Ring, The Last of Us, Metroid Prime, etc.):
+     - "inStoreInventory": true
+     - "exactMatchSku": "<el SKU exacto que aparece en la lista de inventario>"
+     - "matchedProductName": "<el nombre exacto del producto en la lista>"
+     - "summary": "¡Excelente noticia! Reconocí el producto y SÍ está disponible en nuestro catálogo de OmniCollector." (con tu estilo chileno, entusiasta y gamer).
+   - Si el artículo NO se encuentra en la lista de nuestro catálogo (por ejemplo: God of War Ragnarök, Bloodborne, etc.):
+     - "inStoreInventory": false
+     - "exactMatchSku": null
+     - "matchedProductName": null
+     - "summary": "Reconocí este juegazo/artículo, pero actualmente no está en nuestro inventario. ¡Puedes notificar tu deseo de compra para que lo agreguemos pronto a la tienda!"
+
+3. Determina la categoría más probable entre:
+   - "FIGURE" | "VIDEO_GAME" | "CONSOLE" | "GAMING_ACCESSORY" | "BOOK" | "APPAREL" | "COLLECTIBLE" | "MERCH" | "AUDIO"
+4. Palabras clave de búsqueda optimizadas (searchKeywords).
+
+Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin markdown, sin bloques \`\`\`json):
 {
   "franchise": "Nombre de la Franquicia o Marca",
-  "itemOrCharacter": "Nombre del personaje o modelo",
+  "itemOrCharacter": "Nombre del artículo o personaje",
   "suggestedCategory": "FIGURE | VIDEO_GAME | CONSOLE | GAMING_ACCESSORY | BOOK | APPAREL | COLLECTIBLE | MERCH | AUDIO",
-  "searchKeywords": "palabras clave para buscar en tienda",
-  "confidenceScore": 0.95,
-  "summary": "Resumen de lo identificado para mostrar al cliente"
+  "searchKeywords": "palabras clave para buscar",
+  "confidenceScore": 0.98,
+  "inStoreInventory": true,
+  "exactMatchSku": "SKU_DEL_INVENTARIO_O_NULL",
+  "matchedProductName": "NOMBRE_EN_INVENTARIO_O_NULL",
+  "summary": "Resumen amigable para el cliente"
 }`;
 
     // Request to Google Gemini Vision via gemini-flash-latest with header auth
@@ -94,7 +119,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
                 },
               ],
               generationConfig: {
-                temperature: 0.2,
+                temperature: 0.1,
                 maxOutputTokens: 800,
               },
             }),
@@ -136,7 +161,6 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
     try {
       analysis = JSON.parse(cleanedJson);
     } catch {
-      // Fallback regex extraction if raw json was slightly malformed
       const match = cleanedJson.match(/\{[\s\S]*\}/);
       if (match) {
         analysis = JSON.parse(match[0]);
@@ -146,22 +170,60 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
           itemOrCharacter: "Artículo detectado",
           suggestedCategory: "FIGURE",
           searchKeywords: "figura coleccionable",
-          summary: "Hemos analizado tu imagen para encontrar los coleccionables más cercanos.",
+          confidenceScore: 0.9,
+          inStoreInventory: false,
+          exactMatchSku: null,
+          matchedProductName: null,
+          summary: "Hemos analizado tu imagen para buscar coincidencias en la tienda.",
         };
       }
     }
 
-    // Retrieve active catalog products to find matches
-    const firestoreProducts = await getProductsFromFirestore(false);
-    const allProducts = (firestoreProducts && firestoreProducts.length > 0 ? firestoreProducts : BASE_PRODUCTS) as any[];
+    // Resolve exact matching product from store inventory
+    let exactProduct = null;
+    if (analysis.exactMatchSku) {
+      exactProduct = allProducts.find(
+        (p) =>
+          p.sku.toLowerCase() === String(analysis.exactMatchSku).toLowerCase() ||
+          p.id === analysis.exactMatchSku
+      );
+    }
 
-    // Match products based on AI keywords and category
+    // Fallback detection: match by exact or substring title
+    if (!exactProduct && analysis.itemOrCharacter) {
+      const searchItem = String(analysis.itemOrCharacter).toLowerCase().trim();
+      const franchise = String(analysis.franchise || "").toLowerCase().trim();
+
+      exactProduct = allProducts.find((p) => {
+        const pName = (p.name || "").toLowerCase().trim();
+        const pSku = (p.sku || "").toLowerCase().trim();
+        return (
+          pName === searchItem ||
+          (searchItem.length >= 4 && pName.includes(searchItem)) ||
+          (pName.length >= 4 && searchItem.includes(pName)) ||
+          (franchise.length >= 4 && pName.includes(franchise)) ||
+          (searchItem.length >= 4 && pSku.includes(searchItem.replace(/\s+/g, "-")))
+        );
+      });
+
+      if (exactProduct) {
+        analysis.inStoreInventory = true;
+        analysis.exactMatchSku = exactProduct.sku;
+        analysis.matchedProductName = exactProduct.name;
+      }
+    }
+
+    // Calculate relevance score for catalog products
     const searchTerms = (analysis.searchKeywords || `${analysis.franchise} ${analysis.itemOrCharacter}`)
       .toLowerCase()
       .split(/\s+/)
       .filter((t: string) => t.length > 2);
 
     const scoredProducts = (allProducts || []).map((prod) => {
+      if (exactProduct && prod.sku === exactProduct.sku) {
+        return { product: prod, score: 999 };
+      }
+
       const pText = [
         prod.name,
         prod.sku,
@@ -190,17 +252,26 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
       return { product: prod, score };
     });
 
-    // Sort by relevance score
+    // Sort by relevance score, putting the exact match first
     const matchedProducts = scoredProducts
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 6)
       .map((item) => item.product);
 
+    const inStoreInventory = Boolean(exactProduct || analysis.inStoreInventory);
+
     return NextResponse.json({
       success: true,
       data: {
-        analysis,
+        analysis: {
+          ...analysis,
+          inStoreInventory,
+          exactMatchSku: exactProduct?.sku || analysis.exactMatchSku || null,
+          matchedProductName: exactProduct?.name || analysis.matchedProductName || null,
+        },
+        inStoreInventory,
+        exactProduct: exactProduct || null,
         matchedProducts,
         totalMatches: matchedProducts.length,
       },

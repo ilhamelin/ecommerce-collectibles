@@ -311,9 +311,22 @@ export function VisualSearchModal({
                     <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                     Identificación Exitosa
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-700 font-mono font-bold">
-                    Certeza: {Math.round((result.analysis.confidenceScore || 0.95) * 100)}%
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {result.inStoreInventory ? (
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                        En Catálogo OmniCollector
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-800 font-bold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                        Fuera de Catálogo
+                      </span>
+                    )}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-700 font-mono font-bold">
+                      {Math.round((result.analysis.confidenceScore || 0.95) * 100)}% certeza
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
@@ -353,106 +366,158 @@ export function VisualSearchModal({
                 )}
               </div>
 
-              {/* Solicitud de Producto / Deseo de Compra si no está en inventario */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1F3A5F]/5 via-amber-500/5 to-[#FF6B35]/10 border-2 border-dashed border-[#FF6B35]/40 space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-[#FF6B35]/15 text-[#FF6B35] shrink-0 mt-0.5">
-                    <PackagePlus className="w-5 h-5" />
+              {/* COINCIDENCIA EXACTA EN CATÁLOGO (Si el producto está en el inventario real de la tienda) */}
+              {result.inStoreInventory && result.exactProduct && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-white to-blue-500/10 border-2 border-emerald-500/40 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
+                      ¡Juego / Producto Disponible en Catálogo!
+                    </span>
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold">
+                      {(result.exactProduct.stockAvailable ?? 10) > 0
+                        ? `Stock: ${result.exactProduct.stockAvailable ?? 10} un.`
+                        : "Sin Stock"}
+                    </span>
                   </div>
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h4 className="text-xs font-black text-[#1F3A5F] tracking-tight">
-                        ¿No encuentras este juego o no está en el catálogo?
-                      </h4>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
-                        Petición de Catálogo
-                      </span>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-white border border-emerald-200">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                      <img
+                        src={
+                          result.exactProduct.imageUrl ||
+                          (result.exactProduct.images && result.exactProduct.images[0]) ||
+                          "/placeholder.jpg"
+                        }
+                        alt={result.exactProduct.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <p className="text-[11px] text-[#555555]">
-                      Notifica a OmniCollector tu deseo de comprar <strong>{result.analysis.itemOrCharacter || "este coleccionable"}</strong> para tomarlo como un futuro producto a agregar al inventario o importarlo bajo pedido.
-                    </p>
+                    <div className="min-w-0 flex-1 space-y-0.5 text-center sm:text-left">
+                      <span className="text-[10px] font-mono text-[#666666] font-bold block">
+                        SKU: {result.exactProduct.sku}
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-extrabold text-[#1A1A1A] truncate">
+                        {result.exactProduct.name}
+                      </h4>
+                      <div className="text-sm font-black text-[#FF6B35] font-mono">
+                        {formatCLP(result.exactProduct.price)}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/product/${result.exactProduct.sku || result.exactProduct.id}`}
+                      onClick={onClose}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-[#FF6B35]/20 shrink-0"
+                    >
+                      <span>Ver Ficha y Comprar</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
+              )}
 
-                {requestSuccess ? (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs space-y-1.5 animate-in fade-in duration-200">
-                    <div className="flex items-center gap-2 font-bold text-emerald-800">
-                      <span className="p-1 rounded-full bg-emerald-600 text-white shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </span>
-                      <span>¡Deseo de compra registrado con éxito!</span>
+              {/* Solicitud de Producto / Deseo de Compra SOLO si el producto NO está en inventario */}
+              {!result.inStoreInventory && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1F3A5F]/5 via-amber-500/5 to-[#FF6B35]/10 border-2 border-dashed border-[#FF6B35]/40 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-[#FF6B35]/15 text-[#FF6B35] shrink-0 mt-0.5">
+                      <PackagePlus className="w-5 h-5" />
                     </div>
-                    <p className="text-[11px] text-emerald-700 leading-relaxed">
-                      Tu solicitud ha sido enviada directamente al equipo de compras en el <strong>Centro de Control</strong>. Te avisaremos formalmente por correo electrónico cuando este producto sea añadido o tengamos novedades de importación.
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmitPurchaseWish} className="space-y-2.5 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-bold text-[#666666] block mb-1">
-                          Tu Correo de Contacto {isAuthenticated ? "(Cuenta Activa)" : ""}
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={requestEmail}
-                          onChange={(e) => setRequestEmail(e.target.value)}
-                          placeholder="ej. coleccionista@gmail.com"
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
-                        />
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <h4 className="text-xs font-black text-[#1F3A5F] tracking-tight">
+                          ¿No encuentras este juego o no está en el catálogo?
+                        </h4>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
+                          Petición de Catálogo
+                        </span>
                       </div>
+                      <p className="text-[11px] text-[#555555]">
+                        Notifica a OmniCollector tu deseo de comprar <strong>{result.analysis.itemOrCharacter || "este coleccionable"}</strong> para tomarlo como un futuro producto a agregar al inventario o importarlo bajo pedido.
+                      </p>
+                    </div>
+                  </div>
+
+                  {requestSuccess ? (
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs space-y-1.5 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2 font-bold text-emerald-800">
+                        <span className="p-1 rounded-full bg-emerald-600 text-white shrink-0">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </span>
+                        <span>¡Deseo de compra registrado con éxito!</span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700 leading-relaxed">
+                        Tu solicitud ha sido enviada directamente al equipo de compras en el <strong>Centro de Control</strong>. Te avisaremos formalmente por correo electrónico cuando este producto sea añadido o tengamos novedades de importación.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSubmitPurchaseWish} className="space-y-2.5 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-[#666666] block mb-1">
+                            Tu Correo de Contacto {isAuthenticated ? "(Cuenta Activa)" : ""}
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={requestEmail}
+                            onChange={(e) => setRequestEmail(e.target.value)}
+                            placeholder="ej. coleccionista@gmail.com"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-[#666666] block mb-1">
+                            Tu Nombre o Alias
+                          </label>
+                          <input
+                            type="text"
+                            value={requestName}
+                            onChange={(e) => setRequestName(e.target.value)}
+                            placeholder="ej. Benjamín"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
+                          />
+                        </div>
+                      </div>
+
                       <div>
                         <label className="text-[10px] font-bold text-[#666666] block mb-1">
-                          Tu Nombre o Alias
+                          Comentarios o Preferencia (Opcional)
                         </label>
                         <input
                           type="text"
-                          value={requestName}
-                          onChange={(e) => setRequestName(e.target.value)}
-                          placeholder="ej. Benjamín"
+                          value={requestNotes}
+                          onChange={(e) => setRequestNotes(e.target.value)}
+                          placeholder="ej. Busco edición física estándar para PS5 sellada, o edición especial..."
                           className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="text-[10px] font-bold text-[#666666] block mb-1">
-                        Comentarios o Preferencia (Opcional)
-                      </label>
-                      <input
-                        type="text"
-                        value={requestNotes}
-                        onChange={(e) => setRequestNotes(e.target.value)}
-                        placeholder="ej. Busco edición física estándar para PS5 sellada, o edición especial..."
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
-                      />
-                    </div>
-
-                    {requestError && (
-                      <p className="text-[11px] text-red-600 font-medium">{requestError}</p>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isSubmittingRequest}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-bold transition shadow-sm disabled:opacity-50"
-                    >
-                      {isSubmittingRequest ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Enviando notificación al Centro de Control...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-3.5 h-3.5" />
-                          <span>Notificar deseo de compra a OmniCollector (Futuro Producto)</span>
-                        </>
+                      {requestError && (
+                        <p className="text-[11px] text-red-600 font-medium">{requestError}</p>
                       )}
-                    </button>
-                  </form>
-                )}
-              </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmittingRequest}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-bold transition shadow-sm disabled:opacity-50"
+                      >
+                        {isSubmittingRequest ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Enviando notificación al Centro de Control...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Notificar deseo de compra a OmniCollector (Futuro Producto)</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
 
               {/* Matched Products Grid */}
               <div className="space-y-2.5">

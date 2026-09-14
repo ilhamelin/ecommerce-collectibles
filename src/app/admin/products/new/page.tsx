@@ -175,6 +175,7 @@ export default function NewProductAdminPage() {
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [autoFillSuccessMsg, setAutoFillSuccessMsg] = useState<string | null>(null);
   const [aiEngineUsed, setAiEngineUsed] = useState<string | null>(null);
+  const [aiEngineErrorDetail, setAiEngineErrorDetail] = useState<string | null>(null);
 
   const handleAutoFillWithAI = async () => {
     if (!name.trim()) {
@@ -273,6 +274,7 @@ export default function NewProductAdminPage() {
       // Images remain untouched for manual user upload or URL entry.
 
       setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
+      setAiEngineErrorDetail(d.geminiErrorDetail || null);
       const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini 1.5 Flash" : "Motor Heurístico Especializado";
       setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);
       setTimeout(() => setAutoFillSuccessMsg(null), 8000);
@@ -875,8 +877,15 @@ export default function NewProductAdminPage() {
                     <span>Google Gemini 1.5 Flash Oficial</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-medium shrink-0">
-                    <span>Motor Heurístico Local (Sin Gemini API Key)</span>
+                  <div
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-medium shrink-0"
+                    title={aiEngineErrorDetail || "Motor Heurístico Local"}
+                  >
+                    <span>
+                      {aiEngineErrorDetail
+                        ? `Motor Heurístico (${aiEngineErrorDetail})`
+                        : "Motor Heurístico Local (Sin Gemini API Key activa)"}
+                    </span>
                   </div>
                 )}
               </div>

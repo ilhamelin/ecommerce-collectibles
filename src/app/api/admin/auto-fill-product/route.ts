@@ -745,22 +745,48 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
   }
 }`;
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.2,
-                responseMimeType: "application/json",
-              },
-            }),
-          }
-        );
+        const candidateModels = [
+          "gemini-1.5-flash",
+          "gemini-1.5-flash-latest",
+          "gemini-2.0-flash",
+          "gemini-1.5-pro",
+        ];
+        let geminiRes: Response | null = null;
+        let lastErrorText = "";
 
-        if (geminiRes.ok) {
+        for (const model of candidateModels) {
+          try {
+            const res = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: {
+                    temperature: 0.2,
+                    responseMimeType: "application/json",
+                  },
+                }),
+              }
+            );
+            if (res.ok) {
+              geminiRes = res;
+              break;
+            } else {
+              lastErrorText = await res.text();
+              console.warn(`[Auto-Fill API] Model ${model} returned ${res.status}:`, lastErrorText);
+              if (res.status !== 404) {
+                break;
+              }
+            }
+          } catch (e: any) {
+            lastErrorText = e.message || String(e);
+            break;
+          }
+        }
+
+        if (geminiRes && geminiRes.ok) {
           const geminiData = await geminiRes.json();
           const rawText =
             geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
@@ -839,20 +865,25 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               },
             });
           }
-        } else {
-          const errBody = await geminiRes.text();
-          console.warn(`[Auto-Fill API] Gemini API error (${geminiRes.status}):`, errBody);
         }
-      } catch (geminiErr) {
+      } catch (geminiErr: any) {
         console.warn("[Auto-Fill API] Gemini API call failed, using fallback engine:", geminiErr);
       }
+    }
+
+    let geminiErrorDetail: string | null = null;
+    if (!geminiApiKey) {
+      geminiErrorDetail = "Variable GEMINI_API_KEY no detectada en este entorno (ejecuta Redeploy en Vercel o agrégala a .env.local)";
     }
 
     // Fallback to Smart Heuristic Collector Engine (with admin selected category priority)
     const fallbackResult = generateWithSmartEngine(productName, selectedType, customCategoryLabel);
     return NextResponse.json({
       success: true,
-      data: fallbackResult,
+      data: {
+        ...fallbackResult,
+        geminiErrorDetail,
+      },
     });
   } catch (error: any) {
     console.error("[Auto-Fill API Error]:", error);

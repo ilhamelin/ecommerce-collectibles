@@ -25,6 +25,12 @@ async function getTransporter() {
   const pass = process.env.SMTP_PASS;
 
   if (host && user && pass) {
+    if (host.includes("gmail")) {
+      return nodemailer.createTransport({
+        service: "gmail",
+        auth: { user, pass },
+      });
+    }
     return nodemailer.createTransport({
       host,
       port,

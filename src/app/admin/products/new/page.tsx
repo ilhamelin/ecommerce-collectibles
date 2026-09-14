@@ -262,11 +262,13 @@ export default function NewProductAdminPage() {
         if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
         if (d.collectibleSpecs.language) setCollectibleLang(d.collectibleSpecs.language);
         if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
+      } else if (chosenType === "OTHER" && d.customSpecifications) {
+        // Section 6: Ficha de Especificaciones Técnicas Especializadas
+        setCustomSpecifications(d.customSpecifications);
       }
 
-      if (d.imageUrl && images.length === 0) {
-        setImages([d.imageUrl]);
-      }
+      // Explicitly DO NOT alter "4. Galería de Fotos & Portada" per user requirement
+      // Images remain untouched for manual user upload or URL entry.
 
       const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Inteligencia Artificial";
       setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);

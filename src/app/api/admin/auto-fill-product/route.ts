@@ -44,6 +44,21 @@ interface AutoFillResponse {
     language: string;
     serial: string;
   };
+  customSpecifications?: {
+    categoryType?: string;
+    gamingAccessory?: {
+      accessoryType: "MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER" | string;
+      mouse?: any;
+      keyboard?: any;
+      headset?: any;
+      controller?: any;
+    };
+    console?: any;
+    apparel?: any;
+    book?: any;
+    merch?: any;
+    audio?: any;
+  };
   engine: "GEMINI_AI" | "SMART_KNOWLEDGE_ENGINE";
 }
 
@@ -355,6 +370,166 @@ function generateWithSmartEngine(
         }
       : undefined;
 
+  // Custom Category Specifications (Section 6)
+  let customSpecifications: any = undefined;
+  if (type === "OTHER") {
+    if (customCategoryLabel === "Accesorio Gaming") {
+      // Determine accessory subtype from name
+      let accSubtype: "MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER" = "MOUSE";
+      if (
+        lower.includes("control") ||
+        lower.includes("mando") ||
+        lower.includes("joystick") ||
+        lower.includes("gamepad") ||
+        lower.includes("dualsense") ||
+        lower.includes("dualshock") ||
+        lower.includes("joy-con") ||
+        lower.includes("joycon") ||
+        lower.includes("elite") ||
+        lower.includes("edge")
+      ) {
+        accSubtype = "CONTROLLER";
+      } else if (
+        lower.includes("teclado") ||
+        lower.includes("keyboard") ||
+        lower.includes("switch") && lower.includes("mecanico")
+      ) {
+        accSubtype = "KEYBOARD";
+      } else if (
+        lower.includes("audifono") ||
+        lower.includes("headset") ||
+        lower.includes("auricular") ||
+        lower.includes("cascos") ||
+        lower.includes("headphone")
+      ) {
+        accSubtype = "HEADSET";
+      } else {
+        accSubtype = "MOUSE";
+      }
+
+      // Infer brand from product name
+      let inferredBrand = "Omni Gaming / Fabricante Oficial";
+      if (lower.includes("primus")) inferredBrand = "Primus Gaming";
+      else if (lower.includes("razer")) inferredBrand = "Razer";
+      else if (lower.includes("logitech")) inferredBrand = "Logitech G";
+      else if (lower.includes("sony") || lower.includes("playstation")) inferredBrand = "Sony PlayStation";
+      else if (lower.includes("xbox") || lower.includes("microsoft")) inferredBrand = "Microsoft Xbox";
+      else if (lower.includes("nintendo")) inferredBrand = "Nintendo";
+      else if (lower.includes("hyperx")) inferredBrand = "HyperX";
+      else if (lower.includes("steelseries")) inferredBrand = "SteelSeries";
+      else if (lower.includes("corsair")) inferredBrand = "Corsair";
+      else if (lower.includes("redragon")) inferredBrand = "Redragon";
+      else if (lower.includes("8bitdo")) inferredBrand = "8BitDo";
+
+      customSpecifications = {
+        categoryType: "GAMING_ACCESSORY",
+        gamingAccessory: {
+          accessoryType: accSubtype,
+          controller:
+            accSubtype === "CONTROLLER"
+              ? {
+                  brand: inferredBrand,
+                  platformCompatibility: lower.includes("ps5") || lower.includes("dualsense")
+                    ? "PS5, PC Windows 11, Mac, iOS, Android"
+                    : lower.includes("xbox")
+                    ? "Xbox Series X|S, Xbox One, Windows 10/11, Cloud Gaming"
+                    : lower.includes("switch")
+                    ? "Nintendo Switch / Switch OLED, PC"
+                    : "Multiplataforma (PC, PS5/PS4, Xbox Series X|S, Bluetooth)",
+                  connectionType: "Inalámbrico Bluetooth + Conexión USB-C de baja latencia",
+                  feedbackHaptic: "Motores dobles de vibración háptica y gatillos de respuesta dinámica",
+                  weight: "280 gramos (Ergonomía pro balanceada)",
+                  color: "Negro Mate / Blanco Glaciar / Edición Especial",
+                  layout: lower.includes("ps5") || lower.includes("sony")
+                    ? "Simétrico PlayStation Style (D-Pad, sticks paralelos y touchpad capacitivo)"
+                    : "Asimétrico Xbox Style (Palancas escalonadas ergonómicas)",
+                  batteryLife: "Hasta 12 a 15 horas continuas de juego",
+                  rechargeableBattery: "Batería de litio recargable integrada de 1560 mAh",
+                  programmableBackPaddles: lower.includes("edge") || lower.includes("elite") || lower.includes("pro")
+                    ? "4 palancas traseras de acero reasignables"
+                    : "2 botones traseros personalizables remapeables",
+                  triggerStops: lower.includes("edge") || lower.includes("elite") || lower.includes("pro")
+                    ? "Topes ajustables de 3 posiciones para disparo instantáneo"
+                    : "Respuesta de recorrido ultra-rápido en gatillos",
+                  audioJack: "Conector Jack estéreo de 3.5 mm para audífonos con micrófono",
+                  hallEffectSticks: "Sensores magnéticos Hall Effect anti-drift de precisión micrométrica",
+                  lighting: "Barra luminosa LED interactiva y retroiluminación sutil",
+                  softwareCustomization: "Configuración integral de zonas muertas, mapeo de botones y perfiles en memoria",
+                }
+              : undefined,
+          mouse:
+            accSubtype === "MOUSE"
+              ? {
+                  brand: inferredBrand,
+                  tracking: "Sensor Óptico PixArt de alta precisión",
+                  buttonCount: lower.includes("mmo") ? 12 : 6,
+                  maxDpi: lower.includes("30k") ? 30000 : 16000,
+                  wiring: lower.includes("wireless") || lower.includes("inalambrico")
+                    ? "Inalámbrico 2.4GHz HyperSpeed + Bluetooth + USB-C"
+                    : "Cable Speedflex mallado de ultra baja fricción",
+                  weight: "65 gramos (Chasis ultraligero)",
+                  dimensions: "127 x 65 x 43 mm",
+                  adjustableDpi: "Sí, 5 perfiles configurables con botón dedicado",
+                  color: "Negro Mate con acabados texturizados",
+                  pollingRate: "1000 Hz / 1 ms (Compatible con 4000 Hz / 8000 Hz)",
+                  adjustableWeight: "No (Estructura fija ultraligera para eSports)",
+                  handedness: "Diestro Ergonómico",
+                  technology: "Switches Ópticos mecánicos de 90 millones de clics",
+                  lighting: "Iluminación RGB personalizable con perfiles en memoria",
+                  powerSource: "Batería recargable vía USB-C (hasta 90 hrs de autonomía)",
+                }
+              : undefined,
+          keyboard:
+            accSubtype === "KEYBOARD"
+              ? {
+                  brand: inferredBrand,
+                  partNumber: `KB-${cleanSlugPart}-PRO`,
+                  type: "Mecánico",
+                  category: lower.includes("60") ? "60% Compacto" : lower.includes("tkl") ? "TKL (Tenkeyless)" : "100% Tamaño Completo",
+                  backlight: "RGB por tecla personalizable 16.8M colores",
+                  switchType: "Switches Mecánicos Lineales / Táctiles intercambiables (Hot-Swap)",
+                  wiring: "Cable USB-C desmontable trenzado",
+                  connectionTechnology: "Conexión alámbrica de ultra baja latencia",
+                  macroKeys: "Totalmente programable vía software",
+                  hasWristRest: "Sí, reposamuñecas ergonómico magnético acolchado",
+                  hasMediaKeys: "Rueda de volumen multifunción y controles multimedia",
+                }
+              : undefined,
+          headset:
+            accSubtype === "HEADSET"
+              ? {
+                  type: "Over-Ear Circumauricular Cerrado",
+                  microphone: "Micrófono desmontable cardioide con cancelación de ruido",
+                  frequencyResponse: "12 Hz - 28.000 Hz (Hi-Res Audio)",
+                  color: "Negro con almohadillas viscoelásticas transpirables",
+                  lighting: "RGB sutil en copas laterales",
+                  connectivity: "Inalámbrico 2.4GHz sin pérdidas + Bluetooth 5.2 + Jack 3.5mm",
+                  activeNoiseCancelling: "Cancelación de ruido pasiva avanzada con aislamiento acústico",
+                  inLineControls: "Controles de volumen y silenciador de micrófono integrados en copa",
+                  driverSize: "Drivers de 50 mm de Titanio",
+                  impedance: "32 Ohms @ 1 kHz",
+                  cableLength: "Cable desmontable de 1.8 m + cable de carga USB-C",
+                }
+              : undefined,
+        },
+      };
+    } else if (customCategoryLabel === "Consola / Hardware") {
+      customSpecifications = {
+        categoryType: "CONSOLE",
+        console: {
+          baseModel: name,
+          capacity: lower.includes("2tb") ? "2 TB SSD NVMe" : lower.includes("512") ? "512 GB SSD" : "1 TB SSD NVMe Ultrarrápido",
+          format: lower.includes("digital") ? "Digital Edition (Sin lector óptico)" : "Físico (Lector Ultra HD Blu-ray 4K)",
+          controllersIncluded: "1 Control Oficial Inalámbrico de última generación",
+          bundleIncluded: "Consola, Mando, Cable HDMI 2.1 Ultra High Speed, Cable de poder, Cable USB-C y base",
+          ports: "1x HDMI 2.1, 2x USB-A SuperSpeed 10Gbps, 2x USB-C, Puerto Gigabit Ethernet LAN",
+          gameCompatibility: "Catálogo completo de la generación y retrocompatibilidad garantizada",
+          featuredHighlights: "Audio 3D inmersivo, Ray Tracing por hardware, salida 4K 120Hz / HDR y tiempos de carga instantáneos",
+        },
+      };
+    }
+  }
+
   return {
     sku,
     name,
@@ -368,17 +543,10 @@ function generateWithSmartEngine(
     isPreOrder,
     ageRating,
     genres,
-    imageUrl:
-      type === "FIGURE"
-        ? "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80"
-        : type === "COLLECTIBLE"
-        ? "https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=800&auto=format&fit=crop&q=80"
-        : customCategoryLabel === "Accesorio Gaming"
-        ? "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=800&auto=format&fit=crop&q=80"
-        : "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
     figureSpecs,
     gameSpecs,
     collectibleSpecs,
+    customSpecifications,
     engine: "SMART_KNOWLEDGE_ENGINE",
   };
 }
@@ -457,6 +625,29 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "authBody": "PSA" | "CGC" | "BGS",
     "language": "Japonés" | "Inglés",
     "serial": "Código serial de certificación"
+  },
+  "customSpecifications": {
+    "categoryType": "GAMING_ACCESSORY" | "CONSOLE" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO",
+    "gamingAccessory": {
+      "accessoryType": "CONTROLLER" | "MOUSE" | "KEYBOARD" | "HEADSET",
+      "controller": {
+        "brand": "Marca del control",
+        "platformCompatibility": "Plataformas compatibles",
+        "connectionType": "Inalámbrico / Cableado",
+        "feedbackHaptic": "Detalle de respuesta háptica / vibración",
+        "weight": "Peso aproximado",
+        "color": "Color o edición",
+        "layout": "Distribución simétrica o asimétrica",
+        "batteryLife": "Autonomía estimada",
+        "rechargeableBattery": "Tipo de batería",
+        "programmableBackPaddles": "Palancas traseras",
+        "triggerStops": "Bloqueo de gatillos",
+        "audioJack": "Jack 3.5mm",
+        "hallEffectSticks": "Tecnología de palancas magnéticas",
+        "lighting": "Iluminación o barra de luz",
+        "softwareCustomization": "Software de configuración"
+      }
+    }
   }
 }`;
 
@@ -489,6 +680,17 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                   customCategoryLabel || parsed.customCategoryLabel || "Accesorio Gaming";
               }
             }
+
+            // If customSpecifications is missing or incomplete, complement with smart engine specs
+            if (parsed.type === "OTHER" && (!parsed.customSpecifications || !parsed.customSpecifications.gamingAccessory)) {
+              const fallbackHeuristic = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
+              parsed.customSpecifications = fallbackHeuristic.customSpecifications;
+            }
+
+            // Remove any image auto-generation so "4. Galería de Fotos & Portada" is NOT touched
+            delete parsed.imageUrl;
+            delete parsed.images;
+
             return NextResponse.json({
               success: true,
               data: {

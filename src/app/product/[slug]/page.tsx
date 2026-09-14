@@ -347,6 +347,52 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.gamingAccessory?.headset?.cableLength
       ? [{ label: "Largo del Cable", value: product.customSpecifications.gamingAccessory.headset.cableLength }]
       : []),
+    // Control / Joystick Gaming
+    ...(product.customSpecifications?.gamingAccessory?.controller?.brand
+      ? [{ label: "Marca del Control", value: product.customSpecifications.gamingAccessory.controller.brand }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.platformCompatibility
+      ? [{ label: "Compatibilidad Plataforma", value: product.customSpecifications.gamingAccessory.controller.platformCompatibility }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.connectionType
+      ? [{ label: "Conexión / Interfaz", value: product.customSpecifications.gamingAccessory.controller.connectionType }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.feedbackHaptic
+      ? [{ label: "Respuesta Háptica", value: product.customSpecifications.gamingAccessory.controller.feedbackHaptic }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.weight
+      ? [{ label: "Peso", value: product.customSpecifications.gamingAccessory.controller.weight }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.color
+      ? [{ label: "Color / Edición", value: product.customSpecifications.gamingAccessory.controller.color }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.layout
+      ? [{ label: "Distribución de Botones", value: product.customSpecifications.gamingAccessory.controller.layout }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.batteryLife
+      ? [{ label: "Autonomía de Batería", value: product.customSpecifications.gamingAccessory.controller.batteryLife }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.rechargeableBattery
+      ? [{ label: "Tipo de Batería", value: product.customSpecifications.gamingAccessory.controller.rechargeableBattery }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.programmableBackPaddles
+      ? [{ label: "Botones Traseros / Paddles", value: product.customSpecifications.gamingAccessory.controller.programmableBackPaddles }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.triggerStops
+      ? [{ label: "Bloqueo de Gatillos", value: product.customSpecifications.gamingAccessory.controller.triggerStops }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.audioJack
+      ? [{ label: "Conector de Audio", value: product.customSpecifications.gamingAccessory.controller.audioJack }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.hallEffectSticks
+      ? [{ label: "Joysticks Magnéticos (Hall Effect)", value: product.customSpecifications.gamingAccessory.controller.hallEffectSticks }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.lighting
+      ? [{ label: "Iluminación / Barra de Luz", value: product.customSpecifications.gamingAccessory.controller.lighting }]
+      : []),
+    ...(product.customSpecifications?.gamingAccessory?.controller?.softwareCustomization
+      ? [{ label: "Software y Personalización", value: product.customSpecifications.gamingAccessory.controller.softwareCustomization }]
+      : []),
     // Ropa & Estilo
     ...(product.customSpecifications?.apparel?.apparelType
       ? [{ label: "Tipo de Prenda", value: product.customSpecifications.apparel.apparelType }]

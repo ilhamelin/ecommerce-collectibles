@@ -22,6 +22,7 @@ import {
   MouseSpecifications,
   KeyboardSpecifications,
   HeadsetSpecifications,
+  ControllerSpecifications,
   ApparelSpecifications,
   BookSpecifications,
   MerchSpecifications,
@@ -74,10 +75,17 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     }
   }, [customCategoryLabel, value?.categoryType]);
 
-  // Gaming Accessory Subtype: MOUSE | KEYBOARD | HEADSET
-  const [accessoryType, setAccessoryType] = useState<"MOUSE" | "KEYBOARD" | "HEADSET">(
+  // Gaming Accessory Subtype: MOUSE | KEYBOARD | HEADSET | CONTROLLER
+  const [accessoryType, setAccessoryType] = useState<"MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER">(
     () => (value?.gamingAccessory?.accessoryType as any) || "MOUSE"
   );
+
+  // Keep local accessoryType state in sync if value changes externally (e.g. via AI auto-fill)
+  useEffect(() => {
+    if (value?.gamingAccessory?.accessoryType) {
+      setAccessoryType(value.gamingAccessory.accessoryType as any);
+    }
+  }, [value?.gamingAccessory?.accessoryType]);
 
   // Helper to update specific sub-specifications
   const updateConsole = (patch: Partial<ConsoleSpecifications>) => {
@@ -160,6 +168,27 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
         ...value.gamingAccessory,
         accessoryType: "HEADSET",
         headset: nextHeadset,
+      },
+    });
+  };
+
+  const updateController = (patch: Partial<ControllerSpecifications>) => {
+    const currentController = value.gamingAccessory?.controller || {
+      brand: "",
+      platformCompatibility: "",
+      connectionType: "",
+    };
+    const nextController: ControllerSpecifications = {
+      ...currentController,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "GAMING_ACCESSORY",
+      gamingAccessory: {
+        ...value.gamingAccessory,
+        accessoryType: "CONTROLLER",
+        controller: nextController,
       },
     });
   };
@@ -263,6 +292,24 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     driverSize: "",
     impedance: "",
     cableLength: "",
+  };
+
+  const controllerData = value.gamingAccessory?.controller || {
+    brand: "",
+    platformCompatibility: "",
+    connectionType: "",
+    feedbackHaptic: "",
+    weight: "",
+    color: "",
+    layout: "",
+    batteryLife: "",
+    rechargeableBattery: "",
+    programmableBackPaddles: "",
+    triggerStops: "",
+    audioJack: "",
+    hallEffectSticks: "",
+    lighting: "",
+    softwareCustomization: "",
   };
 
   const apparelData = value.apparel || {};
@@ -426,11 +473,12 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
               <Sliders className="w-3.5 h-3.5 text-[#FF6E42]" />
               Tipo de Accesorio Gaming *
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { id: "MOUSE", label: "Mouse Gaming", icon: MouseIcon },
                 { id: "KEYBOARD", label: "Teclado Gaming", icon: KeyboardIcon },
                 { id: "HEADSET", label: "Audífonos / Headset", icon: Headphones },
+                { id: "CONTROLLER", label: "Control / Joystick", icon: Gamepad2 },
               ].map((acc) => {
                 const Icon = acc.icon;
                 const isSelected = accessoryType === acc.id;
@@ -922,6 +970,197 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
                       value={headsetData.cableLength || ""}
                       onChange={(e) => updateHeadset({ cableLength: e.target.value })}
                       placeholder="ej: 1.5 m cable 3.5mm + 1.8 m cable de carga USB-C trenzado"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUB-SECTION: CONTROLLER / GAMEPAD */}
+          {accessoryType === "CONTROLLER" && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/30 border border-amber-500/30 px-3 py-2 rounded-xl">
+                <Gamepad2 className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Especificaciones de Control / Gamepad (Básicos y Avanzados)</span>
+              </div>
+
+              {/* Especificaciones Básicas */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Marca *</label>
+                    <input
+                      type="text"
+                      value={controllerData.brand || ""}
+                      onChange={(e) => updateController({ brand: e.target.value })}
+                      placeholder="ej: Sony PlayStation / Xbox / Nintendo / Razer / 8BitDo"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Compatibilidad de Plataforma *</label>
+                    <input
+                      type="text"
+                      value={controllerData.platformCompatibility || ""}
+                      onChange={(e) => updateController({ platformCompatibility: e.target.value })}
+                      placeholder="ej: PS5, PS4, PC Windows, Mac, iOS, Android"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tipo de Conexión *</label>
+                    <input
+                      type="text"
+                      value={controllerData.connectionType || ""}
+                      onChange={(e) => updateController({ connectionType: e.target.value })}
+                      placeholder="ej: Inalámbrico Bluetooth + Cable USB-C de baja latencia"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Respuesta Háptica / Vibración *</label>
+                    <input
+                      type="text"
+                      value={controllerData.feedbackHaptic || ""}
+                      onChange={(e) => updateController({ feedbackHaptic: e.target.value })}
+                      placeholder="ej: Respuesta háptica inmersiva de doble motor y gatillos adaptativos"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Peso *</label>
+                    <input
+                      type="text"
+                      value={controllerData.weight || ""}
+                      onChange={(e) => updateController({ weight: e.target.value })}
+                      placeholder="ej: 280 gramos (Ergonómico balanceado)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Color / Edición</label>
+                    <input
+                      type="text"
+                      value={controllerData.color || ""}
+                      onChange={(e) => updateController({ color: e.target.value })}
+                      placeholder="ej: Blanco Clásico / Midnight Black / Edición Limitada"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Distribución / Layout de Botones</label>
+                    <input
+                      type="text"
+                      value={controllerData.layout || ""}
+                      onChange={(e) => updateController({ layout: e.target.value })}
+                      placeholder="ej: Asimétrico Xbox Style / Simétrico PlayStation Style (D-Pad + 4 botones de acción + 2 bumpers + 2 triggers)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Especificaciones Avanzadas */}
+              <div className="space-y-3 pt-2 border-t border-[#004E72]/30">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Avanzadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Autonomía de Batería</label>
+                    <input
+                      type="text"
+                      value={controllerData.batteryLife || ""}
+                      onChange={(e) => updateController({ batteryLife: e.target.value })}
+                      placeholder="ej: Hasta 12 a 15 horas de uso continuo"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tipo de Batería</label>
+                    <input
+                      type="text"
+                      value={controllerData.rechargeableBattery || ""}
+                      onChange={(e) => updateController({ rechargeableBattery: e.target.value })}
+                      placeholder="ej: Batería interna recargable de 1560 mAh Li-ion"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Palancas / Botones Traseros (Paddles)</label>
+                    <input
+                      type="text"
+                      value={controllerData.programmableBackPaddles || ""}
+                      onChange={(e) => updateController({ programmableBackPaddles: e.target.value })}
+                      placeholder="ej: 2 o 4 botones traseros remapeables"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Bloqueo de Gatillos (Trigger Stops)</label>
+                    <input
+                      type="text"
+                      value={controllerData.triggerStops || ""}
+                      onChange={(e) => updateController({ triggerStops: e.target.value })}
+                      placeholder="ej: Sí, topes ajustables de 3 posiciones para disparo rápido"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Puerto de Audio / Jack 3.5mm</label>
+                    <input
+                      type="text"
+                      value={controllerData.audioJack || ""}
+                      onChange={(e) => updateController({ audioJack: e.target.value })}
+                      placeholder="ej: Conector de audio de 3.5 mm para audífonos y micrófono"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Joysticks Magnéticos / Efecto Hall</label>
+                    <input
+                      type="text"
+                      value={controllerData.hallEffectSticks || ""}
+                      onChange={(e) => updateController({ hallEffectSticks: e.target.value })}
+                      placeholder="ej: Joysticks con tecnología Hall Effect (anti-drift)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Iluminación / Barra de Luz</label>
+                    <input
+                      type="text"
+                      value={controllerData.lighting || ""}
+                      onChange={(e) => updateController({ lighting: e.target.value })}
+                      placeholder="ej: Barra luminosa interactiva integrada + RGB"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs text-[#9bb5c2]">Software de Personalización</label>
+                    <input
+                      type="text"
+                      value={controllerData.softwareCustomization || ""}
+                      onChange={(e) => updateController({ softwareCustomization: e.target.value })}
+                      placeholder="ej: Configuración de perfiles, zonas muertas y sensibilidad de palancas vía app oficial"
                       className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
                     />
                   </div>

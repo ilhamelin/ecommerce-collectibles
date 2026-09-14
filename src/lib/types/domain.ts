@@ -180,11 +180,32 @@ export interface HeadsetSpecifications {
   cableLength?: string;
 }
 
+export interface ControllerSpecifications {
+  // Especificaciones Básicas
+  brand: string;
+  platformCompatibility: string;
+  connectionType: string;
+  feedbackHaptic?: string;
+  weight?: string;
+  color?: string;
+  layout?: string;
+  // Especificaciones Avanzadas
+  batteryLife?: string;
+  rechargeableBattery?: string;
+  programmableBackPaddles?: string;
+  triggerStops?: string;
+  audioJack?: string;
+  hallEffectSticks?: string;
+  lighting?: string;
+  softwareCustomization?: string;
+}
+
 export interface GamingAccessorySpecifications {
-  accessoryType: "MOUSE" | "KEYBOARD" | "HEADSET" | string;
+  accessoryType: "MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER" | string;
   mouse?: MouseSpecifications;
   keyboard?: KeyboardSpecifications;
   headset?: HeadsetSpecifications;
+  controller?: ControllerSpecifications;
 }
 
 export interface ApparelSpecifications {

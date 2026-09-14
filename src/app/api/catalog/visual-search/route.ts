@@ -89,8 +89,14 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
   "summary": "Resumen amigable para el cliente"
 }`;
 
-    // Request to Google Gemini Vision via gemini-flash-latest with header auth
-    const candidateModels = ["gemini-flash-latest", "gemini-3.6-flash", "gemini-1.5-flash"];
+    // Request to Google Gemini Vision with active, high-availability models
+    const candidateModels = [
+      "gemini-flash-lite-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-flash-latest",
+      "gemini-3-flash-preview",
+    ];
     let geminiRes: Response | null = null;
     let lastErrorText = "";
 
@@ -121,6 +127,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
               generationConfig: {
                 temperature: 0.1,
                 maxOutputTokens: 800,
+                responseMimeType: "application/json",
               },
             }),
           }
@@ -205,12 +212,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
           (searchItem.length >= 4 && pSku.includes(searchItem.replace(/\s+/g, "-")))
         );
       });
+    }
 
-      if (exactProduct) {
-        analysis.inStoreInventory = true;
-        analysis.exactMatchSku = exactProduct.sku;
-        analysis.matchedProductName = exactProduct.name;
-      }
+    // When an exact product match exists in inventory, strictly enforce inStoreInventory
+    if (exactProduct) {
+      analysis.inStoreInventory = true;
+      analysis.exactMatchSku = exactProduct.sku;
+      analysis.matchedProductName = exactProduct.name;
     }
 
     // Calculate relevance score for catalog products

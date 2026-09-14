@@ -70,7 +70,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
   ]
 }`;
 
-    const candidateModels = ["gemini-flash-latest", "gemini-3.6-flash", "gemini-1.5-flash"];
+    const candidateModels = [
+      "gemini-flash-lite-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-flash-latest",
+      "gemini-3-flash-preview",
+    ];
     let geminiRes: Response | null = null;
     let lastError = "";
 

@@ -187,7 +187,7 @@ function StoreNavbarContent() {
           <div className="flex items-center gap-2.5 text-[11px]">
             <span className="hidden sm:inline-flex items-center gap-1.5 text-white/90 font-medium">
               <span className="w-2 h-2 rounded-full bg-[#2E9E5B] animate-pulse" />
-              WhatsApp Atención: <strong className="text-[#FF6B35] font-mono">+56 9 8765 4321</strong>
+              WhatsApp Atención: <strong className="text-[#FF6B35] font-mono">+56 9 5824 3917</strong>
             </span>
 
             {mounted && isAuthenticated && currentUser ? (
@@ -563,13 +563,13 @@ function StoreNavbarContent() {
             )}
 
             <a
-              href="https://wa.me/56987654321"
+              href="https://wa.me/56958243917"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs text-[#2E9E5B] bg-[#2E9E5B]/10 border border-[#2E9E5B]/30 font-semibold"
             >
-              <span>💬 WhatsApp (+56 9 8765 4321)</span>
+              <span>💬 WhatsApp (+56 9 5824 3917)</span>
               <span className="text-[10px] bg-[#2E9E5B] text-white px-1.5 py-0.5 rounded font-bold">ONLINE</span>
             </a>
 

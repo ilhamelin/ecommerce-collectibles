@@ -299,7 +299,7 @@ export function buildAlertEmailHtml(params: AlertEmailParams): string {
         <div class="footer-highlight">OmniCollector Chile</div>
         <div>Envíos a todo Chile vía Starken y Chilexpress | Productos 100% Originales y Licenciados</div>
         <div style="margin-top: 8px;">
-          Atención y Soporte WhatsApp: <a href="https://wa.me/56987654321" style="color: #FF6B35; text-decoration: none; font-weight: bold;">+56 9 8765 4321</a>
+          Atención y Soporte WhatsApp: <a href="https://wa.me/56958243917" style="color: #FF6B35; text-decoration: none; font-weight: bold;">+56 9 5824 3917</a>
         </div>
         <div style="margin-top: 12px; font-size: 11px; color: #94A3B8;">
           Recibes este correo porque te suscribiste a las alertas de stock o precio para este artículo en omnicollector.cl. Si no realizaste esta solicitud, puedes ignorar este mensaje.

@@ -1042,7 +1042,7 @@ function AccountContent() {
                           )}
 
                           <a
-                            href={`https://wa.me/56987654321?text=Hola%20OmniCollector,%20tengo%20una%20consulta%20sobre%20mi%20pedido%20${ord.orderNumber}`}
+                            href={`https://wa.me/56958243917?text=Hola%20OmniCollector,%20tengo%20una%20consulta%20sobre%20mi%20pedido%20${ord.orderNumber}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm"

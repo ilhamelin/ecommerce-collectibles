@@ -37,4 +37,5 @@ export const LOGO_GRADIENT_OPTIONS = [
   { id: "from-amber-500 to-amber-700", label: "Dorado PSA Gem Mint", preview: "bg-gradient-to-br from-amber-500 to-amber-700" },
   { id: "from-purple-600 to-[#1F3A5F]", label: "Púrpura Místico / Anime", preview: "bg-gradient-to-br from-purple-600 to-[#1F3A5F]" },
   { id: "from-emerald-500 to-teal-700", label: "Verde Esmeralda", preview: "bg-gradient-to-br from-emerald-500 to-teal-700" },
-];
+];export const STORE_WHATSAPP_NUMBER = "56958243917";
+export const STORE_WHATSAPP_DISPLAY = "+56 9 5824 3917";

@@ -186,7 +186,7 @@ export function SommelierChatWidget() {
             id: `error-${Date.now()}`,
             role: "assistant",
             content:
-              "Disculpa coleccionista, hubo una pequeña sobrecarga en el servidor de IA. Si lo prefieres, puedes consultarnos directamente a nuestro WhatsApp oficial (+56 9 8765 4321).",
+              "Disculpa coleccionista, hubo una pequeña sobrecarga en el servidor de IA. Si lo prefieres, puedes consultarnos directamente a nuestro WhatsApp oficial (+56 9 5824 3917).",
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ]);
@@ -439,12 +439,12 @@ export function SommelierChatWidget() {
                 {msg.whatsappText && (
                   <div className="mt-2">
                     <a
-                      href={`https://wa.me/56987654321?text=${encodeURIComponent(msg.whatsappText)}`}
+                      href={`https://wa.me/56958243917?text=${encodeURIComponent(msg.whatsappText)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-[#128C7E]/20 hover:bg-[#128C7E] text-emerald-300 hover:text-white px-3 py-1.5 rounded-full border border-[#128C7E]/40 transition-colors"
                     >
-                      <span>💬 Continuar en WhatsApp (+56 9 8765 4321)</span>
+                      <span>💬 Continuar en WhatsApp (+56 9 5824 3917)</span>
                     </a>
                   </div>
                 )}

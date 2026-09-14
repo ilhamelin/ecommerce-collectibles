@@ -588,7 +588,7 @@ export default function OrderTrackingPage() {
 
               {/* Direct Support Button */}
               <a
-                href={`https://wa.me/56987654321?text=Hola%20OmniCollector,%20estoy%20viendo%20el%20mapa%20en%20vivo%20de%20mi%20pedido%20${displayOrder.orderNumber}`}
+                href={`https://wa.me/56958243917?text=Hola%20OmniCollector,%20estoy%20viendo%20el%20mapa%20en%20vivo%20de%20mi%20pedido%20${displayOrder.orderNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm"

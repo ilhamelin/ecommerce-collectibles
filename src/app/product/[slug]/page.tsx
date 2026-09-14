@@ -597,7 +597,7 @@ export default function ProductDetailPage() {
 
           {/* Questions / WhatsApp Card */}
           <a
-            href={`https://wa.me/56912345678?text=${whatsappMessage}`}
+            href={`https://wa.me/56958243917?text=${whatsappMessage}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block p-4 rounded-lg bg-white border-2 border-[#1F3A5F]/40 hover:border-[#FF6B35] text-center transition group shadow-sm"

@@ -123,7 +123,7 @@ export function StoreFooter() {
             </h4>
             <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
               <p>
-                <strong className="text-white">WhatsApp:</strong> +56 9 8765 4321
+                <strong className="text-white">WhatsApp:</strong> +56 9 5824 3917
               </p>
               <p>
                 <strong className="text-white">Email:</strong> contacto@omnicollector.cl

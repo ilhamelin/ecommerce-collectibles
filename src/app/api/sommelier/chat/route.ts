@@ -65,7 +65,7 @@ CONOCIMIENTO OFICIAL DE OMNICOLLECTOR CHILE:
 2. Formas de Pago: Hasta 12 cuotas sin interés mediante Webpay / Mercado Pago, y transferencia bancaria.
 3. Preventas Japonesas: Se reservan con solo un 20% de pie inicial. El saldo restante (80%) se cancela cuando el producto llega a bodega en Santiago antes del despacho.
 4. Autenticidad: Todos los productos son 100% nuevos, sellados y originales de fabricantes oficiales (Good Smile Company, Bandai, Kotobukiya, Capcom, Atlus, Sony, Nintendo). Cero réplicas piratas (anti-bootleg garantizado).
-5. Soporte Humano Oficial: WhatsApp directo (+56 9 8765 4321).
+5. Soporte Humano Oficial: WhatsApp directo (+56 9 5824 3917).
 
 INVENTARIO EN VIVO DE PRODUCTOS DISPONIBLES:
 --------------------------------------------------------------------------------

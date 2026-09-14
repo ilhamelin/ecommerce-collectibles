@@ -339,7 +339,7 @@ function OrderConfirmationContent() {
               Nuestro equipo de coleccionistas te atiende directamente por WhatsApp de Lunes a Viernes de 09:00 a 19:00 hrs.
             </p>
             <a
-              href={`https://wa.me/56987654321?text=Hola%20OmniCollector,%20tengo%20una%20consulta%20sobre%20mi%20orden%20${displayOrder.orderNumber}`}
+              href={`https://wa.me/56958243917?text=Hola%20OmniCollector,%20tengo%20una%20consulta%20sobre%20mi%20orden%20${displayOrder.orderNumber}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2E9E5B] hover:bg-[#25854c] text-white font-bold text-xs transition shadow-sm"

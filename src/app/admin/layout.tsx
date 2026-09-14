@@ -17,6 +17,7 @@ import {
   Palette,
   Image as ImageIcon,
   Radio,
+  TrendingUp,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -51,6 +52,12 @@ export default function AdminLayout({
       label: "Catálogo & Inventario",
       icon: Package,
       active: pathname === "/admin/products",
+    },
+    {
+      href: "/admin/predictive-stock",
+      label: "Rotación & Stock IA",
+      icon: TrendingUp,
+      active: pathname === "/admin/predictive-stock",
     },
     {
       href: "/admin/radar",

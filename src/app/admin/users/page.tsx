@@ -393,6 +393,7 @@ export default function AdminUsersAnalyticsPage() {
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">RUT & Contacto</th>
                     <th className="py-3 px-4">Rol</th>
+                    <th className="py-3 px-4">Alertas Stock</th>
                     <th className="py-3 px-4">Compras CLP</th>
                     <th className="py-3 px-4">Pedidos</th>
                     <th className="py-3 px-4">Direcciones</th>
@@ -402,6 +403,7 @@ export default function AdminUsersAnalyticsPage() {
                   {filteredUsers.map((u) => {
                     const cleanEmail = u.email.toLowerCase().trim();
                     const spendInfo = userSpendMap[cleanEmail] || { totalSpent: 0, orderCount: 0 };
+                    const userAlertCount = alerts.filter((a) => a.email.toLowerCase().trim() === cleanEmail).length;
                     return (
                       <tr key={u.id || u.email} className="hover:bg-[#004E72]/20 transition">
                         <td className="py-3.5 px-4">
@@ -429,6 +431,23 @@ export default function AdminUsersAnalyticsPage() {
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                               CLIENTE
                             </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          {userAlertCount > 0 ? (
+                            <button
+                              onClick={() => {
+                                setAlertSearchQuery(u.email);
+                                setActiveTab("ALERTS");
+                              }}
+                              title="Ver alertas de stock suscritas por este usuario"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/40 hover:bg-[#FF6B35] hover:text-white transition shadow-sm"
+                            >
+                              <Bell className="w-3 h-3" />
+                              {userAlertCount} {userAlertCount === 1 ? "alerta" : "alertas"}
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-[#9bb5c2]/50">0</span>
                           )}
                         </td>
                         <td className="py-3.5 px-4 font-mono font-bold text-[#FF6B35]">

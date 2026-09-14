@@ -765,6 +765,7 @@ export default function ProductDetailPage() {
               productName={product.name}
               productPrice={product.price}
               productOriginalPrice={product.originalPrice}
+              productImageUrl={productImages[0] || product.imageUrl || undefined}
               isOutOfStock={!isPreOrder && (product.stockAvailable <= 0)}
               isPreOrder={isPreOrder}
             />

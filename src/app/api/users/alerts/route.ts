@@ -16,8 +16,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const query = email || userId || "";
-    const alerts = await alertService.getUserAlerts(query);
+    const allAlerts = await alertService.getAllAlerts();
+    const cleanEmail = email ? email.toLowerCase().trim() : "";
+    const cleanUserId = userId ? userId.trim() : "";
+
+    const alerts = allAlerts.filter((a) => {
+      if (a.active === false) return false;
+      if (cleanEmail && a.email && a.email.toLowerCase().trim() === cleanEmail) return true;
+      if (cleanUserId && a.userId && a.userId === cleanUserId) return true;
+      return false;
+    });
 
     return NextResponse.json({
       success: true,

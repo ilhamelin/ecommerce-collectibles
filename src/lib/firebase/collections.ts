@@ -8,4 +8,5 @@ export const COLLECTIONS = {
   ANALYTICS: "analytics",
   SLIDER_SETTINGS: "slider_settings",
   BRANDING_SETTINGS: "branding_settings",
+  PRODUCT_ALERTS: "product_alerts",
 } as const;

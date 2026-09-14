@@ -10,6 +10,7 @@ interface ProductAlertSubscriptionProps {
   productName: string;
   productPrice: number;
   productOriginalPrice?: number;
+  productImageUrl?: string;
   isOutOfStock: boolean;
   isPreOrder?: boolean;
 }
@@ -20,6 +21,7 @@ export function ProductAlertSubscription({
   productName,
   productPrice,
   productOriginalPrice,
+  productImageUrl,
   isOutOfStock,
   isPreOrder,
 }: ProductAlertSubscriptionProps) {
@@ -57,10 +59,12 @@ export function ProductAlertSubscription({
         body: JSON.stringify({
           email: targetEmail,
           userId: currentUser?.id || null,
+          userName: currentUser?.fullName || (isAuthenticated ? targetEmail.split("@")[0] : "Invitado Web"),
           productName,
           productSku,
           price: productPrice,
           originalPrice: productOriginalPrice,
+          productImageUrl,
           isOutOfStock,
           isPreOrder,
           productUrl: window.location.href,
@@ -71,10 +75,11 @@ export function ProductAlertSubscription({
 
       if (data.success) {
         setIsSubscribed(true);
+        const isEmailDelivered = data.data?.emailSent;
         setFeedbackMessage(
-          isOutOfStock
-            ? `¡Alerta activada! Te hemos enviado un correo de confirmación a ${targetEmail}. Te avisaremos en cuanto haya stock.`
-            : `¡Alerta activada! Te hemos enviado un correo de confirmación a ${targetEmail}. Te avisaremos de ofertas o variaciones.`
+          isEmailDelivered
+            ? `¡Alerta guardada en base de datos! Te hemos enviado un correo de confirmación a ${targetEmail}. Puedes revisarla en tu perfil.`
+            : `¡Alerta guardada con éxito en la base de datos! Quedó registrada en tu perfil de usuario y en el Centro de Control.`
         );
         if (data.data?.previewUrl) {
           setPreviewUrl(data.data.previewUrl);

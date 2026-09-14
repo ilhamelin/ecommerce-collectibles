@@ -27,7 +27,9 @@ async function getTransporter() {
   if (host && user && pass) {
     if (host.includes("gmail")) {
       return nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: { user, pass },
       });
     }
@@ -356,9 +358,13 @@ export async function sendProductAlertEmail(params: AlertEmailParams): Promise<{
     };
   } catch (err: any) {
     console.error("[EmailService] Error dispatching alert email:", err);
+    const isGoogleAuthError =
+      err?.code === "EAUTH" || err?.responseCode === 534 || String(err?.message || "").includes("534");
     return {
       success: false,
-      error: err.message || "Error al despachar el correo",
+      error: isGoogleAuthError
+        ? "Google requiere autorizar el acceso SMTP en https://accounts.google.com/DisplayUnlockCaptcha"
+        : err.message || "Error al despachar el correo",
     };
   }
 }

@@ -25,9 +25,31 @@ import {
   Trophy,
   Layers,
   ChevronRight,
+  Package,
+  Search,
+  CheckCircle2,
+  ChevronDown,
+  SlidersHorizontal,
 } from "lucide-react";
 import { DEFAULT_PROMO_SLIDES, PromoSlideData } from "@/lib/constants/sliderDefaults";
+import { BASE_PRODUCTS } from "@/lib/constants/catalog";
+import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
+
+function getCategoryLabel(type: string) {
+  switch (type) {
+    case "FIGURE":
+      return "Figura Japonesa";
+    case "VIDEO_GAME":
+      return "Videojuego";
+    case "COLLECTIBLE":
+      return "Coleccionable TCG";
+    case "BUNDLE":
+      return "Bundle Especial";
+    default:
+      return type || "Coleccionable";
+  }
+}
 
 export default function AdminSliderPage() {
   const [slides, setSlides] = useState<PromoSlideData[]>(DEFAULT_PROMO_SLIDES);
@@ -36,8 +58,11 @@ export default function AdminSliderPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>(BASE_PRODUCTS);
+  const [productSearch, setProductSearch] = useState<string>("");
+  const [showAdvancedOverrides, setShowAdvancedOverrides] = useState<boolean>(false);
 
-  // Fetch current slider settings from API
+  // Fetch current slider settings and database products from API
   useEffect(() => {
     async function fetchSliderSettings() {
       try {
@@ -56,7 +81,21 @@ export default function AdminSliderPage() {
         setLoading(false);
       }
     }
+
+    async function loadCatalogProducts() {
+      try {
+        const res = await fetch("/api/products");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data?.products) && json.data.products.length > 0) {
+          setCatalogProducts(json.data.products);
+        }
+      } catch (err) {
+        console.warn("Could not load products from API, using default catalog:", err);
+      }
+    }
+
     fetchSliderSettings();
+    loadCatalogProducts();
   }, []);
 
   const activeSlide = slides[activeSlideIndex] || slides[0];
@@ -67,6 +106,71 @@ export default function AdminSliderPage() {
       updated[activeSlideIndex] = {
         ...updated[activeSlideIndex],
         [field]: value,
+      };
+      return updated;
+    });
+    setHasChanges(true);
+    setFeedback(null);
+  };
+
+  // Find currently linked product from database
+  const currentLinkedProduct = catalogProducts.find(
+    (p) =>
+      p.sku === activeSlide.linkedProductSku ||
+      p.id === activeSlide.linkedProductSku ||
+      (activeSlide.productBadge &&
+        p.name &&
+        (p.name.toLowerCase().includes(activeSlide.productBadge.toLowerCase()) ||
+          activeSlide.productBadge.toLowerCase().includes(p.name.toLowerCase())))
+  );
+
+  // Filter products for dropdown
+  const filteredProducts = catalogProducts.filter((p) => {
+    if (!productSearch.trim()) return true;
+    const q = productSearch.toLowerCase();
+    const nameMatch = (p.name || "").toLowerCase().includes(q);
+    const skuMatch = (p.sku || "").toLowerCase().includes(q);
+    const typeMatch = (p.type || "").toLowerCase().includes(q);
+    return nameMatch || skuMatch || typeMatch;
+  });
+
+  const handleSelectDatabaseProduct = (sku: string) => {
+    if (!sku) {
+      updateActiveSlide("linkedProductSku", "");
+      return;
+    }
+    const prod = catalogProducts.find((p) => p.sku === sku || p.id === sku);
+    if (!prod) return;
+
+    // Determine price or condition
+    let formattedPrice = formatCLP(prod.price);
+    if (prod.isPreOrder) {
+      const depositRate =
+        prod.figureMetadata?.minimumDepositPercent ||
+        (prod.preOrderDepositPercentage ? prod.preOrderDepositPercentage / 100 : 0.2);
+      const deposit = Math.round(prod.price * depositRate);
+      formattedPrice = `Pie Inicial: ${formatCLP(deposit)}`;
+    } else if (prod.collectibleMetadata?.authenticationBody && prod.collectibleMetadata?.condition) {
+      const grade = prod.collectibleMetadata.condition.replace(/_/g, " ");
+      formattedPrice = `${prod.collectibleMetadata.authenticationBody} ${grade} • ${formatCLP(prod.price)}`;
+    } else if (prod.collectibleMetadata?.gradeScore) {
+      formattedPrice = `PSA ${prod.collectibleMetadata.gradeScore} • ${formatCLP(prod.price)}`;
+    }
+
+    const ctaText = prod.isPreOrder ? "Ver Preventa" : "Comprar Ahora";
+    const ctaHref = `/product/${(prod.sku || prod.id).toLowerCase()}`;
+    const imgUrl = prod.imageUrl || (Array.isArray(prod.images) && prod.images[0]) || "";
+
+    setSlides((prev) => {
+      const updated = [...prev];
+      updated[activeSlideIndex] = {
+        ...updated[activeSlideIndex],
+        image: imgUrl || updated[activeSlideIndex].image,
+        productBadge: prod.name,
+        productPrice: formattedPrice,
+        primaryCtaText: ctaText,
+        primaryCtaHref: ctaHref,
+        linkedProductSku: prod.sku || prod.id,
       };
       return updated;
     });
@@ -433,93 +537,233 @@ export default function AdminSliderPage() {
               />
             </div>
 
-            {/* Field: Imagen URL */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-[#1F3A5F]" />
-                URL de la Imagen Principal del Banner
-              </label>
-              <input
-                type="url"
-                value={activeSlide.image || ""}
-                onChange={(e) => updateActiveSlide("image", e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] text-xs font-mono text-[#1A1A1A] focus:outline-none focus:border-[#FF6B35] focus:bg-white transition"
-              />
-              <p className="text-[11px] text-[#737373]">
-                Puedes pegar cualquier URL directa de imagen (Unsplash, Cloudinary, Imgur o Firebase Storage).
-              </p>
-            </div>
+            {/* Seccion: Seleccion de Producto de la Base de Datos & Elementos Visuales */}
+            <div className="rounded-2xl border-2 border-[#1F3A5F]/20 bg-gradient-to-b from-[#F8FAFC] to-[#F1F5F9] p-4 sm:p-5 space-y-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1F3A5F] text-white text-[10px] font-black tracking-wider uppercase mb-1 shadow-xs">
+                    <Package className="w-3 h-3 text-[#FF6B35]" />
+                    Base de Datos & Catálogo en Vivo
+                  </div>
+                  <h4 className="text-sm font-black text-[#1F3A5F]">
+                    Producto a Relucir en el Slider & Card
+                  </h4>
+                  <p className="text-[11px] text-[#555555] mt-0.5 leading-relaxed">
+                    Selecciona un producto existente de la base de datos para autocompletar en 1 clic la foto del banner, el nombre en la card, el precio/condición y el enlace de compra.
+                  </p>
+                </div>
+                <div className="text-[10px] px-2.5 py-1 rounded-lg bg-white border border-[#E2E8F0] font-bold text-[#1F3A5F] shrink-0 shadow-xs">
+                  {catalogProducts.length} productos
+                </div>
+              </div>
 
-            {/* Sub-grid: Botones de Acción */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0F0F0]">
+              {/* Selector de Producto de la Base de Datos */}
               <div className="space-y-2">
-                <span className="text-xs font-black text-[#FF6B35] block">
-                  Botón Principal (CTA Naranja)
-                </span>
-                <input
-                  type="text"
-                  value={activeSlide.primaryCtaText || ""}
-                  onChange={(e) => updateActiveSlide("primaryCtaText", e.target.value)}
-                  placeholder="Texto del botón"
-                  className="w-full px-3 py-2 rounded-lg border border-[#E5E5E5] text-xs font-semibold"
-                />
-                <input
-                  type="text"
-                  value={activeSlide.primaryCtaHref || ""}
-                  onChange={(e) => updateActiveSlide("primaryCtaHref", e.target.value)}
-                  placeholder="Enlace (ej: /catalog?category=FIGURE)"
-                  className="w-full px-3 py-2 rounded-lg border border-[#E5E5E5] text-xs font-mono"
-                />
+                <div className="relative">
+                  <select
+                    value={activeSlide.linkedProductSku || currentLinkedProduct?.sku || ""}
+                    onChange={(e) => handleSelectDatabaseProduct(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border-2 border-[#CBD5E1] bg-white text-xs font-bold text-[#1A1A1A] focus:outline-none focus:border-[#FF6B35] transition shadow-xs cursor-pointer appearance-none"
+                  >
+                    <option value="">-- Elige un producto de la base de datos para este slide --</option>
+                    {filteredProducts.map((p) => (
+                      <option key={p.id || p.sku} value={p.sku}>
+                        [{getCategoryLabel(p.type)}] {p.name} — {formatCLP(p.price)} ({p.sku})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-[#64748B] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                {/* Filtro rapido de busqueda si el catalogo es extenso */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Filtrar lista desplegable por nombre o SKU (ej: Makima, Elden, TCG)..."
+                    className="w-full pl-8 pr-16 py-1.5 rounded-lg border border-[#E2E8F0] bg-white text-[11px] text-[#334155] placeholder-[#94A3B8] focus:outline-none focus:border-[#FF6B35]"
+                  />
+                  {productSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#94A3B8] hover:text-[#1A1A1A] font-bold"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <span className="text-xs font-black text-[#1F3A5F] block">
-                  Botón Secundario (CTA Oscuro)
-                </span>
-                <input
-                  type="text"
-                  value={activeSlide.secondaryCtaText || ""}
-                  onChange={(e) => updateActiveSlide("secondaryCtaText", e.target.value)}
-                  placeholder="Texto del botón"
-                  className="w-full px-3 py-2 rounded-lg border border-[#E5E5E5] text-xs font-semibold"
-                />
-                <input
-                  type="text"
-                  value={activeSlide.secondaryCtaHref || ""}
-                  onChange={(e) => updateActiveSlide("secondaryCtaHref", e.target.value)}
-                  placeholder="Enlace (ej: /catalog)"
-                  className="w-full px-3 py-2 rounded-lg border border-[#E5E5E5] text-xs font-mono"
-                />
-              </div>
-            </div>
+              {/* Tarjeta de Producto Vinculado Actual */}
+              {currentLinkedProduct ? (
+                <div className="p-3.5 bg-white rounded-xl border border-emerald-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-14 h-14 rounded-lg bg-gray-50 border border-[#E2E8F0] overflow-hidden shrink-0 p-1 flex items-center justify-center">
+                      <img
+                        src={currentLinkedProduct.imageUrl || (currentLinkedProduct.images && currentLinkedProduct.images[0]) || activeSlide.image}
+                        alt={currentLinkedProduct.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#1F3A5F]/10 text-[#1F3A5F]">
+                          {getCategoryLabel(currentLinkedProduct.type)}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-[#64748B]">
+                          SKU: {currentLinkedProduct.sku}
+                        </span>
+                      </div>
+                      <h5 className="text-xs font-black text-[#1A1A1A] truncate mt-0.5" title={currentLinkedProduct.name}>
+                        {currentLinkedProduct.name}
+                      </h5>
+                      <div className="text-xs font-black text-[#FF6B35]">
+                        {formatCLP(currentLinkedProduct.price)}
+                        {currentLinkedProduct.isPreOrder && (
+                          <span className="text-[10px] font-bold text-amber-700 ml-1.5">
+                            (Preventa abierta)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Sub-grid: Badge de Producto y Precio en la Card Flotante */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0F0F0]">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#1A1A1A]">
-                  Nombre de Producto en la Card Flotante
-                </label>
-                <input
-                  type="text"
-                  value={activeSlide.productBadge || ""}
-                  onChange={(e) => updateActiveSlide("productBadge", e.target.value)}
-                  placeholder="ej: Makima 1/7 Scale PVC • Good Smile"
-                  className="w-full px-3 py-2 rounded-lg border border-[#E5E5E5] text-xs font-semibold"
-                />
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Vinculado a BD
+                    </span>
+                    <Link
+                      href={`/product/${(currentLinkedProduct.sku || currentLinkedProduct.id).toLowerCase()}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1F3A5F] hover:text-[#FF6B35] bg-gray-50 hover:bg-gray-100 border border-[#E2E8F0] px-2.5 py-1 rounded-lg transition"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Ver en tienda
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-800 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>No hay un producto vinculado directamente a este slide. Selecciona uno en el menú superior para sincronizarlo.</span>
+                </div>
+              )}
+
+              {/* Botones de Llamado a la Acción (CTA) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#E2E8F0]">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-black text-[#FF6B35] flex items-center justify-between">
+                    <span>Botón Principal (CTA Naranja)</span>
+                    <span className="text-[10px] font-bold text-[#64748B]">Lleva al producto</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={activeSlide.primaryCtaText || ""}
+                    onChange={(e) => updateActiveSlide("primaryCtaText", e.target.value)}
+                    placeholder="Texto del botón (ej: Ver Preventa / Comprar Ahora)"
+                    className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-semibold bg-white"
+                  />
+                  <input
+                    type="text"
+                    value={activeSlide.primaryCtaHref || ""}
+                    onChange={(e) => updateActiveSlide("primaryCtaHref", e.target.value)}
+                    placeholder="Enlace (ej: /product/fig-makima-17)"
+                    className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-xs font-black text-[#1F3A5F] flex items-center justify-between">
+                    <span>Botón Secundario (CTA Oscuro)</span>
+                    <span className="text-[10px] font-bold text-[#64748B]">Enlace general</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={activeSlide.secondaryCtaText || ""}
+                    onChange={(e) => updateActiveSlide("secondaryCtaText", e.target.value)}
+                    placeholder="Texto del botón (ej: Explorar Catálogo)"
+                    className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-semibold bg-white"
+                  />
+                  <input
+                    type="text"
+                    value={activeSlide.secondaryCtaHref || ""}
+                    onChange={(e) => updateActiveSlide("secondaryCtaHref", e.target.value)}
+                    placeholder="Enlace (ej: /catalog)"
+                    className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono bg-white"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#1A1A1A]">
-                  Precio o Condición en la Card
-                </label>
-                <input
-                  type="text"
-                  value={activeSlide.productPrice || ""}
-                  onChange={(e) => updateActiveSlide("productPrice", e.target.value)}
-                  placeholder="ej: Pie Inicial: $ 49.998 CLP"
-                  className="w-full px-3 py-2 rounded-lg border border-[#E5E5E5] text-xs font-semibold"
-                />
+              {/* Acordeón / Opciones Avanzadas de Personalización */}
+              <div className="pt-2 border-t border-[#E2E8F0]">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedOverrides(!showAdvancedOverrides)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white hover:bg-gray-50 border border-[#CBD5E1] text-xs font-bold text-[#1F3A5F] transition"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF6B35]" />
+                    Personalización manual de Imagen, Nombre y Precio
+                  </span>
+                  <span className="text-[11px] text-[#64748B] flex items-center gap-1">
+                    {showAdvancedOverrides ? "Ocultar campos manuales" : "Mostrar campos manuales"}
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvancedOverrides ? "rotate-180" : ""}`} />
+                  </span>
+                </button>
+
+                {showAdvancedOverrides && (
+                  <div className="mt-3 p-3.5 bg-white rounded-xl border border-[#CBD5E1] space-y-3">
+                    <p className="text-[11px] text-[#64748B] leading-relaxed">
+                      Estos valores se auto-rellenan al seleccionar un producto del catálogo, pero aquí puedes modificarlos libremente si deseas un texto promocional personalizado o una URL de banner de arte horizontal.
+                    </p>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#1A1A1A] flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#1F3A5F]" />
+                        URL de la Imagen Principal del Banner
+                      </label>
+                      <input
+                        type="url"
+                        value={activeSlide.image || ""}
+                        onChange={(e) => updateActiveSlide("image", e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono text-[#1A1A1A] focus:outline-none focus:border-[#FF6B35]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#1A1A1A]">
+                          Nombre de Producto en la Card Flotante
+                        </label>
+                        <input
+                          type="text"
+                          value={activeSlide.productBadge || ""}
+                          onChange={(e) => updateActiveSlide("productBadge", e.target.value)}
+                          placeholder="ej: Makima 1/7 Scale PVC • Good Smile"
+                          className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#1A1A1A]">
+                          Precio o Condición en la Card
+                        </label>
+                        <input
+                          type="text"
+                          value={activeSlide.productPrice || ""}
+                          onChange={(e) => updateActiveSlide("productPrice", e.target.value)}
+                          placeholder="ej: Pie Inicial: $ 49.998 CLP"
+                          className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-semibold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

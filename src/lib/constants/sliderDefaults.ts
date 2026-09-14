@@ -14,6 +14,7 @@ export interface PromoSlideData {
   image: string;
   highlights: string[];
   gradient?: string;
+  linkedProductSku?: string;
 }
 
 export const DEFAULT_PROMO_SLIDES: PromoSlideData[] = [

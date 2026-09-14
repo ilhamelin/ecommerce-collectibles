@@ -59,6 +59,23 @@ export function CartDrawer() {
   } | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
+  // 15-minute reservation countdown timer for unique collector items
+  const [timeLeft, setTimeLeft] = useState(15 * 60);
+
+  React.useEffect(() => {
+    if (!isOpen || items.length === 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 15 * 60));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, items.length]);
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
   if (!isOpen) return null;
 
   const handleApplyCoupon = (e: React.FormEvent) => {
@@ -219,6 +236,44 @@ export function CartDrawer() {
                 <p className="text-xs text-[#666666] max-w-xs">
                   Revisa nuestro catálogo con figuras de Japón, videojuegos físicos y bundles con ahorro real.
                 </p>
+              </div>
+            )}
+
+            {/* Live TTL Stock Reservation Countdown Banner */}
+            {items.length > 0 && (
+              <div className="p-3 rounded-2xl bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 border border-orange-200/80 flex items-center justify-between text-xs shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF6B35] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF6B35]"></span>
+                  </span>
+                  <div>
+                    <span className="text-[11px] font-black text-[#1A1A1A] block">
+                      Stock Reservado en Carro:
+                    </span>
+                    <span className="text-[10px] text-[#666666]">
+                      Cupo bloqueado exclusivamente para ti
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 font-mono font-black text-[#FF6B35] bg-white px-2.5 py-1 rounded-lg border border-orange-200 shadow-xs">
+                  <Clock className="w-3.5 h-3.5 text-[#FF6B35]" />
+                  <span>{formatTimer(timeLeft)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Collector Packaging Trust Pill */}
+            {items.length > 0 && (
+              <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 flex items-center justify-between text-[11px] text-emerald-900 shadow-2xs">
+                <span className="flex items-center gap-1.5 font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Empaque Blindado 4 Capas Incluido
+                </span>
+                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">
+                  Caja Mint 10/10
+                </span>
               </div>
             )}
 

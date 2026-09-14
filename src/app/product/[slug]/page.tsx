@@ -24,9 +24,15 @@ import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { BASE_PRODUCTS } from "@/lib/constants/catalog";
-import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
 import { RelatedProductsSlider } from "@/components/catalog/RelatedProductsSlider";
 import { analytics } from "@/lib/services/AnalyticsTracker";
+import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
+import { HolographicCard } from "@/components/catalog/HolographicCard";
+import { InspectionZoom } from "@/components/product/InspectionZoom";
+import { CertificateVerifierModal } from "@/components/product/CertificateVerifierModal";
+import { InstallmentCalculator } from "@/components/product/InstallmentCalculator";
+import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
+import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
@@ -102,6 +108,7 @@ export default function ProductDetailPage() {
 
   const isPreOrder = Boolean(product.isPreOrder);
   const isBundle = product.type === "BUNDLE";
+  const isCollectible = product.type === "COLLECTIBLE";
   const isLiked = isProductWishlisted(product.id);
 
   const productImages: string[] =
@@ -489,26 +496,19 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN: Cover Image, Age Badge, Warranty, WhatsApp, Tags */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Main Cover Box */}
-          <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] p-3 shadow-sm">
-            <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-[#F7F7F5] border border-[#E5E5E5] flex items-center justify-center group">
-              {productImages.length > 0 ? (
-                <img
-                  src={productImages[selectedImageIndex] || productImages[0]}
-                  alt={product.name}
-                  className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                />
-              ) : (
-                <div className="text-center p-6 space-y-2">
-                  <Package className="w-12 h-12 text-[#666666] mx-auto opacity-40" />
-                  <span className="text-xs text-[#666666] block">Imagen oficial de portada</span>
-                </div>
-              )}
-            </div>
+          {/* Main Cover Box with Inspection Zoom and 3D Hologram */}
+          <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] p-3 shadow-sm space-y-3">
+            <HolographicCard isCollectible={isCollectible}>
+              <InspectionZoom
+                imageUrl={productImages[selectedImageIndex] || productImages[0] || product.imageUrl || ""}
+                alt={product.name}
+                isCollectible={isCollectible}
+              />
+            </HolographicCard>
 
             {/* Sub-thumbnails */}
             {productImages.length > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto pt-3 pb-1">
+              <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1">
                 {productImages.map((img: string, idx: number) => (
                   <button
                     key={idx}
@@ -526,6 +526,18 @@ export default function ProductDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Official Certificate Verifier Modal (for collectibles) */}
+          {product.collectibleMetadata && (
+            <CertificateVerifierModal
+              productName={product.name}
+              sku={product.sku}
+              metadata={product.collectibleMetadata}
+            />
+          )}
+
+          {/* Mint Collector Packaging Seal */}
+          <MintPackagingBadge />
 
           {/* Age Rating Official Badge */}
           <div className="bg-white text-black rounded-lg border-2 border-slate-900 shadow-sm flex items-stretch overflow-hidden">
@@ -711,6 +723,16 @@ export default function ProductDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Chilean Installments & Pre-order Milestones Calculator */}
+          <InstallmentCalculator
+            price={product.price}
+            isPreOrder={isPreOrder}
+            depositPercent={defaultDepositPercent}
+          />
+
+          {/* National Shipping Calculator by Region and Comuna */}
+          <ShippingCalculator />
 
           {/* Official YouTube Trailer Player */}
           <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] shadow-sm space-y-2 p-3">

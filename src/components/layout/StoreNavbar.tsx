@@ -18,10 +18,16 @@ import {
   Heart,
   Cpu,
   Headphones,
+  Flame,
+  Shield,
+  Crown,
+  Zap,
+  Star,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP } from "@/lib/utils/currency";
+import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
 
 function StoreNavbarContent() {
   const pathname = usePathname();
@@ -40,8 +46,25 @@ function StoreNavbarContent() {
       : guestWishlist?.length || 0
     : 0;
 
+  const [branding, setBranding] = useState<StoreBrandingData>(DEFAULT_BRANDING_DATA);
+
   useEffect(() => {
     setMounted(true);
+    // Fetch live branding settings
+    fetch("/api/admin/branding")
+      .then((res) => {
+        if (!res.ok) throw new Error("Branding fetch failed");
+        return res.json();
+      })
+      .then((data) => {
+        const brand = data?.data?.branding || data?.branding;
+        if (brand) {
+          setBranding(brand);
+        }
+      })
+      .catch(() => {
+        // Fallback to default
+      });
   }, []);
 
   if (pathname?.startsWith("/admin")) {
@@ -148,15 +171,46 @@ function StoreNavbarContent() {
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#1F3A5F] flex items-center justify-center shadow-md shadow-[#1F3A5F]/20 group-hover:scale-105 transition">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            {branding.logoMode === "image" && branding.logoImageUrl ? (
+              <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-md flex items-center justify-center bg-white group-hover:scale-105 transition">
+                <img
+                  src={branding.logoImageUrl}
+                  alt={`${branding.titlePrefix} ${branding.titleHighlight}`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <div
+                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${
+                  branding.logoBgGradient || "from-[#FF6B35] to-[#1F3A5F]"
+                } flex items-center justify-center shadow-md shadow-[#1F3A5F]/20 group-hover:scale-105 transition`}
+              >
+                {branding.logoIcon === "Flame" ? (
+                  <Flame className="w-5 h-5 text-white" />
+                ) : branding.logoIcon === "Gamepad2" ? (
+                  <Gamepad2 className="w-5 h-5 text-white" />
+                ) : branding.logoIcon === "Trophy" ? (
+                  <Trophy className="w-5 h-5 text-white" />
+                ) : branding.logoIcon === "Shield" ? (
+                  <Shield className="w-5 h-5 text-white" />
+                ) : branding.logoIcon === "Crown" ? (
+                  <Crown className="w-5 h-5 text-white" />
+                ) : branding.logoIcon === "Zap" ? (
+                  <Zap className="w-5 h-5 text-white" />
+                ) : branding.logoIcon === "Star" ? (
+                  <Star className="w-5 h-5 text-white" />
+                ) : (
+                  <Sparkles className="w-5 h-5 text-white" />
+                )}
+              </div>
+            )}
             <div>
               <span className="text-xl font-black tracking-tight text-[#1F3A5F]">
-                OMNI<span className="text-[#FF6B35]">COLLECTOR</span>
+                {branding.titlePrefix || "OMNI"}
+                <span className="text-[#FF6B35]">{branding.titleHighlight || "COLLECTOR"}</span>
               </span>
               <span className="block text-[10px] uppercase tracking-widest text-[#666666] font-medium">
-                Chile • Nicho Coleccionista
+                {branding.subtitle || "Chile • Nicho Coleccionista"}
               </span>
             </div>
           </Link>

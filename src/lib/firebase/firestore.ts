@@ -850,3 +850,61 @@ export async function saveSliderSettingsToFirestore(slides: any[]): Promise<bool
   }
 }
 
+/**
+ * ============================================================================
+ * STORE BRANDING SETTINGS (Logo, Title, Subtitle)
+ * ============================================================================
+ */
+export async function getBrandingSettingsFromFirestore(): Promise<any | null> {
+  try {
+    if (typeof window === "undefined" && adminDb) {
+      const docSnap = await adminDb.collection(COLLECTIONS.BRANDING_SETTINGS).doc("main_brand").get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data && data.branding) {
+          return data.branding;
+        }
+      }
+    }
+
+    if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.BRANDING_SETTINGS, "main_brand"));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && data.branding) {
+          return data.branding;
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("[Firestore] Error fetching branding settings:", err);
+    return null;
+  }
+}
+
+export async function saveBrandingSettingsToFirestore(branding: any): Promise<boolean> {
+  try {
+    const payload = {
+      branding: cleanFirestoreData(branding),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb.collection(COLLECTIONS.BRANDING_SETTINGS).doc("main_brand").set(payload, { merge: true });
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.BRANDING_SETTINGS, "main_brand"), payload, { merge: true });
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.warn("[Firestore] Error saving branding settings:", err);
+    return false;
+  }
+}
+

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,6 +13,9 @@ import {
   Sliders,
   LayoutDashboard,
   Users,
+  ChevronDown,
+  Palette,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -21,6 +24,19 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isVisualMenuOpen, setIsVisualMenuOpen] = useState(false);
+  const visualMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (visualMenuRef.current && !visualMenuRef.current.contains(e.target as Node)) {
+        setIsVisualMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const navItems = [
     {
@@ -47,12 +63,11 @@ export default function AdminLayout({
       icon: ShoppingBag,
       active: pathname === "/admin/orders",
     },
-    {
-      href: "/admin/slider",
-      label: "Slider Portada",
-      icon: Sparkles,
-      active: pathname === "/admin/slider",
-    },
+  ];
+
+  const isVisualActive = pathname.startsWith("/admin/slider") || pathname.startsWith("/admin/branding");
+
+  const otherNavItems = [
     {
       href: "/admin/users",
       label: "Usuarios & Clientes",
@@ -87,6 +102,104 @@ export default function AdminLayout({
             {/* Navigation Modules Tabs */}
             <nav className="flex items-center gap-1.5 sm:gap-2">
               {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition ${
+                      item.active
+                        ? "bg-[#FF6B35] text-white shadow-sm"
+                        : "text-white/80 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden md:inline">{item.label}</span>
+                  </Link>
+                );
+              })}
+
+              {/* Dropdown Menu: Slider & Portada / Logotipo */}
+              <div className="relative" ref={visualMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsVisualMenuOpen(!isVisualMenuOpen)}
+                  onMouseEnter={() => setIsVisualMenuOpen(true)}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isVisualActive
+                      ? "bg-[#FF6B35] text-white shadow-sm"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  }`}
+                  aria-expanded={isVisualMenuOpen}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden md:inline">Slider Portada</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isVisualMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isVisualMenuOpen && (
+                  <div
+                    onMouseLeave={() => setIsVisualMenuOpen(false)}
+                    className="absolute left-0 mt-1.5 w-64 rounded-2xl bg-white text-[#1A1A1A] border border-[#E5E5E5] shadow-xl p-2 space-y-1 z-50 animate-in fade-in-50 zoom-in-95 duration-150"
+                  >
+                    <div className="px-3 py-1.5 border-b border-[#F0F0F0]">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
+                        Personalización Visual
+                      </span>
+                    </div>
+
+                    <Link
+                      href="/admin/slider"
+                      onClick={() => setIsVisualMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/slider"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] shrink-0 mt-0.5">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Slider de Portada
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Carrusel, promociones y productos de la base de datos
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/branding"
+                      onClick={() => setIsVisualMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/branding"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#1F3A5F]/10 text-[#1F3A5F] shrink-0 mt-0.5">
+                        <Palette className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Logotipo & Identidad
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Modificar imagen/icono, título y subtítulo
+                        </span>
+                      </div>
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {otherNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link

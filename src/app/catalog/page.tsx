@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Filter,
@@ -19,6 +19,8 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Tv,
   Headphones,
   Shirt,
@@ -110,6 +112,11 @@ function CatalogContent() {
   const [scaleFilter, setScaleFilter] = useState<string>("ALL");
   const [conditionFilter, setConditionFilter] = useState<string>("ALL");
 
+  // Pagination State (Up to 22 products per page)
+  const ITEMS_PER_PAGE = 22;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const catalogGridRef = useRef<HTMLDivElement>(null);
+
   // Mobile drawer toggle
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -137,6 +144,7 @@ function CatalogContent() {
 
   const handleCategoryChange = (categoryKey: string) => {
     setSelectedCategory(categoryKey);
+    setCurrentPage(1);
     if (categoryKey === "ALL") {
       router.replace("/catalog", { scroll: false });
     } else {
@@ -199,6 +207,7 @@ function CatalogContent() {
     setScaleFilter("ALL");
     setConditionFilter("ALL");
     setSearchQuery("");
+    setCurrentPage(1);
     router.replace("/catalog", { scroll: false });
   };
 
@@ -406,6 +415,40 @@ function CatalogContent() {
     conditionFilter,
     sortBy,
   ]);
+
+  // Reset page when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    selectedCategory,
+    searchQuery,
+    minPrice,
+    maxPrice,
+    stockFilter,
+    platformFilter,
+    scaleFilter,
+    conditionFilter,
+    sortBy,
+  ]);
+
+  // Pagination computations
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, startIndex, endIndex]);
+
+  const handlePageChange = (newPage: number) => {
+    const targetPage = Math.min(Math.max(1, newPage), totalPages);
+    setCurrentPage(targetPage);
+    if (catalogGridRef.current) {
+      catalogGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   // Filter Sidebar Content (Shared between Desktop and Mobile Drawer)
   const renderSidebarFilters = () => (
@@ -847,8 +890,19 @@ function CatalogContent() {
           {/* Active Filters Badges Bar & Results Count */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-[#E5E5E5] text-xs shadow-sm">
             <div className="text-[#666666]">
-              Mostrando <span className="text-[#1A1A1A] font-bold">{filteredProducts.length}</span> de{" "}
-              <span className="text-[#1A1A1A] font-bold">{products.length}</span> productos
+              {totalItems > 0 ? (
+                <>
+                  Mostrando <span className="text-[#1A1A1A] font-bold">{startIndex + 1} - {endIndex}</span> de{" "}
+                  <span className="text-[#1A1A1A] font-bold">{totalItems}</span> productos
+                  {totalPages > 1 && (
+                    <span className="ml-1.5 text-xs text-[#FF6B35] font-semibold">
+                      (Pág. {safePage} de {totalPages})
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>0 productos encontrados</>
+              )}
             </div>
 
             {activeFiltersCount > 0 && (
@@ -929,27 +983,81 @@ function CatalogContent() {
           </div>
 
           {/* Product Grid */}
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.sku} product={product} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-white rounded-2xl border border-[#E5E5E5] space-y-3 shadow-sm">
-              <Filter className="w-10 h-10 text-[#666666] mx-auto opacity-70" />
-              <h3 className="text-[#1A1A1A] font-bold text-base">No se encontraron productos</h3>
-              <p className="text-xs text-[#666666] max-w-sm mx-auto">
-                No hay artículos que coincidan con la combinación de filtros aplicada en el catálogo.
-              </p>
-              <button
-                onClick={resetAllFilters}
-                className="text-xs px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-bold transition shadow-md shadow-[#FF6B35]/20"
-              >
-                Limpiar Todos los Filtros
-              </button>
-            </div>
-          )}
+          <div ref={catalogGridRef} className="scroll-mt-6">
+            {paginatedProducts.length > 0 ? (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6">
+                  {paginatedProducts.map((product) => (
+                    <ProductCard key={product.sku} product={product} />
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#E5E5E5]">
+                    <div className="text-xs text-[#666666]">
+                      Página <span className="font-bold text-[#1A1A1A]">{safePage}</span> de{" "}
+                      <span className="font-bold text-[#1A1A1A]">{totalPages}</span> (máximo 22 productos por página)
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={safePage <= 1}
+                        onClick={() => handlePageChange(safePage - 1)}
+                        className="px-3 py-2 rounded-xl text-xs font-bold border border-[#E5E5E5] bg-white text-[#1A1A1A] hover:border-[#FF6B35] hover:text-[#FF6B35] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-xs"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Anterior</span>
+                      </button>
+
+                      {/* Numeric Page Buttons */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`w-9 h-9 rounded-xl text-xs font-bold transition flex items-center justify-center ${
+                              safePage === pageNum
+                                ? "bg-[#1F3A5F] text-white shadow-md shadow-[#1F3A5F]/20"
+                                : "bg-white border border-[#E5E5E5] text-[#666666] hover:text-[#1A1A1A] hover:border-slate-400"
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => handlePageChange(safePage + 1)}
+                        className="px-3 py-2 rounded-xl text-xs font-bold border border-[#E5E5E5] bg-white text-[#1A1A1A] hover:border-[#FF6B35] hover:text-[#FF6B35] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-xs"
+                      >
+                        <span>Siguiente</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-2xl border border-[#E5E5E5] space-y-3 shadow-sm">
+                <Filter className="w-10 h-10 text-[#666666] mx-auto opacity-70" />
+                <h3 className="text-[#1A1A1A] font-bold text-base">No se encontraron productos</h3>
+                <p className="text-xs text-[#666666] max-w-sm mx-auto">
+                  No hay artículos que coincidan con la combinación de filtros aplicada en el catálogo.
+                </p>
+                <button
+                  onClick={resetAllFilters}
+                  className="text-xs px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-bold transition shadow-md shadow-[#FF6B35]/20"
+                >
+                  Limpiar Todos los Filtros
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

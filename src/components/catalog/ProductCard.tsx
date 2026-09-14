@@ -130,14 +130,13 @@ export function ProductCard({ product }: ProductCardProps) {
       )}
 
       <div>
-        {/* Product Image Cover (Always Guaranteed) */}
-        <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-[#F7F7F5] border-b border-[#E5E5E5]">
+        {/* Product Image Cover (Full Uncropped Display) */}
+        <div className="relative w-full h-56 sm:h-64 overflow-hidden bg-white sm:bg-[#FAFAFA] border-b border-[#E5E5E5] flex items-center justify-center p-3">
           <img
             src={finalImage}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-60 pointer-events-none" />
           {isCollectible && (
             <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/15 via-amber-300/20 to-cyan-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-color-dodge" />
           )}

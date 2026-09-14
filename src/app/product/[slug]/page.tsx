@@ -31,6 +31,7 @@ import { HolographicCard } from "@/components/catalog/HolographicCard";
 import { InspectionZoom } from "@/components/product/InspectionZoom";
 import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
 import { ProductAlertSubscription } from "@/components/product/ProductAlertSubscription";
+import { SmartBundleCard } from "@/components/product/SmartBundleCard";
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
@@ -836,8 +837,11 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* LOWER SECTION: Narrative Story & In-Game Screenshot Gallery */}
+      {/* LOWER SECTION: Smart AI Bundle, Narrative Story & In-Game Screenshot Gallery */}
       <div className="space-y-8 pt-6 border-t border-[#E5E5E5]">
+        {/* Smart AI Bundle Suggestion with 1-Click Buy */}
+        <SmartBundleCard currentProduct={product} />
+
         {/* Narrative Description & Game Lore */}
         <div className="p-6 sm:p-8 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm space-y-4">
           <h2 className="text-lg font-bold text-[#1A1A1A] tracking-tight flex items-center gap-2">

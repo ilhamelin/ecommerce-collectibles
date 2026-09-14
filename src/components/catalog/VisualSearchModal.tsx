@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   Camera,
@@ -12,8 +12,13 @@ import {
   Loader2,
   Tag,
   AlertCircle,
+  PackagePlus,
+  Check,
+  Send,
+  HelpCircle,
 } from "lucide-react";
 import { formatCLP } from "@/lib/utils/currency";
+import { useAuthStore } from "@/lib/store/authStore";
 
 interface VisualSearchModalProps {
   isOpen: boolean;
@@ -26,12 +31,28 @@ export function VisualSearchModal({
   onClose,
   onApplySearch,
 }: VisualSearchModalProps) {
+  const { currentUser, isAuthenticated } = useAuthStore();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("image/jpeg");
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Purchase intent / product request state
+  const [requestEmail, setRequestEmail] = useState("");
+  const [requestName, setRequestName] = useState("");
+  const [requestNotes, setRequestNotes] = useState("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.email) {
+      setRequestEmail(currentUser.email);
+      setRequestName(currentUser.fullName || currentUser.email.split("@")[0]);
+    }
+  }, [isAuthenticated, currentUser]);
 
   if (!isOpen) return null;
 
@@ -55,6 +76,8 @@ export function VisualSearchModal({
 
     setErrorMessage(null);
     setResult(null);
+    setRequestSuccess(false);
+    setRequestError(null);
     setMimeType(file.type);
 
     const reader = new FileReader();
@@ -79,6 +102,8 @@ export function VisualSearchModal({
 
     setIsScanning(true);
     setErrorMessage(null);
+    setRequestSuccess(false);
+    setRequestError(null);
 
     try {
       const res = await fetch("/api/catalog/visual-search", {
@@ -103,10 +128,56 @@ export function VisualSearchModal({
     }
   };
 
+  const handleSubmitPurchaseWish = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!result?.analysis) return;
+
+    const emailToSend = isAuthenticated && currentUser?.email ? currentUser.email : requestEmail.trim();
+    if (!emailToSend || !emailToSend.includes("@")) {
+      setRequestError("Por favor ingresa un correo electrónico válido para avisarte.");
+      return;
+    }
+
+    setIsSubmittingRequest(true);
+    setRequestError(null);
+
+    try {
+      const res = await fetch("/api/catalog/product-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: result.analysis.itemOrCharacter || "Coleccionable Solicitado",
+          franchise: result.analysis.franchise,
+          category: result.analysis.suggestedCategory,
+          userEmail: emailToSend,
+          userName: requestName.trim() || (isAuthenticated ? currentUser?.fullName : "Cliente Interesado"),
+          userId: currentUser?.id || null,
+          imageUrl: selectedImage,
+          aiSummary: result.analysis.summary,
+          confidenceScore: result.analysis.confidenceScore,
+          userNotes: requestNotes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRequestSuccess(true);
+      } else {
+        setRequestError(data.error || "No se pudo registrar la solicitud.");
+      }
+    } catch (err) {
+      setRequestError("Error de conexión al enviar tu deseo de compra.");
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
+
   const handleReset = () => {
     setSelectedImage(null);
     setResult(null);
     setErrorMessage(null);
+    setRequestSuccess(false);
+    setRequestError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -279,6 +350,107 @@ export function VisualSearchModal({
                     <Search className="w-3.5 h-3.5 text-[#FF6B35]" />
                     <span>Filtrar todo el catálogo con esta búsqueda</span>
                   </button>
+                )}
+              </div>
+
+              {/* Solicitud de Producto / Deseo de Compra si no está en inventario */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1F3A5F]/5 via-amber-500/5 to-[#FF6B35]/10 border-2 border-dashed border-[#FF6B35]/40 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-[#FF6B35]/15 text-[#FF6B35] shrink-0 mt-0.5">
+                    <PackagePlus className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="text-xs font-black text-[#1F3A5F] tracking-tight">
+                        ¿No encuentras este juego o no está en el catálogo?
+                      </h4>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
+                        Petición de Catálogo
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#555555]">
+                      Notifica a OmniCollector tu deseo de comprar <strong>{result.analysis.itemOrCharacter || "este coleccionable"}</strong> para tomarlo como un futuro producto a agregar al inventario o importarlo bajo pedido.
+                    </p>
+                  </div>
+                </div>
+
+                {requestSuccess ? (
+                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs space-y-1.5 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 font-bold text-emerald-800">
+                      <span className="p-1 rounded-full bg-emerald-600 text-white shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                      <span>¡Deseo de compra registrado con éxito!</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700 leading-relaxed">
+                      Tu solicitud ha sido enviada directamente al equipo de compras en el <strong>Centro de Control</strong>. Te avisaremos formalmente por correo electrónico cuando este producto sea añadido o tengamos novedades de importación.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitPurchaseWish} className="space-y-2.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-[#666666] block mb-1">
+                          Tu Correo de Contacto {isAuthenticated ? "(Cuenta Activa)" : ""}
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={requestEmail}
+                          onChange={(e) => setRequestEmail(e.target.value)}
+                          placeholder="ej. coleccionista@gmail.com"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-[#666666] block mb-1">
+                          Tu Nombre o Alias
+                        </label>
+                        <input
+                          type="text"
+                          value={requestName}
+                          onChange={(e) => setRequestName(e.target.value)}
+                          placeholder="ej. Benjamín"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-[#666666] block mb-1">
+                        Comentarios o Preferencia (Opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={requestNotes}
+                        onChange={(e) => setRequestNotes(e.target.value)}
+                        placeholder="ej. Busco edición física estándar para PS5 sellada, o edición especial..."
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-[#1A1A1A] placeholder-slate-400 focus:outline-none focus:border-[#FF6B35] shadow-xs"
+                      />
+                    </div>
+
+                    {requestError && (
+                      <p className="text-[11px] text-red-600 font-medium">{requestError}</p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingRequest}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-bold transition shadow-sm disabled:opacity-50"
+                    >
+                      {isSubmittingRequest ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Enviando notificación al Centro de Control...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Notificar deseo de compra a OmniCollector (Futuro Producto)</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
                 )}
               </div>
 

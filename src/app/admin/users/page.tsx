@@ -29,6 +29,12 @@ import {
   Clock,
   AlertTriangle,
   Filter,
+  PackagePlus,
+  PackageSearch,
+  Check,
+  X,
+  PlusCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAuthStore, UserAccount } from "@/lib/store/authStore";
 
@@ -46,6 +52,24 @@ interface ProductAlertRecord {
   isGuest: boolean;
   alertType: "STOCK_AVAILABLE" | "PRICE_DROP" | "BOTH";
   isOutOfStock: boolean;
+  createdAt: string;
+  active: boolean;
+}
+
+interface ProductRequestRecord {
+  id: string;
+  title: string;
+  franchise?: string;
+  category?: string;
+  userEmail: string;
+  userName: string;
+  userId?: string | null;
+  isGuest: boolean;
+  imageUrl?: string;
+  aiSummary?: string;
+  confidenceScore?: number;
+  userNotes?: string;
+  status: "PENDING" | "REVIEWING" | "ADDED" | "DISMISSED";
   createdAt: string;
   active: boolean;
 }
@@ -71,12 +95,23 @@ export default function AdminUsersAnalyticsPage() {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<ProductAlertRecord[]>([]);
+  const [productRequests, setProductRequests] = useState<ProductRequestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"USERS" | "ATTRACTION" | "ALERTS">("USERS");
+  const [activeTab, setActiveTab] = useState<"USERS" | "ATTRACTION" | "ALERTS" | "REQUESTS">("USERS");
   const [alertFilter, setAlertFilter] = useState<"ALL" | "GUEST" | "REGISTERED" | "OUT_OF_STOCK" | "PRICE_DROP">("ALL");
   const [alertSearchQuery, setAlertSearchQuery] = useState("");
   const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
+
+  // Requests Tab Filter & State
+  const [requestFilter, setRequestFilter] = useState<"ALL" | "PENDING" | "REVIEWING" | "ADDED">("ALL");
+  const [requestSearchQuery, setRequestSearchQuery] = useState("");
+  const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
+
+  // Floating Toast Notification state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"SUCCESS" | "INFO">("SUCCESS");
 
   // Analytics data
   const [summary, setSummary] = useState({
@@ -125,6 +160,13 @@ export default function AdminUsersAnalyticsPage() {
       const alertsJson = await alertsRes.json();
       if (alertsJson.success && Array.isArray(alertsJson.data?.alerts)) {
         setAlerts(alertsJson.data.alerts);
+      }
+
+      // 5. Fetch Visual Search Product Requests
+      const requestsRes = await fetch("/api/admin/product-requests");
+      const requestsJson = await requestsRes.json();
+      if (requestsJson.success && Array.isArray(requestsJson.data?.requests)) {
+        setProductRequests(requestsJson.data.requests);
       }
     } catch (err) {
       console.error("Error loading admin users analytics:", err);
@@ -191,7 +233,7 @@ export default function AdminUsersAnalyticsPage() {
     });
   }, [alerts, alertFilter, alertSearchQuery]);
 
-  // Delete alert handler
+  // Delete alert handler with floating toast notification
   const handleDeleteAlert = async (id: string) => {
     if (!confirm("¿Estás seguro de cancelar y eliminar esta suscripción de alerta de correo?")) return;
     setDeletingAlertId(id);
@@ -200,6 +242,9 @@ export default function AdminUsersAnalyticsPage() {
       const data = await res.json();
       if (data.success) {
         setAlerts((prev) => prev.filter((item) => item.id !== id));
+        setToastMessage("El registro de notificación de stock & ofertas se borró con éxito de la base de datos.");
+        setToastType("SUCCESS");
+        setTimeout(() => setToastMessage(null), 4500);
       } else {
         alert(data.error || "No se pudo eliminar la alerta");
       }
@@ -209,6 +254,82 @@ export default function AdminUsersAnalyticsPage() {
       setDeletingAlertId(null);
     }
   };
+
+  // Product Requests Handlers
+  const handleUpdateStatus = async (id: string, newStatus: ProductRequestRecord["status"]) => {
+    setUpdatingRequestId(id);
+    try {
+      const res = await fetch("/api/admin/product-requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProductRequests((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+        );
+        setToastMessage(`Estado de solicitud actualizado a: ${newStatus}`);
+        setToastType("SUCCESS");
+        setTimeout(() => setToastMessage(null), 3500);
+      }
+    } catch (err) {
+      console.error("Error al actualizar estado:", err);
+    } finally {
+      setUpdatingRequestId(null);
+    }
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    if (!confirm("¿Estás seguro de eliminar esta solicitud de producto?")) return;
+    setDeletingRequestId(id);
+    try {
+      const res = await fetch(`/api/admin/product-requests?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setProductRequests((prev) => prev.filter((r) => r.id !== id));
+        setToastMessage("La solicitud de coleccionable se eliminó con éxito.");
+        setToastType("SUCCESS");
+        setTimeout(() => setToastMessage(null), 4500);
+      } else {
+        alert(data.error || "No se pudo eliminar la solicitud");
+      }
+    } catch (err) {
+      console.error("Error al eliminar solicitud:", err);
+    } finally {
+      setDeletingRequestId(null);
+    }
+  };
+
+  // Filtered Product Requests
+  const filteredRequests = useMemo(() => {
+    return productRequests.filter((r) => {
+      if (requestFilter !== "ALL" && r.status !== requestFilter) return false;
+      if (requestSearchQuery.trim()) {
+        const q = requestSearchQuery.toLowerCase().trim();
+        const matchTitle = r.title?.toLowerCase().includes(q);
+        const matchFranchise = r.franchise?.toLowerCase().includes(q);
+        const matchEmail = r.userEmail?.toLowerCase().includes(q);
+        const matchName = r.userName?.toLowerCase().includes(q);
+        const matchNotes = r.userNotes?.toLowerCase().includes(q);
+        return matchTitle || matchFranchise || matchEmail || matchName || matchNotes;
+      }
+      return true;
+    });
+  }, [productRequests, requestFilter, requestSearchQuery]);
+
+  const pendingRequestsCount = useMemo(
+    () => productRequests.filter((r) => r.status === "PENDING").length,
+    [productRequests]
+  );
+  const reviewingRequestsCount = useMemo(
+    () => productRequests.filter((r) => r.status === "REVIEWING").length,
+    [productRequests]
+  );
+  const addedRequestsCount = useMemo(
+    () => productRequests.filter((r) => r.status === "ADDED").length,
+    [productRequests]
+  );
 
   // Most popular category
   const topCategory = useMemo(() => {
@@ -360,6 +481,23 @@ export default function AdminUsersAnalyticsPage() {
         >
           <Flame className="w-4 h-4 text-[#FF6B35]" />
           Feedback de Atracción & Productos Más Clickeados
+        </button>
+
+        <button
+          onClick={() => setActiveTab("REQUESTS")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shrink-0 ${
+            activeTab === "REQUESTS"
+              ? "bg-[#1F3A5F] text-white shadow-sm"
+              : "text-[#555555] hover:bg-[#E5E5E5]/60 hover:text-[#1A1A1A]"
+          }`}
+        >
+          <PackagePlus className="w-4 h-4 text-[#FF6B35]" />
+          Peticiones de Coleccionables (IA Visual) ({productRequests.length})
+          {pendingRequestsCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-900 text-[10px] font-extrabold">
+              {pendingRequestsCount} nuevos
+            </span>
+          )}
         </button>
       </div>
 
@@ -900,6 +1038,259 @@ export default function AdminUsersAnalyticsPage() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB 4: PRODUCT REQUESTS FROM VISUAL SEARCH (GEMINI VISION) */}
+      {activeTab === "REQUESTS" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Header & Filter Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
+              <input
+                type="text"
+                placeholder="Buscar por juego, anime, personaje o email del usuario..."
+                value={requestSearchQuery}
+                onChange={(e) => setRequestSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-[#1A1A1A] placeholder-[#666666]/60 text-xs focus:outline-none focus:border-[#FF6B35] transition shadow-sm"
+              />
+            </div>
+
+            {/* Status Pills Filter */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <button
+                onClick={() => setRequestFilter("ALL")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
+                  requestFilter === "ALL"
+                    ? "bg-[#1F3A5F] text-white shadow-sm"
+                    : "bg-white border border-[#E5E5E5] text-[#555555] hover:bg-[#F7F7F5]"
+                }`}
+              >
+                Todas ({productRequests.length})
+              </button>
+
+              <button
+                onClick={() => setRequestFilter("PENDING")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                  requestFilter === "PENDING"
+                    ? "bg-amber-500 text-white shadow-sm"
+                    : "bg-white border border-[#E5E5E5] text-amber-700 hover:bg-amber-50"
+                }`}
+              >
+                <Clock className="w-3 h-3" />
+                Pendientes ({pendingRequestsCount})
+              </button>
+
+              <button
+                onClick={() => setRequestFilter("REVIEWING")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                  requestFilter === "REVIEWING"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-white border border-[#E5E5E5] text-blue-700 hover:bg-blue-50"
+                }`}
+              >
+                <Search className="w-3 h-3" />
+                En Análisis ({reviewingRequestsCount})
+              </button>
+
+              <button
+                onClick={() => setRequestFilter("ADDED")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                  requestFilter === "ADDED"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "bg-white border border-[#E5E5E5] text-emerald-700 hover:bg-emerald-50"
+                }`}
+              >
+                <Check className="w-3 h-3" />
+                Agregados ({addedRequestsCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Table Container */}
+          <div className="bg-[#092634] border border-[#004E72]/50 rounded-2xl overflow-hidden shadow-sm space-y-4 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <PackageSearch className="w-5 h-5 text-[#FF6B35]" />
+                  Peticiones de Coleccionables & Deseo de Compra (IA Visual)
+                </h2>
+                <p className="text-xs text-[#9bb5c2]">
+                  Coleccionables y videojuegos identificados por clientes mediante fotos/capturas que no estaban en catálogo.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#004E72]/60 text-[11px] font-bold text-[#9bb5c2] uppercase tracking-wider bg-[#05161f]">
+                    <th className="py-3 px-4">Foto IA</th>
+                    <th className="py-3 px-4">Producto Solicitado (Gemini)</th>
+                    <th className="py-3 px-4">Cliente Interesado</th>
+                    <th className="py-3 px-4">Deseo / Notas del Cliente</th>
+                    <th className="py-3 px-4">Estado</th>
+                    <th className="py-3 px-4">Fecha</th>
+                    <th className="py-3 px-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#004E72]/40 text-xs">
+                  {filteredRequests.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                        No se encontraron solicitudes con los filtros aplicados.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRequests.map((req) => (
+                      <tr key={req.id} className="hover:bg-[#0c3143]/60 transition group">
+                        {/* Thumbnail */}
+                        <td className="py-3.5 px-4">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-900 border border-[#004E72]/60 shrink-0 flex items-center justify-center">
+                            {req.imageUrl ? (
+                              <img src={req.imageUrl} alt={req.title} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                            ) : (
+                              <ImageIcon className="w-5 h-5 text-slate-500" />
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Title & AI */}
+                        <td className="py-3.5 px-4">
+                          <div>
+                            <span className="font-extrabold text-white text-[13px] block">
+                              {req.title}
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {req.franchise && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#FF6B35]/20 text-[#FF6B35] font-bold">
+                                  {req.franchise}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-[#9bb5c2] font-mono">
+                                Certeza: {Math.round((req.confidenceScore || 0.95) * 100)}%
+                              </span>
+                            </div>
+                            {req.aiSummary && (
+                              <p className="text-[11px] text-slate-400 italic line-clamp-1 mt-1">
+                                «{req.aiSummary}»
+                              </p>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Customer */}
+                        <td className="py-3.5 px-4">
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-white block">
+                              {req.userName || "Cliente"}
+                            </span>
+                            <span className="text-[11px] text-[#9bb5c2] font-mono flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-[#FF6B35]" />
+                              {req.userEmail}
+                            </span>
+                            <span
+                              className={`inline-block text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase ${
+                                req.isGuest
+                                  ? "bg-amber-500/20 text-amber-300"
+                                  : "bg-emerald-500/20 text-emerald-300"
+                              }`}
+                            >
+                              {req.isGuest ? "Invitado" : "Registrado"}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* User Notes */}
+                        <td className="py-3.5 px-4">
+                          <div className="max-w-[200px] text-slate-300 text-[11px] leading-relaxed">
+                            {req.userNotes || "Desea adquirir este producto si se agrega a la tienda"}
+                          </div>
+                        </td>
+
+                        {/* Status Select */}
+                        <td className="py-3.5 px-4">
+                          <select
+                            value={req.status}
+                            onChange={(e) => handleUpdateStatus(req.id, e.target.value as any)}
+                            disabled={updatingRequestId === req.id}
+                            className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border focus:outline-none cursor-pointer ${
+                              req.status === "PENDING"
+                                ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                                : req.status === "REVIEWING"
+                                ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                                : req.status === "ADDED"
+                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                : "bg-slate-700 text-slate-300 border-slate-600"
+                            }`}
+                          >
+                            <option value="PENDING" className="bg-[#092634] text-white">Pendiente</option>
+                            <option value="REVIEWING" className="bg-[#092634] text-white">En Análisis</option>
+                            <option value="ADDED" className="bg-[#092634] text-white">Agregado a Catálogo</option>
+                            <option value="DISMISSED" className="bg-[#092634] text-white">Descartado</option>
+                          </select>
+                        </td>
+
+                        {/* Date */}
+                        <td className="py-3.5 px-4 font-mono text-[#9bb5c2] text-[11px]">
+                          {new Date(req.createdAt).toLocaleDateString("es-CL", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/admin/products/new?name=${encodeURIComponent(req.title)}&franchise=${encodeURIComponent(
+                                req.franchise || ""
+                              )}`}
+                              title="Crear ficha de producto en catálogo"
+                              className="px-2.5 py-1.5 rounded-lg bg-[#05161f] border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500 hover:text-white transition flex items-center gap-1 font-bold text-[11px]"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5" />
+                              <span>Crear Producto</span>
+                            </Link>
+
+                            <button
+                              onClick={() => handleDeleteRequest(req.id)}
+                              disabled={deletingRequestId === req.id}
+                              title="Eliminar solicitud"
+                              className="p-1.5 rounded-lg bg-[#05161f] border border-[#004E72]/50 text-[#9bb5c2] hover:text-rose-400 hover:border-rose-500/50 transition disabled:opacity-50"
+                            >
+                              <Trash2 className={`w-3.5 h-3.5 ${deletingRequestId === req.id ? "animate-spin" : ""}`} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification (Acción exitosa / Eliminación de Alertas y Solicitudes) */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3.5 px-5 py-3.5 rounded-2xl bg-[#092634] text-white shadow-2xl border border-emerald-500/60 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+            <Check className="w-4 h-4 stroke-[3]" />
+          </div>
+          <div className="text-xs">
+            <p className="font-extrabold text-white text-[13px] tracking-tight">Acción Completada</p>
+            <p className="text-[11px] text-emerald-200 mt-0.5">{toastMessage}</p>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="ml-3 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>

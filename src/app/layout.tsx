@@ -4,6 +4,8 @@ import { StoreNavbar } from "@/components/layout/StoreNavbar";
 import { StoreFooter } from "@/components/layout/StoreFooter";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 
+import { SommelierChatWidget } from "@/components/chat/SommelierChatWidget";
+
 export const metadata: Metadata = {
   title: "OmniCollector | E-Commerce Especializado en Videojuegos, Figuras & Coleccionables",
   description:
@@ -23,6 +25,7 @@ export default function RootLayout({
           <CartDrawer />
           <main className="flex-1">{children}</main>
         </div>
+        <SommelierChatWidget />
         <StoreFooter />
       </body>
     </html>

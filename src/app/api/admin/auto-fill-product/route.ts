@@ -748,23 +748,22 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 
         const candidateModels = [
           "gemini-flash-latest",
+          "gemini-3.6-flash",
           "gemini-1.5-flash",
-          "gemini-2.0-flash",
-          "gemini-1.5-flash-latest",
-          "gemini-1.5-pro",
+          "gemini-2.5-flash",
         ];
         let geminiRes: Response | null = null;
 
         for (const model of candidateModels) {
           try {
-            // Use header authentication (required for AQ. format keys from Google AI Studio)
+            // Use header authentication (required for Google AI Studio API keys)
             const res = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
               {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  "x-goog-api-key": geminiApiKey,
+                  "X-goog-api-key": geminiApiKey,
                 },
                 body: JSON.stringify({
                   contents: [{ parts: [{ text: prompt }] }],
@@ -781,7 +780,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             } else {
               lastErrorText = await res.text();
               console.warn(`[Auto-Fill API] Model ${model} returned ${res.status}:`, lastErrorText);
-              if (res.status !== 404) {
+              if (res.status !== 404 && res.status !== 503 && res.status !== 429) {
                 break;
               }
             }

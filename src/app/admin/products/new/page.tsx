@@ -174,6 +174,7 @@ export default function NewProductAdminPage() {
   // AI Auto-Fill State
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [autoFillSuccessMsg, setAutoFillSuccessMsg] = useState<string | null>(null);
+  const [aiEngineUsed, setAiEngineUsed] = useState<string | null>(null);
 
   const handleAutoFillWithAI = async () => {
     if (!name.trim()) {
@@ -238,7 +239,8 @@ export default function NewProductAdminPage() {
       if (d.genres) setGenresInput(d.genres);
 
       // Category-specific specs
-      if (chosenType === "FIGURE" && d.figureSpecs) {
+      const targetCategoryType = chosenType || d.type;
+      if (targetCategoryType === "FIGURE" && d.figureSpecs) {
         if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
         if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
         if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
@@ -247,7 +249,7 @@ export default function NewProductAdminPage() {
         if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
         if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
         if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
-      } else if (chosenType === "VIDEO_GAME" && d.gameSpecs) {
+      } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
         if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
         if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
         if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
@@ -256,13 +258,13 @@ export default function NewProductAdminPage() {
         if (d.gameSpecs.players) setGamePlayers(d.gameSpecs.players);
         if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
         if (d.gameSpecs.resolution) setGameResolution(d.gameSpecs.resolution);
-      } else if (chosenType === "COLLECTIBLE" && d.collectibleSpecs) {
+      } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
         if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
         if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
         if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
         if (d.collectibleSpecs.language) setCollectibleLang(d.collectibleSpecs.language);
         if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
-      } else if (chosenType === "OTHER" && d.customSpecifications) {
+      } else if (targetCategoryType === "OTHER" && d.customSpecifications) {
         // Section 6: Ficha de Especificaciones Técnicas Especializadas
         setCustomSpecifications(d.customSpecifications);
       }
@@ -270,9 +272,10 @@ export default function NewProductAdminPage() {
       // Explicitly DO NOT alter "4. Galería de Fotos & Portada" per user requirement
       // Images remain untouched for manual user upload or URL entry.
 
-      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Inteligencia Artificial";
+      setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
+      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini 1.5 Flash" : "Motor Heurístico Especializado";
       setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);
-      setTimeout(() => setAutoFillSuccessMsg(null), 7000);
+      setTimeout(() => setAutoFillSuccessMsg(null), 8000);
     } catch (err: any) {
       setErrorMsg(err.message || "Error al autocompletar con IA.");
     } finally {
@@ -861,9 +864,21 @@ export default function NewProductAdminPage() {
             </div>
 
             {autoFillSuccessMsg && (
-              <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in-50">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{autoFillSuccessMsg}</span>
+              <div className="p-3.5 rounded-xl bg-[#004E72]/30 border border-emerald-500/50 text-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in-50 shadow-md">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{autoFillSuccessMsg}</span>
+                </div>
+                {aiEngineUsed === "GEMINI_AI" ? (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-600/30 to-purple-600/30 border border-blue-400/50 text-blue-200 font-mono text-[11px] font-bold shrink-0 shadow-inner">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+                    <span>Google Gemini 1.5 Flash Oficial</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-medium shrink-0">
+                    <span>Motor Heurístico Local (Sin Gemini API Key)</span>
+                  </div>
+                )}
               </div>
             )}
 

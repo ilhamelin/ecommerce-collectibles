@@ -68,12 +68,14 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     value?.categoryType || getInitialTemplate(customCategoryLabel)
   );
 
-  // Synchronize active template when label changes if not manually set
+  // Synchronize active template when value.categoryType changes (e.g. via AI auto-fill) or when customCategoryLabel changes
   useEffect(() => {
-    if (!value?.categoryType && customCategoryLabel) {
+    if (value?.categoryType) {
+      setActiveTemplate(value.categoryType);
+    } else if (customCategoryLabel) {
       setActiveTemplate(getInitialTemplate(customCategoryLabel));
     }
-  }, [customCategoryLabel, value?.categoryType]);
+  }, [value?.categoryType, customCategoryLabel]);
 
   // Gaming Accessory Subtype: MOUSE | KEYBOARD | HEADSET | CONTROLLER
   const [accessoryType, setAccessoryType] = useState<"MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER">(

@@ -62,6 +62,36 @@ interface AutoFillResponse {
   engine: "GEMINI_AI" | "SMART_KNOWLEDGE_ENGINE";
 }
 
+function getCategoryTypeFromLabel(
+  label?: string
+): "CONSOLE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" {
+  const l = (label || "").toLowerCase();
+  if (l.includes("consola") || l.includes("hardware")) return "CONSOLE";
+  if (l.includes("manga") || l.includes("artbook") || l.includes("libro") || l.includes("comic") || l.includes("tomo"))
+    return "BOOK";
+  if (
+    l.includes("ropa") ||
+    l.includes("estilo") ||
+    l.includes("poleron") ||
+    l.includes("polera") ||
+    l.includes("hoodie") ||
+    l.includes("apparel")
+  )
+    return "APPAREL";
+  if (
+    l.includes("merch") ||
+    l.includes("peluche") ||
+    l.includes("llavero") ||
+    l.includes("taza") ||
+    l.includes("decoraci") ||
+    l.includes("figpin")
+  )
+    return "MERCH";
+  if (l.includes("audio") || l.includes("ost") || l.includes("soundtrack") || l.includes("vinilo") || l.includes("disco"))
+    return "AUDIO";
+  return "GAMING_ACCESSORY";
+}
+
 // Smart Heuristic Engine (Dual-Engine Fallback)
 function generateWithSmartEngine(
   rawName: string,
@@ -79,28 +109,13 @@ function generateWithSmartEngine(
     // Strictly respect the admin's chosen category!
     type = userSelectedType;
     if (type === "OTHER" && !customCategoryLabel) {
-      if (
-        lower.includes("dualsense") ||
-        lower.includes("control") ||
-        lower.includes("mando") ||
-        lower.includes("mouse") ||
-        lower.includes("teclado") ||
-        lower.includes("headset") ||
-        lower.includes("joy-con") ||
-        lower.includes("joycon")
-      ) {
-        customCategoryLabel = "Accesorio Gaming";
-      } else if (lower.includes("consola") || lower.includes("oled") || lower.includes("hardware")) {
-        customCategoryLabel = "Consola / Hardware";
-      } else if (lower.includes("poleron") || lower.includes("hoodie") || lower.includes("polera")) {
-        customCategoryLabel = "Ropa & Estilo";
-      } else if (lower.includes("manga") || lower.includes("artbook")) {
-        customCategoryLabel = "Manga / Artbook";
-      } else if (lower.includes("vinilo") || lower.includes("ost")) {
-        customCategoryLabel = "Audio / OST";
-      } else {
-        customCategoryLabel = "Accesorio Gaming";
-      }
+      const cat = getCategoryTypeFromLabel(name);
+      if (cat === "CONSOLE") customCategoryLabel = "Consola / Hardware";
+      else if (cat === "BOOK") customCategoryLabel = "Manga / Artbook";
+      else if (cat === "APPAREL") customCategoryLabel = "Ropa & Estilo";
+      else if (cat === "MERCH") customCategoryLabel = "Merchandising";
+      else if (cat === "AUDIO") customCategoryLabel = "Audio / OST";
+      else customCategoryLabel = "Accesorio Gaming";
     }
   } else {
     // Inferred if not specified by the admin
@@ -180,11 +195,12 @@ function generateWithSmartEngine(
   if (type === "VIDEO_GAME") prefix = "VG";
   else if (type === "COLLECTIBLE") prefix = "COL";
   else if (type === "OTHER") {
-    if (customCategoryLabel === "Consola / Hardware") prefix = "CON";
-    else if (customCategoryLabel === "Ropa & Estilo") prefix = "APP";
-    else if (customCategoryLabel === "Manga / Artbook") prefix = "MNG";
-    else if (customCategoryLabel === "Merchandising") prefix = "MERCH";
-    else if (customCategoryLabel === "Audio / OST") prefix = "OST";
+    const cat = getCategoryTypeFromLabel(customCategoryLabel);
+    if (cat === "CONSOLE") prefix = "CON";
+    else if (cat === "APPAREL") prefix = "APP";
+    else if (cat === "BOOK") prefix = "MNG";
+    else if (cat === "MERCH") prefix = "MERCH";
+    else if (cat === "AUDIO") prefix = "OST";
     else prefix = "ACC"; // Accesorio Gaming
   }
 
@@ -225,30 +241,43 @@ function generateWithSmartEngine(
     isPreOrder = false;
     stockAvailable = 1;
   } else if (type === "OTHER") {
-    if (customCategoryLabel === "Consola / Hardware") {
+    const cat = getCategoryTypeFromLabel(customCategoryLabel);
+    if (cat === "CONSOLE") {
       price = 429900;
       originalPrice = 469900;
       costPrice = 350000;
       isPreOrder = false;
       stockAvailable = 4;
-    } else if (customCategoryLabel === "Accesorio Gaming") {
-      price = lower.includes("edge") ? 199900 : lower.includes("dualsense") ? 69900 : 49900;
-      originalPrice = Math.round(price * 1.15);
-      costPrice = Math.round(price * 0.65);
-      isPreOrder = false;
-      stockAvailable = 12;
-    } else if (customCategoryLabel === "Manga / Artbook") {
+    } else if (cat === "BOOK") {
       price = 18900;
       originalPrice = 22900;
       costPrice = 11000;
       isPreOrder = false;
       stockAvailable = 20;
-    } else if (customCategoryLabel === "Ropa & Estilo") {
+    } else if (cat === "APPAREL") {
       price = 29900;
       originalPrice = 34900;
       costPrice = 16000;
       isPreOrder = false;
       stockAvailable = 15;
+    } else if (cat === "MERCH") {
+      price = 24900;
+      originalPrice = 29900;
+      costPrice = 13000;
+      isPreOrder = false;
+      stockAvailable = 15;
+    } else if (cat === "AUDIO") {
+      price = 39900;
+      originalPrice = 45900;
+      costPrice = 24000;
+      isPreOrder = false;
+      stockAvailable = 8;
+    } else {
+      price = lower.includes("edge") ? 199900 : lower.includes("dualsense") ? 69900 : 49900;
+      originalPrice = Math.round(price * 1.15);
+      costPrice = Math.round(price * 0.65);
+      isPreOrder = false;
+      stockAvailable = 12;
     }
   }
 
@@ -261,18 +290,19 @@ function generateWithSmartEngine(
   } else if (type === "COLLECTIBLE") {
     description = `Carta de colección ${name} encapsulada y sellada por ultrasonido con protección anti-rayas y filtro UV al 99%. Ejemplar auditado en centrado, esquinas, bordes y superficie para máxima conservación de valor patrimonial.`;
   } else if (type === "OTHER") {
-    if (customCategoryLabel === "Accesorio Gaming") {
-      description = `Accesorio oficial de alta fidelidad ${name}. Diseñado ergonómicamente con materiales de grado profesional, componentes de respuesta ultra-rápida, baja latencia y máxima durabilidad para sesiones intensivas de juego. Totalmente compatible con la plataforma y garantizado con soporte oficial en Chile.`;
-    } else if (customCategoryLabel === "Consola / Hardware") {
-      description = `Consola y sistema de entretenimiento oficial ${name}. Incluye todos los componentes de fábrica, cables de alta velocidad, garantía oficial y despacho prioritario protegido a todo Chile.`;
-    } else if (customCategoryLabel === "Ropa & Estilo") {
-      description = `Prenda de colección oficial ${name} confeccionada en algodón premium con costuras reforzadas y estampado de alta durabilidad resistente a lavados continuos.`;
-    } else if (customCategoryLabel === "Manga / Artbook") {
+    const cat = getCategoryTypeFromLabel(customCategoryLabel);
+    if (cat === "BOOK") {
       description = `Tomo oficial de arte y lectura ${name} en papel satinado de alta resolución con sobrecubierta a todo color y encuadernación de lujo para biblioteca de coleccionistas.`;
-    } else if (customCategoryLabel === "Merchandising") {
+    } else if (cat === "CONSOLE") {
+      description = `Consola y sistema de entretenimiento oficial ${name}. Incluye todos los componentes de fábrica, cables de alta velocidad, garantía oficial y despacho prioritario protegido a todo Chile.`;
+    } else if (cat === "APPAREL") {
+      description = `Prenda de colección oficial ${name} confeccionada en algodón premium con costuras reforzadas y estampado de alta durabilidad resistente a lavados continuos.`;
+    } else if (cat === "MERCH") {
       description = `Artículo conmemorativo oficial de ${name} con licencia directa. Ideal para exhibición en vitrina, repisa o colecciones temáticas con acabados de alta fidelidad.`;
-    } else if (customCategoryLabel === "Audio / OST") {
+    } else if (cat === "AUDIO") {
       description = `Edición musical oficial de ${name} con masterización acústica de alta fidelidad. Presentación en formato físico con arte conmemorativo para amantes de las bandas sonoras.`;
+    } else {
+      description = `Accesorio oficial de alta fidelidad ${name}. Diseñado ergonómicamente con materiales de grado profesional, componentes de respuesta ultra-rápida, baja latencia y máxima durabilidad para sesiones intensivas de juego. Totalmente compatible con la plataforma y garantizado con soporte oficial en Chile.`;
     }
   }
 
@@ -373,7 +403,8 @@ function generateWithSmartEngine(
   // Custom Category Specifications (Section 6)
   let customSpecifications: any = undefined;
   if (type === "OTHER") {
-    if (customCategoryLabel === "Accesorio Gaming") {
+    const matchedCategory = getCategoryTypeFromLabel(customCategoryLabel);
+    if (matchedCategory === "GAMING_ACCESSORY") {
       // Determine accessory subtype from name
       let accSubtype: "MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER" = "MOUSE";
       if (
@@ -513,7 +544,7 @@ function generateWithSmartEngine(
               : undefined,
         },
       };
-    } else if (customCategoryLabel === "Consola / Hardware") {
+    } else if (matchedCategory === "CONSOLE") {
       customSpecifications = {
         categoryType: "CONSOLE",
         console: {
@@ -525,6 +556,61 @@ function generateWithSmartEngine(
           ports: "1x HDMI 2.1, 2x USB-A SuperSpeed 10Gbps, 2x USB-C, Puerto Gigabit Ethernet LAN",
           gameCompatibility: "Catálogo completo de la generación y retrocompatibilidad garantizada",
           featuredHighlights: "Audio 3D inmersivo, Ray Tracing por hardware, salida 4K 120Hz / HDR y tiempos de carga instantáneos",
+        },
+      };
+    } else if (matchedCategory === "BOOK") {
+      // Inferred Manga metadata
+      let inferredPublisher = "Panini Manga / Norma Editorial";
+      if (lower.includes("ivrea")) inferredPublisher = "Editorial Ivrea";
+      else if (lower.includes("panini")) inferredPublisher = "Panini Manga";
+      else if (lower.includes("norma")) inferredPublisher = "Norma Editorial";
+      else if (lower.includes("viz")) inferredPublisher = "VIZ Media";
+      else if (lower.includes("shueisha")) inferredPublisher = "Shueisha (Importación Japón)";
+      else if (lower.includes("solo leveling") || lower.includes("d&c")) inferredPublisher = "Norma Editorial / D&C Media";
+
+      customSpecifications = {
+        categoryType: "BOOK",
+        book: {
+          publisher: inferredPublisher,
+          language: lower.includes("jap") ? "Japonés Original" : lower.includes("eng") || lower.includes("ingles") ? "Inglés" : "Español Neutro",
+          pages: lower.includes("artbook") ? "192 páginas a todo color papel couché" : "200 a 240 páginas b/n con páginas a color",
+          binding: lower.includes("tapa dura") || lower.includes("hardcover") ? "Tapa Dura de Lujo (Hardcover)" : "Rústica con Sobrecubierta (Tankōbon B6)",
+          dimensions: "13 x 18 cm (Formato Tankōbon)",
+          hasColorPages: "Sí, incluye páginas a todo color exclusivas de apertura",
+          isbn: `978-4-${Math.floor(10000000 + Math.random() * 89999999)}`,
+        },
+      };
+    } else if (matchedCategory === "APPAREL") {
+      customSpecifications = {
+        categoryType: "APPAREL",
+        apparel: {
+          apparelType: lower.includes("poleron") || lower.includes("hoodie") ? "Polerón / Hoodie Oversize" : "Polera Estampada Manga Corta",
+          size: "S, M, L, XL (Corte Regular Unisex)",
+          gender: "Unisex Streetwear",
+          material: "100% Algodón Peinado 240g / Felpa perchada premium",
+          careInstructions: "Lavar con agua fría del revés, no secar en secadora, no planchar sobre estampado",
+          license: `Licencia Oficial Conmemorativa ${name.split(" ")[0] || "Anime"}`,
+        },
+      };
+    } else if (matchedCategory === "MERCH") {
+      customSpecifications = {
+        categoryType: "MERCH",
+        merch: {
+          itemType: lower.includes("taza") ? "Taza Cerámica" : lower.includes("peluche") ? "Peluche Felpa" : "Artículo de Vitrina / Exhibición",
+          material: "Materiales de alta durabilidad grado coleccionista",
+          dimensions: "Dimensiones proporcionales a escala de escritorio",
+          franchise: name.split(" ")[0] || "Franquicia Oficial",
+        },
+      };
+    } else if (matchedCategory === "AUDIO") {
+      customSpecifications = {
+        categoryType: "AUDIO",
+        audio: {
+          format: lower.includes("vinilo") ? "Disco de Vinilo LP 180g" : "CD de Audio Edición Deluxe",
+          discCount: "2 Discos",
+          recordLabel: "Sony Music / Sello Oficial Soundtrack",
+          includesArtbook: "Sí, incluye libreto con partituras y notas de producción",
+          featuredTracks: "Soundtrack original completo con temas principales y créditos",
         },
       };
     }
@@ -630,23 +716,31 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "categoryType": "GAMING_ACCESSORY" | "CONSOLE" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO",
     "gamingAccessory": {
       "accessoryType": "CONTROLLER" | "MOUSE" | "KEYBOARD" | "HEADSET",
-      "controller": {
-        "brand": "Marca del control",
-        "platformCompatibility": "Plataformas compatibles",
-        "connectionType": "Inalámbrico / Cableado",
-        "feedbackHaptic": "Detalle de respuesta háptica / vibración",
-        "weight": "Peso aproximado",
-        "color": "Color o edición",
-        "layout": "Distribución simétrica o asimétrica",
-        "batteryLife": "Autonomía estimada",
-        "rechargeableBattery": "Tipo de batería",
-        "programmableBackPaddles": "Palancas traseras",
-        "triggerStops": "Bloqueo de gatillos",
-        "audioJack": "Jack 3.5mm",
-        "hallEffectSticks": "Tecnología de palancas magnéticas",
-        "lighting": "Iluminación o barra de luz",
-        "softwareCustomization": "Software de configuración"
-      }
+      "controller": { "brand": "", "platformCompatibility": "", "connectionType": "", "feedbackHaptic": "", "weight": "", "color": "", "layout": "", "batteryLife": "", "rechargeableBattery": "", "programmableBackPaddles": "", "triggerStops": "", "audioJack": "", "hallEffectSticks": "", "lighting": "", "softwareCustomization": "" },
+      "mouse": { "brand": "", "tracking": "", "buttonCount": 6, "maxDpi": 16000, "wiring": "", "weight": "", "dimensions": "", "adjustableDpi": "", "color": "", "pollingRate": "", "adjustableWeight": "", "handedness": "", "technology": "", "lighting": "", "powerSource": "" },
+      "keyboard": { "brand": "", "partNumber": "", "type": "", "category": "", "backlight": "", "switchType": "", "wiring": "", "connectionTechnology": "", "macroKeys": "", "hasWristRest": "", "hasMediaKeys": "" },
+      "headset": { "type": "", "microphone": "", "frequencyResponse": "", "color": "", "lighting": "", "connectivity": "", "activeNoiseCancelling": "", "inLineControls": "", "driverSize": "", "impedance": "", "cableLength": "" }
+    },
+    "book": {
+      "publisher": "Editorial (ej. Panini Manga / Ivrea / Norma / VIZ)",
+      "language": "Español Neutro / Japonés",
+      "pages": "N° de páginas (ej. 200 páginas)",
+      "binding": "Rústica con Sobrecubierta (Tankōbon) / Tapa Dura",
+      "dimensions": "13 x 18 cm",
+      "hasColorPages": "Sí / No",
+      "isbn": "Código ISBN"
+    },
+    "console": {
+      "baseModel": "", "capacity": "", "format": "", "controllersIncluded": "", "bundleIncluded": "", "ports": "", "gameCompatibility": "", "featuredHighlights": ""
+    },
+    "apparel": {
+      "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": ""
+    },
+    "merch": {
+      "itemType": "", "material": "", "dimensions": "", "franchise": ""
+    },
+    "audio": {
+      "format": "", "discCount": "", "recordLabel": "", "includesArtbook": "", "featuredTracks": ""
     }
   }
 }`;
@@ -672,7 +766,14 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
           if (rawText) {
-            const parsed = JSON.parse(rawText);
+            let cleanText = rawText;
+            if (cleanText.includes("```json")) {
+              cleanText = cleanText.split("```json")[1].split("```")[0].trim();
+            } else if (cleanText.includes("```")) {
+              cleanText = cleanText.split("```")[1].split("```")[0].trim();
+            }
+
+            const parsed = JSON.parse(cleanText);
             if (selectedType) {
               parsed.type = selectedType;
               if (selectedType === "OTHER") {
@@ -681,10 +782,49 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               }
             }
 
-            // If customSpecifications is missing or incomplete, complement with smart engine specs
-            if (parsed.type === "OTHER" && (!parsed.customSpecifications || !parsed.customSpecifications.gamingAccessory)) {
+            // Always guarantee full customSpecifications if OTHER
+            if (parsed.type === "OTHER") {
               const fallbackHeuristic = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
-              parsed.customSpecifications = fallbackHeuristic.customSpecifications;
+              const fallbackSpecs = fallbackHeuristic.customSpecifications || {};
+              const catType = fallbackSpecs.categoryType || getCategoryTypeFromLabel(parsed.customCategoryLabel);
+
+              parsed.customSpecifications = {
+                categoryType: catType,
+                ...fallbackSpecs,
+                ...(parsed.customSpecifications || {}),
+              };
+
+              if (catType === "BOOK") {
+                parsed.customSpecifications.book = {
+                  ...(fallbackSpecs.book || {}),
+                  ...(parsed.customSpecifications.book || {}),
+                };
+              } else if (catType === "CONSOLE") {
+                parsed.customSpecifications.console = {
+                  ...(fallbackSpecs.console || {}),
+                  ...(parsed.customSpecifications.console || {}),
+                };
+              } else if (catType === "APPAREL") {
+                parsed.customSpecifications.apparel = {
+                  ...(fallbackSpecs.apparel || {}),
+                  ...(parsed.customSpecifications.apparel || {}),
+                };
+              } else if (catType === "MERCH") {
+                parsed.customSpecifications.merch = {
+                  ...(fallbackSpecs.merch || {}),
+                  ...(parsed.customSpecifications.merch || {}),
+                };
+              } else if (catType === "AUDIO") {
+                parsed.customSpecifications.audio = {
+                  ...(fallbackSpecs.audio || {}),
+                  ...(parsed.customSpecifications.audio || {}),
+                };
+              } else if (catType === "GAMING_ACCESSORY") {
+                parsed.customSpecifications.gamingAccessory = {
+                  ...(fallbackSpecs.gamingAccessory || {}),
+                  ...(parsed.customSpecifications.gamingAccessory || {}),
+                };
+              }
             }
 
             // Remove any image auto-generation so "4. Galería de Fotos & Portada" is NOT touched
@@ -699,6 +839,9 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               },
             });
           }
+        } else {
+          const errBody = await geminiRes.text();
+          console.warn(`[Auto-Fill API] Gemini API error (${geminiRes.status}):`, errBody);
         }
       } catch (geminiErr) {
         console.warn("[Auto-Fill API] Gemini API call failed, using fallback engine:", geminiErr);

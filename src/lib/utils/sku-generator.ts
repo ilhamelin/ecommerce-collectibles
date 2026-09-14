@@ -80,7 +80,7 @@ function extractCollectorSuffix(name: string, type: ProductType): string | null 
 /**
  * Returns the standard prefix for a product type.
  */
-export function getSkuPrefix(type: ProductType, name: string = ""): string {
+export function getSkuPrefix(type: ProductType, name: string = "", customCategory?: string): string {
   switch (type) {
     case "FIGURE":
       return "FIG";
@@ -104,6 +104,39 @@ export function getSkuPrefix(type: ProductType, name: string = ""): string {
     }
     case "BUNDLE":
       return "BUN";
+    case "OTHER": {
+      const cat = (customCategory || "").toUpperCase();
+      const upper = name.toUpperCase();
+      if (
+        cat.includes("ACCESORIO") ||
+        upper.includes("DUALSENSE") ||
+        upper.includes("MANDO") ||
+        upper.includes("CONTROL") ||
+        upper.includes("HEADSET") ||
+        upper.includes("JOY-CON") ||
+        upper.includes("JOYCON") ||
+        upper.includes("MOUSE") ||
+        upper.includes("TECLADO")
+      ) {
+        return "ACC";
+      }
+      if (cat.includes("CONSOLA") || upper.includes("CONSOLA") || upper.includes("HARDWARE")) {
+        return "CON";
+      }
+      if (cat.includes("ROPA") || upper.includes("POLERON") || upper.includes("POLERA")) {
+        return "APP";
+      }
+      if (cat.includes("MANGA") || cat.includes("ARTBOOK")) {
+        return "MNG";
+      }
+      if (cat.includes("MERCH") || upper.includes("PELUCHE")) {
+        return "MERCH";
+      }
+      if (cat.includes("AUDIO") || cat.includes("OST")) {
+        return "OST";
+      }
+      return "ACC";
+    }
     default:
       return "PROD";
   }
@@ -112,8 +145,12 @@ export function getSkuPrefix(type: ProductType, name: string = ""): string {
 /**
  * Generates a candidate SKU from product name, type and optional extras.
  */
-export function generateBaseSku(name: string, type: ProductType): string {
-  const prefix = getSkuPrefix(type, name);
+export function generateBaseSku(
+  name: string,
+  type: ProductType = "FIGURE",
+  customCategory?: string
+): string {
+  const prefix = getSkuPrefix(type, name, customCategory);
   const keywords = extractNameKeywords(name);
   const suffix = extractCollectorSuffix(name, type);
 

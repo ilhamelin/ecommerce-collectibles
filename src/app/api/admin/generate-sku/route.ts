@@ -7,7 +7,7 @@ import { ProductType } from "@/lib/types/domain";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { name, type = "FIGURE", checkSku } = body;
+    const { name, type = "FIGURE", customCategoryLabel, checkSku } = body;
 
     // 1. Gather all existing SKUs from Firestore DB and Memory fallback
     const firestoreProducts = await getProductsFromFirestore();
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const baseSku = generateBaseSku(name.trim(), type as ProductType);
+    const baseSku = generateBaseSku(name.trim(), type as ProductType, customCategoryLabel);
     const { sku, hadCollision, collisionCount } = resolveSkuCollision(baseSku, existingSkus);
 
     return NextResponse.json({

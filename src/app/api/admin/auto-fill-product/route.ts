@@ -48,103 +48,156 @@ interface AutoFillResponse {
 }
 
 // Smart Heuristic Engine (Dual-Engine Fallback)
-function generateWithSmartEngine(rawName: string): AutoFillResponse {
+function generateWithSmartEngine(
+  rawName: string,
+  userSelectedType?: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER",
+  userCustomCategoryLabel?: string
+): AutoFillResponse {
   const name = rawName.trim();
   const lower = name.toLowerCase();
 
-  // Detect Type
-  let type: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER" = "FIGURE";
-  let customCategoryLabel: string | undefined = undefined;
+  // 1. Detect / Respect Type
+  let type: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER";
+  let customCategoryLabel: string | undefined = userCustomCategoryLabel?.trim() || undefined;
 
-  if (
-    lower.includes("ps5") ||
-    lower.includes("switch") ||
-    lower.includes("nintendo") ||
-    lower.includes("xbox") ||
-    lower.includes("game") ||
-    lower.includes("juego") ||
-    lower.includes("edition") ||
-    lower.includes("remake") ||
-    lower.includes("zelda") ||
-    lower.includes("mario") ||
-    lower.includes("cyberpunk") ||
-    lower.includes("halo") ||
-    lower.includes("forza") ||
-    lower.includes("persona") ||
-    lower.includes("elden ring") ||
-    lower.includes("resident evil") ||
-    lower.includes("final fantasy")
-  ) {
-    if (lower.includes("consola") || lower.includes("oled") || lower.includes("hardware")) {
+  if (userSelectedType) {
+    // Strictly respect the admin's chosen category!
+    type = userSelectedType;
+    if (type === "OTHER" && !customCategoryLabel) {
+      if (
+        lower.includes("dualsense") ||
+        lower.includes("control") ||
+        lower.includes("mando") ||
+        lower.includes("mouse") ||
+        lower.includes("teclado") ||
+        lower.includes("headset") ||
+        lower.includes("joy-con") ||
+        lower.includes("joycon")
+      ) {
+        customCategoryLabel = "Accesorio Gaming";
+      } else if (lower.includes("consola") || lower.includes("oled") || lower.includes("hardware")) {
+        customCategoryLabel = "Consola / Hardware";
+      } else if (lower.includes("poleron") || lower.includes("hoodie") || lower.includes("polera")) {
+        customCategoryLabel = "Ropa & Estilo";
+      } else if (lower.includes("manga") || lower.includes("artbook")) {
+        customCategoryLabel = "Manga / Artbook";
+      } else if (lower.includes("vinilo") || lower.includes("ost")) {
+        customCategoryLabel = "Audio / OST";
+      } else {
+        customCategoryLabel = "Accesorio Gaming";
+      }
+    }
+  } else {
+    // Inferred if not specified by the admin
+    if (
+      lower.includes("dualsense") ||
+      lower.includes("control") ||
+      lower.includes("mando") ||
+      lower.includes("mouse") ||
+      lower.includes("teclado") ||
+      lower.includes("headset") ||
+      lower.includes("joy-con") ||
+      lower.includes("joycon") ||
+      lower.includes("audifono") ||
+      lower.includes("gamepad") ||
+      lower.includes("arcade stick") ||
+      lower.includes("volante")
+    ) {
+      type = "OTHER";
+      customCategoryLabel = "Accesorio Gaming";
+    } else if (lower.includes("consola") || lower.includes("oled") || lower.includes("hardware")) {
       type = "OTHER";
       customCategoryLabel = "Consola / Hardware";
-    } else {
+    } else if (
+      lower.includes("psa") ||
+      lower.includes("cgc") ||
+      lower.includes("bgs") ||
+      lower.includes("tcg") ||
+      lower.includes("carta") ||
+      lower.includes("charizard") ||
+      lower.includes("pikachu") ||
+      lower.includes("pokemon") ||
+      lower.includes("magic") ||
+      lower.includes("yugioh") ||
+      lower.includes("one piece card") ||
+      lower.includes("gem mint")
+    ) {
+      type = "COLLECTIBLE";
+    } else if (
+      lower.includes("ps5") ||
+      lower.includes("switch") ||
+      lower.includes("nintendo") ||
+      lower.includes("xbox") ||
+      lower.includes("game") ||
+      lower.includes("juego") ||
+      lower.includes("edition") ||
+      lower.includes("remake") ||
+      lower.includes("zelda") ||
+      lower.includes("mario") ||
+      lower.includes("cyberpunk") ||
+      lower.includes("halo") ||
+      lower.includes("forza") ||
+      lower.includes("persona") ||
+      lower.includes("elden ring") ||
+      lower.includes("resident evil") ||
+      lower.includes("final fantasy")
+    ) {
       type = "VIDEO_GAME";
+    } else if (lower.includes("poleron") || lower.includes("hoodie") || lower.includes("polera")) {
+      type = "OTHER";
+      customCategoryLabel = "Ropa & Estilo";
+    } else if (lower.includes("manga") || lower.includes("artbook") || lower.includes("tomo")) {
+      type = "OTHER";
+      customCategoryLabel = "Manga / Artbook";
+    } else if (lower.includes("vinilo") || lower.includes("ost") || lower.includes("soundtrack")) {
+      type = "OTHER";
+      customCategoryLabel = "Audio / OST";
+    } else if (lower.includes("peluche") || lower.includes("figpin") || lower.includes("lampara")) {
+      type = "OTHER";
+      customCategoryLabel = "Merchandising";
+    } else {
+      type = "FIGURE";
     }
-  } else if (
-    lower.includes("psa") ||
-    lower.includes("cgc") ||
-    lower.includes("bgs") ||
-    lower.includes("tcg") ||
-    lower.includes("carta") ||
-    lower.includes("charizard") ||
-    lower.includes("pikachu") ||
-    lower.includes("pokemon") ||
-    lower.includes("magic") ||
-    lower.includes("yugioh") ||
-    lower.includes("one piece card") ||
-    lower.includes("gem mint")
-  ) {
-    type = "COLLECTIBLE";
-  } else if (
-    lower.includes("mouse") ||
-    lower.includes("teclado") ||
-    lower.includes("headset") ||
-    lower.includes("audifono")
-  ) {
-    type = "OTHER";
-    customCategoryLabel = "Accesorio Gaming";
-  } else if (lower.includes("poleron") || lower.includes("hoodie") || lower.includes("polera")) {
-    type = "OTHER";
-    customCategoryLabel = "Ropa & Estilo";
-  } else if (lower.includes("manga") || lower.includes("artbook") || lower.includes("tomo")) {
-    type = "OTHER";
-    customCategoryLabel = "Manga / Artbook";
-  } else if (lower.includes("vinilo") || lower.includes("ost") || lower.includes("soundtrack")) {
-    type = "OTHER";
-    customCategoryLabel = "Audio / OST";
-  } else if (lower.includes("peluche") || lower.includes("figpin") || lower.includes("lampara")) {
-    type = "OTHER";
-    customCategoryLabel = "Merchandising";
   }
 
-  // Generate SKU prefix
+  // Generate SKU prefix according to category
   let prefix = "FIG";
   if (type === "VIDEO_GAME") prefix = "VG";
   else if (type === "COLLECTIBLE") prefix = "COL";
   else if (type === "OTHER") {
-    prefix = customCategoryLabel === "Consola / Hardware" ? "CON" : "ACC";
+    if (customCategoryLabel === "Consola / Hardware") prefix = "CON";
+    else if (customCategoryLabel === "Ropa & Estilo") prefix = "APP";
+    else if (customCategoryLabel === "Manga / Artbook") prefix = "MNG";
+    else if (customCategoryLabel === "Merchandising") prefix = "MERCH";
+    else if (customCategoryLabel === "Audio / OST") prefix = "OST";
+    else prefix = "ACC"; // Accesorio Gaming
   }
 
   const cleanSlugPart = name
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "-")
     .split("-")
-    .filter((w) => w.length > 2)
-    .slice(0, 2)
+    .filter((w) => w.length > 1)
+    .slice(0, 3)
     .join("-");
 
   const randomNum = Math.floor(100 + Math.random() * 900);
   const sku = `${prefix}-${cleanSlugPart || "PROD"}-${randomNum}`;
 
   // Pricing logic
-  let price = 129900;
-  let originalPrice = 149900;
-  let costPrice = 89000;
-  let isPreOrder = true;
-  let stockAvailable = 6;
+  let price = 69900;
+  let originalPrice = 79900;
+  let costPrice = 45000;
+  let isPreOrder = false;
+  let stockAvailable = 10;
 
-  if (type === "VIDEO_GAME") {
+  if (type === "FIGURE") {
+    price = 129900;
+    originalPrice = 149900;
+    costPrice = 89000;
+    isPreOrder = true;
+    stockAvailable = 6;
+  } else if (type === "VIDEO_GAME") {
     price = 49900;
     originalPrice = 59900;
     costPrice = 36000;
@@ -156,15 +209,35 @@ function generateWithSmartEngine(rawName: string): AutoFillResponse {
     costPrice = 55000;
     isPreOrder = false;
     stockAvailable = 1;
-  } else if (type === "OTHER" && customCategoryLabel === "Consola / Hardware") {
-    price = 429900;
-    originalPrice = 469900;
-    costPrice = 350000;
-    isPreOrder = false;
-    stockAvailable = 4;
+  } else if (type === "OTHER") {
+    if (customCategoryLabel === "Consola / Hardware") {
+      price = 429900;
+      originalPrice = 469900;
+      costPrice = 350000;
+      isPreOrder = false;
+      stockAvailable = 4;
+    } else if (customCategoryLabel === "Accesorio Gaming") {
+      price = lower.includes("edge") ? 199900 : lower.includes("dualsense") ? 69900 : 49900;
+      originalPrice = Math.round(price * 1.15);
+      costPrice = Math.round(price * 0.65);
+      isPreOrder = false;
+      stockAvailable = 12;
+    } else if (customCategoryLabel === "Manga / Artbook") {
+      price = 18900;
+      originalPrice = 22900;
+      costPrice = 11000;
+      isPreOrder = false;
+      stockAvailable = 20;
+    } else if (customCategoryLabel === "Ropa & Estilo") {
+      price = 29900;
+      originalPrice = 34900;
+      costPrice = 16000;
+      isPreOrder = false;
+      stockAvailable = 15;
+    }
   }
 
-  // Description
+  // Description strictly matched to the category
   let description = `Edición auténtica de ${name} con certificación oficial y garantía de coleccionista. Despacho nacional blindado contra impactos a todo Chile.`;
   if (type === "FIGURE") {
     description = `Figura oficial importada directamente de Japón de ${name}. Esculpida con altísima fidelidad al arte conceptual original, acabados en degradé de pintura multicapa y base temática de exhibición. Viene en su caja sellada de fábrica con sellos holográficos de autenticidad y protección para coleccionistas Mint in Box (MIB).`;
@@ -172,6 +245,48 @@ function generateWithSmartEngine(rawName: string): AutoFillResponse {
     description = `Título oficial ${name} en edición física garantizada con carátula en perfecto estado. Incluye todos los códigos de contenido adicional sellados de fábrica y soporte oficial para las últimas características de la plataforma.`;
   } else if (type === "COLLECTIBLE") {
     description = `Carta de colección ${name} encapsulada y sellada por ultrasonido con protección anti-rayas y filtro UV al 99%. Ejemplar auditado en centrado, esquinas, bordes y superficie para máxima conservación de valor patrimonial.`;
+  } else if (type === "OTHER") {
+    if (customCategoryLabel === "Accesorio Gaming") {
+      description = `Accesorio oficial de alta fidelidad ${name}. Diseñado ergonómicamente con materiales de grado profesional, componentes de respuesta ultra-rápida, baja latencia y máxima durabilidad para sesiones intensivas de juego. Totalmente compatible con la plataforma y garantizado con soporte oficial en Chile.`;
+    } else if (customCategoryLabel === "Consola / Hardware") {
+      description = `Consola y sistema de entretenimiento oficial ${name}. Incluye todos los componentes de fábrica, cables de alta velocidad, garantía oficial y despacho prioritario protegido a todo Chile.`;
+    } else if (customCategoryLabel === "Ropa & Estilo") {
+      description = `Prenda de colección oficial ${name} confeccionada en algodón premium con costuras reforzadas y estampado de alta durabilidad resistente a lavados continuos.`;
+    } else if (customCategoryLabel === "Manga / Artbook") {
+      description = `Tomo oficial de arte y lectura ${name} en papel satinado de alta resolución con sobrecubierta a todo color y encuadernación de lujo para biblioteca de coleccionistas.`;
+    } else if (customCategoryLabel === "Merchandising") {
+      description = `Artículo conmemorativo oficial de ${name} con licencia directa. Ideal para exhibición en vitrina, repisa o colecciones temáticas con acabados de alta fidelidad.`;
+    } else if (customCategoryLabel === "Audio / OST") {
+      description = `Edición musical oficial de ${name} con masterización acústica de alta fidelidad. Presentación en formato físico con arte conmemorativo para amantes de las bandas sonoras.`;
+    }
+  }
+
+  // Age Rating & Genres
+  let ageRating = "TE";
+  let genres = "Anime, Escala, Coleccionismo";
+
+  if (type === "FIGURE") {
+    ageRating = "TE";
+    genres = "Anime, Escala, Coleccionismo, Importación Japón";
+  } else if (type === "VIDEO_GAME") {
+    ageRating = lower.includes("m18") || lower.includes("cyberpunk") ? "M18" : "TE";
+    genres = "Acción, Aventura, RPG, Videojuegos";
+  } else if (type === "COLLECTIBLE") {
+    ageRating = "ALL";
+    genres = "TCG, Rareza, Inversión, Coleccionables";
+  } else if (type === "OTHER") {
+    ageRating = "ALL";
+    if (customCategoryLabel === "Accesorio Gaming") {
+      genres = "Accesorios Gaming, Mandos, Periféricos, Hardware, PlayStation";
+    } else if (customCategoryLabel === "Consola / Hardware") {
+      genres = "Consolas, Hardware, Gaming, Sistemas";
+    } else if (customCategoryLabel === "Ropa & Estilo") {
+      genres = "Moda Gamer, Ropa Urbana, Accesorios";
+    } else if (customCategoryLabel === "Manga / Artbook") {
+      genres = "Lectura, Manga, Artbook, Ilustraciones";
+    } else {
+      genres = "Coleccionables, Merchandising, Especial";
+    }
   }
 
   // Specs
@@ -251,13 +366,15 @@ function generateWithSmartEngine(rawName: string): AutoFillResponse {
     costPrice,
     stockAvailable,
     isPreOrder,
-    ageRating: lower.includes("m18") || lower.includes("cyberpunk") ? "M18" : "TE",
-    genres: type === "FIGURE" ? "Anime, Escala, Coleccionismo" : type === "VIDEO_GAME" ? "Acción, Aventura, RPG" : "TCG, Rareza, Inversión",
+    ageRating,
+    genres,
     imageUrl:
       type === "FIGURE"
         ? "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80"
         : type === "COLLECTIBLE"
         ? "https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=800&auto=format&fit=crop&q=80"
+        : customCategoryLabel === "Accesorio Gaming"
+        ? "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=800&auto=format&fit=crop&q=80"
         : "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
     figureSpecs,
     gameSpecs,
@@ -270,6 +387,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const productName = body?.name?.trim();
+    const selectedType = body?.selectedType as "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER" | undefined;
+    const customCategoryLabel = body?.customCategoryLabel?.trim();
 
     if (!productName) {
       return NextResponse.json(
@@ -282,15 +401,28 @@ export async function POST(req: NextRequest) {
 
     if (geminiApiKey) {
       try {
+        const categoryConstraint = selectedType
+          ? `REGLA OBLIGATORIA DE CATEGORÍA:
+El administrador ha seleccionado explícitamente la categoría: "${selectedType}" ${
+              selectedType === "OTHER" && customCategoryLabel
+                ? `(Subcategoría personalizada: "${customCategoryLabel}")`
+                : ""
+            }.
+DEBES OBLIGATORIAMENTE respetar esta categoría ("type": "${selectedType}", "customCategoryLabel": "${customCategoryLabel || ""}").
+NO cambies la categoría a VIDEO_GAME si es un accesorio como un control, volante o headset; si es "Accesorio Gaming" o "OTHER", genera el SKU con prefijo ACC- y redacta una descripción técnica/comercial enfocada en ergonomía, botones, latencia y compatibilidad.`
+          : `Clasifica inteligentemente el producto entre "FIGURE", "VIDEO_GAME", "COLLECTIBLE" u "OTHER".`;
+
         const prompt = `Eres un experto catalogador de productos de colección y e-commerce de videojuegos, figuras de anime y cartas TCG en Chile llamado OmniCollector.
 Genera la ficha técnica completa en formato JSON para el siguiente producto: "${productName}".
 
+${categoryConstraint}
+
 Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código tipo \`\`\`json) con esta estructura exacta:
 {
-  "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o COL-CHARIZ-001",
+  "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o COL-CHARIZ-001",
   "name": "${productName}",
-  "type": "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER",
-  "customCategoryLabel": "Si type es OTHER, indicar categoría como Consola / Hardware, Accesorio Gaming, Ropa & Estilo, Manga / Artbook, Merchandising, Audio / OST",
+  "type": "${selectedType || "FIGURE"}",
+  "customCategoryLabel": "${customCategoryLabel || ""}",
   "description": "Descripción comercial y técnica detallada en español para coleccionistas en Chile (2 párrafos)",
   "price": precio_en_pesos_chilenos_CLP_entero,
   "originalPrice": precio_normal_ligeramente_mayor_en_CLP_entero,
@@ -350,6 +482,13 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 
           if (rawText) {
             const parsed = JSON.parse(rawText);
+            if (selectedType) {
+              parsed.type = selectedType;
+              if (selectedType === "OTHER") {
+                parsed.customCategoryLabel =
+                  customCategoryLabel || parsed.customCategoryLabel || "Accesorio Gaming";
+              }
+            }
             return NextResponse.json({
               success: true,
               data: {
@@ -364,8 +503,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       }
     }
 
-    // Fallback to Smart Heuristic Collector Engine
-    const fallbackResult = generateWithSmartEngine(productName);
+    // Fallback to Smart Heuristic Collector Engine (with admin selected category priority)
+    const fallbackResult = generateWithSmartEngine(productName, selectedType, customCategoryLabel);
     return NextResponse.json({
       success: true,
       data: fallbackResult,

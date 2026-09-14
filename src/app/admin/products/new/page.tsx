@@ -185,11 +185,19 @@ export default function NewProductAdminPage() {
     setErrorMsg(null);
     setAutoFillSuccessMsg(null);
 
+    // Capture the admin's intentionally chosen category & custom label
+    const chosenType = type;
+    const chosenCustomCategory = customCategoryLabel;
+
     try {
       const res = await fetch("/api/admin/auto-fill-product", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({
+          name,
+          selectedType: chosenType,
+          customCategoryLabel: chosenType === "OTHER" ? chosenCustomCategory : undefined,
+        }),
       });
 
       const data = await res.json();
@@ -199,9 +207,27 @@ export default function NewProductAdminPage() {
 
       const d = data.data;
 
-      if (d.sku && !sku) setSku(d.sku);
-      if (d.type) setType(d.type);
-      if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+      // Update SKU with the category-accurate SKU
+      if (d.sku) {
+        setSku(d.sku);
+        setSkuValidation({
+          isChecking: false,
+          isAvailable: true,
+          message: `SKU (${d.sku}) asignado para la categoría seleccionada.`,
+        });
+      }
+
+      // Strictly preserve the admin's chosen category and custom label
+      if (chosenType) {
+        setType(chosenType);
+        if (chosenType === "OTHER") {
+          setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
+        }
+      } else if (d.type) {
+        setType(d.type);
+        if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+      }
+
       if (d.description) setDescription(d.description);
       if (typeof d.price === "number") setPrice(d.price);
       if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
@@ -212,7 +238,7 @@ export default function NewProductAdminPage() {
       if (d.genres) setGenresInput(d.genres);
 
       // Category-specific specs
-      if (d.type === "FIGURE" && d.figureSpecs) {
+      if (chosenType === "FIGURE" && d.figureSpecs) {
         if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
         if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
         if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
@@ -221,7 +247,7 @@ export default function NewProductAdminPage() {
         if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
         if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
         if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
-      } else if (d.type === "VIDEO_GAME" && d.gameSpecs) {
+      } else if (chosenType === "VIDEO_GAME" && d.gameSpecs) {
         if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
         if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
         if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
@@ -230,7 +256,7 @@ export default function NewProductAdminPage() {
         if (d.gameSpecs.players) setGamePlayers(d.gameSpecs.players);
         if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
         if (d.gameSpecs.resolution) setGameResolution(d.gameSpecs.resolution);
-      } else if (d.type === "COLLECTIBLE" && d.collectibleSpecs) {
+      } else if (chosenType === "COLLECTIBLE" && d.collectibleSpecs) {
         if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
         if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
         if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
@@ -243,7 +269,7 @@ export default function NewProductAdminPage() {
       }
 
       const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Inteligencia Artificial";
-      setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados.`);
+      setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);
       setTimeout(() => setAutoFillSuccessMsg(null), 7000);
     } catch (err: any) {
       setErrorMsg(err.message || "Error al autocompletar con IA.");
@@ -284,7 +310,11 @@ export default function NewProductAdminPage() {
       const res = await fetch("/api/admin/generate-sku", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type }),
+        body: JSON.stringify({
+          name,
+          type,
+          customCategoryLabel: type === "OTHER" ? customCategoryLabel : undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok && data.sku) {
@@ -296,7 +326,7 @@ export default function NewProductAdminPage() {
           dbCount: data.databaseCount,
           message: data.hadCollision
             ? `Colisión resuelta: SKU generado con sufijo único (${data.sku}) verificado contra ${data.databaseCount} productos en BD.`
-            : `SKU único generado y verificado contra ${data.databaseCount} productos en Cloud Firestore.`,
+            : `SKU único generado (${data.sku}) y verificado contra ${data.databaseCount} productos en BD.`,
         });
       } else {
         setSkuValidation({

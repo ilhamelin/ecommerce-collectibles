@@ -117,6 +117,30 @@ export function StoreFooter() {
           </div>
 
           <div>
+            <h4 className="font-bold text-white mb-3 text-sm">Legal & Normativas</h4>
+            <ul className="space-y-2 text-xs">
+              <li>
+                <Link href="/terms" className="hover:text-[#FF6B35] transition flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]"></span>
+                  Términos y Condiciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-[#FF6B35] transition flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2E9E5B]"></span>
+                  Política de Privacidad (Ley 21.719)
+                </Link>
+              </li>
+              <li>
+                <span className="text-slate-400">Garantía Legal de 6 Meses (SERNAC)</span>
+              </li>
+              <li>
+                <span className="text-slate-400">Derecho a Retracto (10 días)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div>
             <h4 className="font-bold text-white mb-3 text-sm flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-[#FF6B35]" />
               Atención & Soporte al Cliente
@@ -129,11 +153,34 @@ export function StoreFooter() {
                 <strong className="text-white">Email:</strong> contacto@omnicollector.cl
               </p>
               <p>
+                <strong className="text-white">Privacidad:</strong> privacidad@omnicollector.cl
+              </p>
+              <p>
                 <strong className="text-white">Horario:</strong> Lunes a Viernes 09:00 a 19:00 hrs
               </p>
-              <p className="text-[11px] text-slate-400">
-                Despachos diarios desde nuestra bodega en Santiago a todas las regiones de Chile.
-              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Security & Regulatory Compliance Badges Bar */}
+        <div className="border-t border-white/10 py-4 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-300">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#152842] border border-[#2D5180] text-white font-medium">
+                <span className="text-emerald-400">🔒</span> Certificado SSL/TLS 256-bit
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#152842] border border-[#2D5180] text-white font-medium">
+                <span className="text-blue-400">💳</span> PCI-DSS Compliant (Sin almacenamiento de tarjetas)
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#152842] border border-[#2D5180] text-white font-medium">
+                <span className="text-amber-400">⚖️</span> Ley N° 21.719 (Protección de Datos Chile)
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#152842] border border-[#2D5180] text-white font-medium">
+                <span className="text-purple-400">🛡️</span> SERNAC (Garantía Legal 6 Meses)
+              </span>
+            </div>
+            <div className="text-[10px] text-slate-400">
+              Pagos procesados de forma segura con Mercado Pago & Webpay Plus
             </div>
           </div>
         </div>

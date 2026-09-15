@@ -101,6 +101,9 @@ export default function CheckoutPage() {
   const [selectedOptionId, setSelectedOptionId] = useState<string>("credit_card");
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [installments, setInstallments] = useState("1");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(false);
+  const [termsError, setTermsError] = useState(false);
 
   const copyToClipboard = (text: string, fieldId: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -234,6 +237,13 @@ export default function CheckoutPage() {
 
   const handleCompleteOrder = async () => {
     if (items.length === 0) return;
+
+    if (!acceptedTerms) {
+      setTermsError(true);
+      setErrorMessage("Debes aceptar los Términos y Condiciones y la Política de Privacidad para continuar con la compra.");
+      return;
+    }
+    setTermsError(false);
 
     setIsProcessing(true);
     setErrorMessage(null);
@@ -1111,13 +1121,78 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {/* CASILLAS DE VERIFICACIÓN NORMATIVAS (SERNAC & LEY 21.719) */}
+                <div className="pt-2 space-y-3 border-t border-[#E5E5E5]">
+                  {/* Casilla 1: OBLIGATORIA - Términos y Condiciones + Política de Privacidad */}
+                  <div
+                    className={`p-3.5 rounded-2xl border transition ${
+                      termsError
+                        ? "bg-red-50/70 border-red-300 ring-1 ring-red-400"
+                        : "bg-[#F7F7F5] border-[#E5E5E5] hover:border-slate-300"
+                    }`}
+                  >
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={acceptedTerms}
+                        onChange={(e) => {
+                          setAcceptedTerms(e.target.checked);
+                          if (e.target.checked) setTermsError(false);
+                        }}
+                        className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[#FF6B35] focus:ring-[#FF6B35] shrink-0 cursor-pointer accent-[#FF6B35]"
+                      />
+                      <span className="text-xs text-[#1A1A1A] leading-relaxed">
+                        <strong className="text-[#1A1A1A]">Acepto los </strong>
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          className="font-bold text-[#FF6B35] hover:underline"
+                        >
+                          Términos y Condiciones
+                        </Link>
+                        <span> (Garantía Legal de 6 meses y Derecho a Retracto) y la </span>
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          className="font-bold text-[#FF6B35] hover:underline"
+                        >
+                          Política de Privacidad
+                        </Link>
+                        <span> (Tratamiento seguro de datos según Ley N° 21.719). *</span>
+                      </span>
+                    </label>
+                    {termsError && (
+                      <p className="text-[11px] text-red-600 font-semibold mt-1.5 pl-7 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        Debes marcar esta casilla para continuar con el pago seguro.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Casilla 2: OPCIONAL - Ofertas, preventas y alertas exclusivas */}
+                  <div className="p-3.5 rounded-2xl bg-white border border-[#E5E5E5] hover:border-slate-300 transition">
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={subscribeNewsletter}
+                        onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+                        className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[#1F3A5F] focus:ring-[#1F3A5F] shrink-0 cursor-pointer accent-[#1F3A5F]"
+                      />
+                      <span className="text-xs text-[#666666] leading-relaxed">
+                        <strong className="text-[#1A1A1A]">Quiero recibir ofertas por mail:</strong>{" "}
+                        Alertas de stock de preventas japonesas exclusivas, reposiciones y cupones de descuento (opcional, puedes desuscribirte cuando quieras).
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
                 {/* CTA CONFIRMAR Y PAGAR */}
                 <div className="pt-2 space-y-3">
                   <button
                     type="button"
                     onClick={handleCompleteOrder}
                     disabled={isProcessing}
-                    className="w-full py-4 rounded-2xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-xl shadow-[#FF6B35]/25 disabled:opacity-50"
+                    className="w-full py-4 rounded-2xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-xl shadow-[#FF6B35]/25 disabled:opacity-50 cursor-pointer"
                   >
                     {isProcessing ? (
                       <>Conectando con pasarela de pago segura...</>
@@ -1129,10 +1204,17 @@ export default function CheckoutPage() {
                     )}
                   </button>
 
-                  <div className="flex items-center justify-center gap-2 text-[11px] text-[#666666] text-center">
-                    <ShieldCheck className="w-4 h-4 text-[#2E9E5B] shrink-0" />
-                    <span>Tus pagos están protegidos con encriptación SSL de 256 bits y Garantía Mint de devolución.</span>
+                  <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] text-[#666666] text-center">
+                    <div className="flex items-center gap-1">
+                      <ShieldCheck className="w-4 h-4 text-[#2E9E5B] shrink-0" />
+                      <span>Cifrado SSL 256-bit</span>
+                    </div>
+                    <span>•</span>
+                    <div>PCI-DSS Compliant (Mercado Pago)</div>
+                    <span>•</span>
+                    <div>Garantía 6 Meses SERNAC</div>
                   </div>
+                </div>
                 </div>
               </div>
             </div>

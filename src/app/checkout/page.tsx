@@ -1215,7 +1215,6 @@ export default function CheckoutPage() {
                     <div>Garantía 6 Meses SERNAC</div>
                   </div>
                 </div>
-                </div>
               </div>
             </div>
           )}

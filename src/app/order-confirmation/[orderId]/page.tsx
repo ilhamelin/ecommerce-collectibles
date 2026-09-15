@@ -17,6 +17,7 @@ import {
   CreditCard,
   MessageCircle,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";

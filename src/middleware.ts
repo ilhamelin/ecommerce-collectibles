@@ -80,6 +80,20 @@ export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const clientIp = getClientIp(req);
 
+  // 0. Bot Protection: Block malicious vulnerability scanners & automated bots
+  const userAgent = req.headers.get("user-agent")?.toLowerCase() || "";
+  const MALICIOUS_BOTS = ["sqlmap", "nikto", "acunetix", "dirbuster", "nmap", "w3af", "havij", "masscan", "zgrab"];
+  if (MALICIOUS_BOTS.some((bot) => userAgent.includes(bot))) {
+    console.warn(`[BOT_BLOCKED] Suspicious bot user-agent '${userAgent}' from IP ${clientIp}`);
+    return new NextResponse(
+      JSON.stringify({
+        error: "Forbidden",
+        message: "Acceso denegado por políticas de protección contra bots.",
+      }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   // 1. Check for malicious injection patterns in URL and query parameters
   const fullUrlDecoded = decodeURIComponent(pathname + search);
   if (containsMaliciousPayload(fullUrlDecoded)) {
@@ -98,22 +112,29 @@ export function middleware(req: NextRequest) {
 
   // 2. Rate Limiting on API endpoints
   if (pathname.startsWith("/api/")) {
+    const isAuthLogin = pathname.startsWith("/api/auth/login") || pathname.startsWith("/api/auth/session");
     const isSensitive =
+      isAuthLogin ||
       pathname.startsWith("/api/checkout") ||
       pathname.startsWith("/api/users") ||
+      pathname.startsWith("/api/contact") ||
       pathname.includes("/transition");
 
-    const limit = isSensitive ? 20 : 80; // 20 req/min for sensitive, 80 req/min for standard
+    // Strict 5 req/min on login to prevent brute force; 20 req/min for checkout/sensitive; 80 req/min for catalog
+    const limit = isAuthLogin ? 5 : isSensitive ? 20 : 80;
     const windowMs = 60 * 1000;
 
-    const rateResult = checkRateLimit(`${clientIp}:${isSensitive ? "sens" : "gen"}`, limit, windowMs);
+    const rateKey = `${clientIp}:${isAuthLogin ? "auth" : isSensitive ? "sens" : "gen"}`;
+    const rateResult = checkRateLimit(rateKey, limit, windowMs);
 
     if (!rateResult.allowed) {
-      console.warn(`[RATE_LIMIT_EXCEEDED] IP ${clientIp} exceeded rate limit on ${pathname}`);
+      console.warn(`[RATE_LIMIT_EXCEEDED] IP ${clientIp} exceeded rate limit (${limit}/min) on ${pathname}`);
       return new NextResponse(
         JSON.stringify({
           error: "TooManyRequests",
-          message: "Has superado el límite de peticiones por minuto. Por favor, espera antes de reintentar.",
+          message: isAuthLogin
+            ? "Demasiados intentos de acceso fallidos. Por seguridad, tu IP ha sido temporalmente pausada por 1 minuto."
+            : "Has superado el límite de peticiones por minuto. Por favor, espera antes de reintentar.",
         }),
         {
           status: 429,

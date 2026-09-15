@@ -3,6 +3,8 @@ import "./globals.css";
 import { StoreNavbar } from "@/components/layout/StoreNavbar";
 import { StoreFooter } from "@/components/layout/StoreFooter";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 import { SommelierChatWidget } from "@/components/chat/SommelierChatWidget";
 
@@ -19,13 +21,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="min-h-screen bg-[#F7F7F5] text-[#1A1A1A] antialiased selection:bg-[#FF6B35] selection:text-white flex flex-col justify-between">
+      <body className="min-h-screen bg-[#F7F7F5] text-[#1A1A1A] antialiased selection:bg-[#FF6B35] selection:text-white flex flex-col justify-between pb-14 sm:pb-0">
         <div className="flex-1 flex flex-col">
           <StoreNavbar />
           <CartDrawer />
           <main className="flex-1">{children}</main>
         </div>
         <SommelierChatWidget />
+        <ScrollToTopButton />
+        <MobileBottomNav />
         <StoreFooter />
       </body>
     </html>

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Clock, Award, Sparkles, Cpu, Truck, CreditCard } from "lucide-react";
+import { ShieldCheck, Clock, Award, Sparkles, Cpu, Truck, CreditCard, MessageCircle, Send, Mail } from "lucide-react";
 
 export function StoreFooter() {
   const pathname = usePathname();
@@ -147,17 +147,66 @@ export function StoreFooter() {
             </h4>
             <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
               <p>
-                <strong className="text-white">WhatsApp:</strong> +56 9 5824 3917
+                <strong className="text-white">WhatsApp Oficial:</strong> +56 9 5824 3917
               </p>
               <p>
                 <strong className="text-white">Email:</strong> contacto@omnicollector.cl
               </p>
               <p>
-                <strong className="text-white">Privacidad:</strong> privacidad@omnicollector.cl
-              </p>
-              <p>
                 <strong className="text-white">Horario:</strong> Lunes a Viernes 09:00 a 19:00 hrs
               </p>
+              <div className="pt-2">
+                <Link
+                  href="/contacto"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-bold text-xs transition shadow-sm"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Formulario de Contacto</span>
+                </Link>
+              </div>
+
+              {/* Botones Redes Sociales Oficiales */}
+              <div className="pt-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Comunidad & Redes</span>
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://wa.me/56958243917"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp OmniCollector"
+                    className="p-2 rounded-xl bg-[#152842] hover:bg-[#2E9E5B] text-white transition-all duration-150 border border-[#2D5180] flex items-center justify-center hover:scale-105"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://instagram.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram OmniCollector"
+                    className="p-2 rounded-xl bg-[#152842] hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-white transition-all duration-150 border border-[#2D5180] flex items-center justify-center hover:scale-105"
+                  >
+                    <span className="text-xs font-black">IG</span>
+                  </a>
+                  <a
+                    href="https://tiktok.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="TikTok OmniCollector"
+                    className="p-2 rounded-xl bg-[#152842] hover:bg-black text-white transition-all duration-150 border border-[#2D5180] flex items-center justify-center hover:scale-105"
+                  >
+                    <span className="text-xs font-black">TK</span>
+                  </a>
+                  <a
+                    href="https://discord.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Discord OmniCollector"
+                    className="p-2 rounded-xl bg-[#152842] hover:bg-[#5865F2] text-white transition-all duration-150 border border-[#2D5180] flex items-center justify-center hover:scale-105"
+                  >
+                    <span className="text-xs font-black">DC</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

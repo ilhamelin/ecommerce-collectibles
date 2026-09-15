@@ -4,6 +4,15 @@ import { COLLECTIONS } from "./collections";
 import type { UserAccount } from "../store/authStore";
 
 /**
+ * Helper to log database operation timings for monitoring and diagnostics
+ */
+function logDbQueryTelemetry(operation: string, collection: string, durationMs: number, success: boolean) {
+  if (process.env.NODE_ENV !== "production") {
+    console.debug(`[DB_TELEMETRY] ${operation} on '${collection}' took ${durationMs.toFixed(1)}ms (success: ${success})`);
+  }
+}
+
+/**
  * Updates a user's wishlist in Firestore using the Client SDK.
  * Fails silently without crashing if Firebase is not active.
  */
@@ -11,11 +20,14 @@ export async function updateWishlistInFirestoreClient(
   userId: string,
   wishlist: string[]
 ): Promise<boolean> {
+  const start = performance.now();
   try {
     if (!db || !isFirebaseConfigured()) return false;
     await setDoc(doc(db, COLLECTIONS.USERS, userId), { wishlist }, { merge: true });
+    logDbQueryTelemetry("setDoc", COLLECTIONS.USERS, performance.now() - start, true);
     return true;
   } catch (err) {
+    logDbQueryTelemetry("setDoc", COLLECTIONS.USERS, performance.now() - start, false);
     console.warn("[Firebase Client] Error updating wishlist in Cloud Firestore:", err);
     return false;
   }
@@ -27,6 +39,7 @@ export async function updateWishlistInFirestoreClient(
 export async function syncUserProfileToFirestoreClient(
   user: UserAccount
 ): Promise<boolean> {
+  const start = performance.now();
   try {
     if (!db || !isFirebaseConfigured()) return false;
     const profile = {
@@ -34,8 +47,10 @@ export async function syncUserProfileToFirestoreClient(
       updatedAt: new Date().toISOString(),
     };
     await setDoc(doc(db, COLLECTIONS.USERS, user.id), profile, { merge: true });
+    logDbQueryTelemetry("syncUser", COLLECTIONS.USERS, performance.now() - start, true);
     return true;
   } catch (err) {
+    logDbQueryTelemetry("syncUser", COLLECTIONS.USERS, performance.now() - start, false);
     console.warn("[Firebase Client] Error syncing user profile:", err);
     return false;
   }
@@ -47,14 +62,17 @@ export async function syncUserProfileToFirestoreClient(
 export async function getUserFromFirestoreClient(
   userId: string
 ): Promise<UserAccount | null> {
+  const start = performance.now();
   try {
     if (!db || !isFirebaseConfigured()) return null;
     const snap = await getDoc(doc(db, COLLECTIONS.USERS, userId));
+    logDbQueryTelemetry("getUser", COLLECTIONS.USERS, performance.now() - start, true);
     if (snap.exists()) {
       return snap.data() as UserAccount;
     }
     return null;
   } catch (err) {
+    logDbQueryTelemetry("getUser", COLLECTIONS.USERS, performance.now() - start, false);
     console.warn("[Firebase Client] Error fetching user profile:", err);
     return null;
   }

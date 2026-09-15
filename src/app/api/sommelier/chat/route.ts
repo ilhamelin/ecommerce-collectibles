@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { db, isFirebaseConfigured } from "@/lib/firebase/config";
+import { collection, addDoc } from "firebase/firestore";
 
 export const dynamic = "force-dynamic";
+
+async function logChatInquiry(userQuery: string, recommendedSkus: string[], reply: string) {
+  try {
+    const entry = {
+      userQuery: (userQuery || "").slice(0, 300),
+      recommendedSkus: recommendedSkus || [],
+      replySnippet: (reply || "").slice(0, 200),
+      createdAt: new Date().toISOString(),
+    };
+    if (adminDb) {
+      await adminDb.collection("chat_inquiries").add(entry);
+      return;
+    }
+    if (db && isFirebaseConfigured()) {
+      await addDoc(collection(db, "chat_inquiries"), entry);
+    }
+  } catch (err) {
+    console.warn("[Sommelier] Non-blocking chat inquiry log warning:", err);
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -198,6 +221,10 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
         }
       }
     }
+
+    // Persist chat inquiry to Cloud Firestore so store admin captures user demand & interest
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+    logChatInquiry(lastUserMsg, parsed.recommendedSkus || [], parsed.reply || "");
 
     return NextResponse.json({
       success: true,

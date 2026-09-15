@@ -5,8 +5,46 @@ import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { alertService } from "@/lib/services/alertService";
 import { productRequestService } from "@/lib/services/productRequestService";
 import { ConfirmedOrderEntity, ProductDomainEntity } from "@/lib/types/domain";
+import { adminDb } from "@/lib/firebase/admin";
+import { db, isFirebaseConfigured } from "@/lib/firebase/config";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { COLLECTIONS } from "@/lib/firebase/collections";
 
 export const dynamic = "force-dynamic";
+
+async function saveLatestAiReport(report: any) {
+  try {
+    const payload = {
+      aiReport: report,
+      savedAt: new Date().toISOString(),
+    };
+    if (adminDb) {
+      await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("predictive_stock_latest").set(payload);
+      return;
+    }
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.KPI_SNAPSHOTS, "predictive_stock_latest"), payload);
+    }
+  } catch (e) {
+    console.warn("[PredictiveStock] Error persisting latest AI report:", e);
+  }
+}
+
+async function getLatestAiReport(): Promise<any | null> {
+  try {
+    if (adminDb) {
+      const snap = await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("predictive_stock_latest").get();
+      if (snap.exists) return snap.data();
+    }
+    if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.KPI_SNAPSHOTS, "predictive_stock_latest"));
+      if (snap.exists()) return snap.data();
+    }
+  } catch (e) {
+    console.warn("[PredictiveStock] Error retrieving latest AI report:", e);
+  }
+  return null;
+}
 
 export interface SkuPredictiveMetric {
   sku: string;
@@ -218,11 +256,21 @@ async function computeInventoryMetrics() {
   };
 }
 
-// GET: Returns computed inventory metrics and summary
+// GET: Returns computed inventory metrics and summary (plus latest persisted AI diagnosis)
 export async function GET() {
   try {
-    const data = await computeInventoryMetrics();
-    return NextResponse.json({ success: true, data });
+    const [data, latestAiReportSnapshot] = await Promise.all([
+      computeInventoryMetrics(),
+      getLatestAiReport().catch(() => null),
+    ]);
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...data,
+        latestAiReport: latestAiReportSnapshot?.aiReport || null,
+        lastScannedAt: latestAiReportSnapshot?.savedAt || null,
+      },
+    });
   } catch (error: any) {
     console.error("[Predictive Stock API Error]:", error);
     return NextResponse.json(
@@ -364,6 +412,10 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
     const aiReport = JSON.parse(cleaned);
+    const generatedAt = new Date().toISOString();
+
+    // Persist to Cloud Firestore so the diagnostic report is preserved across refreshes
+    await saveLatestAiReport(aiReport);
 
     return NextResponse.json({
       success: true,
@@ -371,7 +423,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
         metrics,
         summary,
         aiReport,
-        generatedAt: new Date().toISOString(),
+        generatedAt,
       },
     });
   } catch (error: any) {

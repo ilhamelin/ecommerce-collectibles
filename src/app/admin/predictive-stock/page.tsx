@@ -91,6 +91,12 @@ export default function PredictiveStockPage() {
       if (json.success && json.data) {
         setMetrics(json.data.metrics || []);
         setSummary(json.data.summary || null);
+        if (json.data.latestAiReport) {
+          setAiReport(json.data.latestAiReport);
+          if (json.data.lastScannedAt) {
+            setLastScanned(new Date(json.data.lastScannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+          }
+        }
       }
     } catch (err) {
       console.error("Error fetching predictive stock:", err);

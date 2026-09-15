@@ -134,8 +134,74 @@ const globalAnalytics: AnalyticsStore = {
   },
 };
 
+let isAnalyticsLoadedFromDb = false;
+
+async function syncAnalyticsWithFirestore() {
+  if (isAnalyticsLoadedFromDb) return;
+  try {
+    let snapData: any = null;
+    if (adminDb) {
+      const snap = await adminDb.collection(COLLECTIONS.ANALYTICS).doc("global_summary").get();
+      if (snap.exists) snapData = snap.data();
+    } else if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.ANALYTICS, "global_summary"));
+      if (snap.exists()) snapData = snap.data();
+    }
+
+    if (snapData) {
+      if (typeof snapData.totalPageViews === "number" && snapData.totalPageViews > globalAnalytics.totalPageViews) {
+        globalAnalytics.totalPageViews = snapData.totalPageViews;
+      }
+      if (typeof snapData.totalProductClicks === "number" && snapData.totalProductClicks > globalAnalytics.totalProductClicks) {
+        globalAnalytics.totalProductClicks = snapData.totalProductClicks;
+      }
+      if (snapData.productStats && typeof snapData.productStats === "object") {
+        globalAnalytics.productStats = { ...globalAnalytics.productStats, ...snapData.productStats };
+      }
+      if (snapData.categoryStats && typeof snapData.categoryStats === "object") {
+        globalAnalytics.categoryStats = { ...globalAnalytics.categoryStats, ...snapData.categoryStats };
+      }
+      if (snapData.dailyViews && typeof snapData.dailyViews === "object") {
+        globalAnalytics.dailyViews = { ...globalAnalytics.dailyViews, ...snapData.dailyViews };
+      }
+    }
+    isAnalyticsLoadedFromDb = true;
+  } catch (err) {
+    console.warn("[Analytics] Could not load persisted summary from Firestore:", err);
+  }
+}
+
+let saveDebounceTimer: any = null;
+function scheduleSaveAnalyticsToDb() {
+  if (saveDebounceTimer) return;
+  saveDebounceTimer = setTimeout(async () => {
+    saveDebounceTimer = null;
+    try {
+      const payload = {
+        totalPageViews: globalAnalytics.totalPageViews,
+        totalProductClicks: globalAnalytics.totalProductClicks,
+        productStats: globalAnalytics.productStats,
+        categoryStats: globalAnalytics.categoryStats,
+        dailyViews: globalAnalytics.dailyViews,
+        lastUpdated: new Date().toISOString(),
+      };
+      if (adminDb) {
+        await adminDb.collection(COLLECTIONS.ANALYTICS).doc("global_summary").set(payload, { merge: true });
+        return;
+      }
+      if (db && isFirebaseConfigured()) {
+        await setDoc(doc(db, COLLECTIONS.ANALYTICS, "global_summary"), payload, { merge: true });
+      }
+    } catch (err) {
+      console.warn("[Analytics] Could not save summary to Firestore:", err);
+    }
+  }, 4000);
+}
+
 export async function GET(request: NextRequest) {
   try {
+    await syncAnalyticsWithFirestore();
+
     const topClickedProducts = Object.values(globalAnalytics.productStats).sort(
       (a, b) => b.clicks - a.clicks
     );
@@ -257,6 +323,9 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // Debounce save to Cloud Firestore so analytics persist across reboots
+    scheduleSaveAnalyticsToDb();
 
     return NextResponse.json({ success: true, processedCount: events.length });
   } catch (error: any) {

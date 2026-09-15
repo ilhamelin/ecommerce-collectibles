@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Share2,
   AlertCircle,
+  AlertTriangle,
   Copy,
   Check,
   Sparkles,

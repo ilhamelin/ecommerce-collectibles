@@ -116,6 +116,41 @@ export const DEFAULT_USERS: UserAccount[] = [
     wishlist: [],
     createdAt: "2026-01-10T12:00:00.000Z",
   },
+  {
+    id: "usr-customer-01",
+    email: "cliente@omnicollector.cl",
+    fullName: "Rodrigo Valenzuela",
+    phone: "+56 9 8765 4321",
+    rut: "18.420.915-K",
+    role: "CUSTOMER",
+    password: "cliente123",
+    addresses: [
+      {
+        id: "addr-cust-01",
+        label: "Casa",
+        fullName: "Rodrigo Valenzuela",
+        phone: "+56 9 8765 4321",
+        region: "Región Metropolitana de Santiago",
+        comuna: "Providencia",
+        address: "Av. Pedro de Valdivia 1234",
+        apartment: "Depto 402",
+        isDefault: true,
+      },
+    ],
+    paymentMethods: [
+      {
+        id: "pm-cust-01",
+        brand: "VISA",
+        last4: "4242",
+        expiry: "12/28",
+        holderName: "RODRIGO VALENZUELA",
+        isDefault: true,
+      },
+    ],
+    orders: [],
+    wishlist: [],
+    createdAt: "2026-01-15T10:00:00.000Z",
+  },
 ];
 
 const memoryStorageMap = new Map<string, string>();

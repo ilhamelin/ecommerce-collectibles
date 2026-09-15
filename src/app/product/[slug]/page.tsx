@@ -19,6 +19,8 @@ import {
   Tv,
   Layers,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -867,14 +869,56 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* Large Active Screenshot Viewer */}
-            <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] rounded-2xl overflow-hidden bg-black border-2 border-[#E5E5E5] shadow-lg group flex items-center justify-center">
+            {/* Large Active Screenshot Viewer - Uncropped 100% Full View */}
+            <div className="relative w-full aspect-[16/9] max-h-[580px] rounded-2xl overflow-hidden bg-[#0A0F17] border-2 border-[#E5E5E5] shadow-xl group flex items-center justify-center select-none">
+              {/* Ambient Blurred Backdrop to fill margins with harmonious color */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <img
+                  src={contentGallery[selectedGalleryIndex] || contentGallery[0]}
+                  alt=""
+                  aria-hidden="true"
+                  className="w-full h-full object-cover blur-2xl opacity-35 scale-110"
+                />
+                <div className="absolute inset-0 bg-[#0A0F17]/50" />
+              </div>
+
+              {/* Main Full Screenshot - 100% visible, zero cropping */}
               <img
                 src={contentGallery[selectedGalleryIndex] || contentGallery[0]}
                 alt={`Captura interactiva ${selectedGalleryIndex + 1}`}
-                className="w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]"
+                className="relative z-10 max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.01]"
               />
-              <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg border border-[#E5E5E5] text-xs font-mono text-[#1A1A1A] pointer-events-none shadow-sm">
+
+              {/* Navigation Arrows */}
+              {contentGallery.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGalleryIndex((prev) => (prev > 0 ? prev - 1 : contentGallery.length - 1));
+                    }}
+                    className="absolute left-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#FF6B35] text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer"
+                    aria-label="Captura anterior"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedGalleryIndex((prev) => (prev < contentGallery.length - 1 ? prev + 1 : 0));
+                    }}
+                    className="absolute right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#FF6B35] text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer"
+                    aria-label="Siguiente captura"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Caption & SKU Tag */}
+              <div className="absolute bottom-3 left-3 z-20 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-xs font-mono text-white pointer-events-none shadow-md">
                 Captura #{selectedGalleryIndex + 1} • {product.name}
               </div>
             </div>

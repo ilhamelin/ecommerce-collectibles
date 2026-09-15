@@ -21,10 +21,43 @@ export interface ProductAlertRecord {
   isOutOfStock: boolean;
   createdAt: string;
   active: boolean;
+  isDeleted?: boolean;
 }
 
-// Path to persistent disk file
-const DISK_FILE_PATH = path.join(process.cwd(), "src", "data", "product_alerts.json");
+// Paths to persistent disk files
+const DATA_DIR = path.join(process.cwd(), "src", "data");
+const DISK_FILE_PATH = path.join(DATA_DIR, "product_alerts.json");
+const DELETED_IDS_PATH = path.join(DATA_DIR, "deleted_alert_ids.json");
+
+function ensureDataDir(): void {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function readDeletedAlertIds(): Set<string> {
+  try {
+    if (fs.existsSync(DELETED_IDS_PATH)) {
+      const raw = fs.readFileSync(DELETED_IDS_PATH, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch (err) {
+    console.warn("[AlertService] Could not read deleted alert IDs:", err);
+  }
+  return new Set<string>();
+}
+
+function writeDeletedAlertIds(ids: Set<string>): void {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(DELETED_IDS_PATH, JSON.stringify(Array.from(ids), null, 2), "utf-8");
+  } catch (err) {
+    console.warn("[AlertService] Could not persist deleted alert IDs:", err);
+  }
+}
 
 function readAlertsFromDisk(): ProductAlertRecord[] {
   try {
@@ -43,89 +76,51 @@ function readAlertsFromDisk(): ProductAlertRecord[] {
 
 function writeAlertsToDisk(alerts: ProductAlertRecord[]): void {
   try {
-    const dir = path.dirname(DISK_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    ensureDataDir();
     fs.writeFileSync(DISK_FILE_PATH, JSON.stringify(alerts, null, 2), "utf-8");
   } catch (err) {
     console.warn("[AlertService] Could not write alerts to disk:", err);
   }
 }
 
-// In-memory cache initialization
+// In-memory cache initialization without fake demo data
 declare global {
   var __omniProductAlerts: ProductAlertRecord[] | undefined;
+  var __omniDeletedAlertIds: Set<string> | undefined;
+}
+
+if (!global.__omniDeletedAlertIds) {
+  global.__omniDeletedAlertIds = readDeletedAlertIds();
 }
 
 if (!global.__omniProductAlerts) {
   const diskAlerts = readAlertsFromDisk();
-  if (diskAlerts.length > 0) {
-    global.__omniProductAlerts = diskAlerts;
-  } else {
-    global.__omniProductAlerts = [
-      {
-        id: "alert-persona-3-mixpro",
-        productId: "VG-PERSONA-3-RELOAD",
-        productSku: "VG-PERSONA-3-RELOAD",
-        productName: "Persona 3 Reload (Collector's Aigis Edition)",
-        productPrice: 189900,
-        productImageUrl: "https://images.unsplash.com/photo-1612287233207-6819b16ea9a7?auto=format&fit=crop&q=80&w=600",
-        email: "mixpro195@gmail.com",
-        userId: null,
-        userName: "Benjamin Reyes",
-        isGuest: false,
-        alertType: "PRICE_DROP",
-        isOutOfStock: false,
-        createdAt: "2026-09-14T08:59:00.000Z",
-        active: true,
-      },
-      {
-        id: "alert-demo-1",
-        productId: "VG-CYBERP-2077",
-        productSku: "VG-CYBERP-2077",
-        productName: "Cyberpunk 2077 - Edición Coleccionista",
-        productPrice: 39900,
-        productOriginalPrice: 54900,
-        productImageUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600",
-        email: "benjaigancioreyes56@gmail.com",
-        userId: null,
-        userName: "Benjamín",
-        isGuest: false,
-        alertType: "PRICE_DROP",
-        isOutOfStock: false,
-        createdAt: "2026-09-14T08:54:44.535Z",
-        active: true,
-      },
-      {
-        id: "alert-demo-2",
-        productId: "MAN-SOLO-015",
-        productSku: "MAN-SOLO-015",
-        productName: "Solo Leveling Vol 15 (Manga / Artbook)",
-        productPrice: 18990,
-        productImageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600",
-        email: "coleccionista.invitado@gmail.com",
-        userId: null,
-        userName: "Invitado Web",
-        isGuest: true,
-        alertType: "STOCK_AVAILABLE",
-        isOutOfStock: true,
-        createdAt: "2026-09-14T04:54:44.536Z",
-        active: true,
-      },
-    ];
-    writeAlertsToDisk(global.__omniProductAlerts);
-  }
+  // Filter out any previously deleted IDs
+  const deletedSet = global.__omniDeletedAlertIds;
+  global.__omniProductAlerts = diskAlerts.filter(
+    (a) => a && a.id && !deletedSet.has(a.id) && a.active !== false && !a.isDeleted
+  );
 }
 
 const memoryAlerts = global.__omniProductAlerts!;
+const deletedAlertIds = global.__omniDeletedAlertIds!;
 
 export const alertService = {
   /**
    * Saves or updates a product alert across Cloud Firestore, Disk, and Memory cache.
    */
   async saveAlert(record: ProductAlertRecord): Promise<ProductAlertRecord> {
-    const cleanRecord = JSON.parse(JSON.stringify(record));
+    const cleanRecord: ProductAlertRecord = {
+      ...JSON.parse(JSON.stringify(record)),
+      active: true,
+      isDeleted: false,
+    };
+
+    // If ID was in deleted set, un-tombstone it
+    if (deletedAlertIds.has(record.id)) {
+      deletedAlertIds.delete(record.id);
+      writeDeletedAlertIds(deletedAlertIds);
+    }
 
     // 1. In-memory update
     const existingIdx = memoryAlerts.findIndex(
@@ -163,22 +158,36 @@ export const alertService = {
   },
 
   /**
-   * Retrieves all alerts (merging Cloud Firestore, Disk, and Memory).
+   * Retrieves all alerts (merging Cloud Firestore, Disk, and Memory),
+   * strictly excluding any tombstoned / deleted alerts so they never resurrect on refresh.
    */
   async getAllAlerts(): Promise<ProductAlertRecord[]> {
+    // Reload fresh deleted IDs from disk in case of multi-process or cold-start
+    const freshDeletedIds = readDeletedAlertIds();
+    for (const id of freshDeletedIds) {
+      deletedAlertIds.add(id);
+    }
+
     const alertsMap = new Map<string, ProductAlertRecord>();
+
+    const isRecordValid = (r: ProductAlertRecord | undefined | null): boolean => {
+      if (!r || !r.id) return false;
+      if (deletedAlertIds.has(r.id)) return false;
+      if (r.active === false || r.isDeleted === true) return false;
+      return true;
+    };
 
     // 1. Add from disk
     const fromDisk = readAlertsFromDisk();
     for (const a of fromDisk) {
-      if (a.id && a.active !== false) {
+      if (isRecordValid(a)) {
         alertsMap.set(a.id, a);
       }
     }
 
     // 2. Add from memory
     for (const a of memoryAlerts) {
-      if (a.id && a.active !== false) {
+      if (isRecordValid(a)) {
         alertsMap.set(a.id, a);
       }
     }
@@ -190,7 +199,7 @@ export const alertService = {
         if (!snapshot.empty) {
           for (const d of snapshot.docs) {
             const data = d.data() as ProductAlertRecord;
-            if (data.id && data.active !== false) {
+            if (isRecordValid(data)) {
               alertsMap.set(data.id, data);
             }
           }
@@ -207,7 +216,7 @@ export const alertService = {
         if (!snapshot.empty) {
           for (const d of snapshot.docs) {
             const data = d.data() as ProductAlertRecord;
-            if (data.id && data.active !== false) {
+            if (isRecordValid(data)) {
               alertsMap.set(data.id, data);
             }
           }
@@ -220,7 +229,7 @@ export const alertService = {
     const merged = Array.from(alertsMap.values());
     merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
-    // Keep memory and disk in sync with latest merged list
+    // Keep memory and disk synchronized with active, non-deleted list
     memoryAlerts.length = 0;
     memoryAlerts.push(...merged);
     writeAlertsToDisk(merged);
@@ -238,30 +247,51 @@ export const alertService = {
     return all.filter(
       (a) =>
         a.active !== false &&
+        !a.isDeleted &&
+        !deletedAlertIds.has(a.id) &&
         ((a.email && a.email.toLowerCase().trim() === query) || (a.userId && a.userId === emailOrUserId))
     );
   },
 
   /**
-   * Deactivates or removes an alert from Firestore, Disk, and Memory.
+   * Permanently deactivates and removes an alert from Firestore, Disk, and Memory.
+   * Tracks the ID in deletedAlertIds so it NEVER resurrects upon UI refresh.
    */
   async deleteAlert(alertId: string): Promise<boolean> {
+    if (!alertId) return false;
+
+    // 1. Mark as tombstoned immediately in memory and disk
+    deletedAlertIds.add(alertId);
+    writeDeletedAlertIds(deletedAlertIds);
+
+    // 2. Remove from in-memory cache
     const idx = memoryAlerts.findIndex((a) => a.id === alertId);
     if (idx >= 0) {
       memoryAlerts.splice(idx, 1);
     }
     writeAlertsToDisk(memoryAlerts);
 
+    // 3. Mark inactive & delete in Cloud Firestore Admin
     if (adminDb) {
       try {
+        await adminDb.collection(COLLECTIONS.PRODUCT_ALERTS).doc(alertId).set(
+          { active: false, isDeleted: true, deletedAt: new Date().toISOString() },
+          { merge: true }
+        );
         await adminDb.collection(COLLECTIONS.PRODUCT_ALERTS).doc(alertId).delete();
       } catch (err) {
         console.warn("[AlertService] Error deleting from Firestore Admin:", err);
       }
     }
 
+    // 4. Mark inactive & delete in Cloud Firestore Client SDK
     if (db && isFirebaseConfigured()) {
       try {
+        await setDoc(
+          doc(db, COLLECTIONS.PRODUCT_ALERTS, alertId),
+          { active: false, isDeleted: true, deletedAt: new Date().toISOString() },
+          { merge: true }
+        );
         await deleteDoc(doc(db, COLLECTIONS.PRODUCT_ALERTS, alertId));
       } catch (err) {
         console.warn("[AlertService] Error deleting from Firestore Client:", err);

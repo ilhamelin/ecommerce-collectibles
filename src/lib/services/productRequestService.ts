@@ -21,10 +21,43 @@ export interface ProductRequestRecord {
   status: "PENDING" | "REVIEWING" | "ADDED" | "DISMISSED";
   createdAt: string;
   active: boolean;
+  isDeleted?: boolean;
 }
 
-// Path to persistent disk file
-const DISK_FILE_PATH = path.join(process.cwd(), "src", "data", "product_requests.json");
+// Paths to persistent disk files
+const DATA_DIR = path.join(process.cwd(), "src", "data");
+const DISK_FILE_PATH = path.join(DATA_DIR, "product_requests.json");
+const DELETED_IDS_PATH = path.join(DATA_DIR, "deleted_product_request_ids.json");
+
+function ensureDataDir(): void {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function readDeletedRequestIds(): Set<string> {
+  try {
+    if (fs.existsSync(DELETED_IDS_PATH)) {
+      const raw = fs.readFileSync(DELETED_IDS_PATH, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch (err) {
+    console.warn("[ProductRequestService] Could not read deleted request IDs:", err);
+  }
+  return new Set<string>();
+}
+
+function writeDeletedRequestIds(ids: Set<string>): void {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(DELETED_IDS_PATH, JSON.stringify(Array.from(ids), null, 2), "utf-8");
+  } catch (err) {
+    console.warn("[ProductRequestService] Could not persist deleted request IDs:", err);
+  }
+}
 
 function readRequestsFromDisk(): ProductRequestRecord[] {
   try {
@@ -43,10 +76,7 @@ function readRequestsFromDisk(): ProductRequestRecord[] {
 
 function writeRequestsToDisk(requests: ProductRequestRecord[]): void {
   try {
-    const dir = path.dirname(DISK_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    ensureDataDir();
     fs.writeFileSync(DISK_FILE_PATH, JSON.stringify(requests, null, 2), "utf-8");
   } catch (err) {
     console.warn("[ProductRequestService] Could not write requests to disk:", err);
@@ -55,45 +85,39 @@ function writeRequestsToDisk(requests: ProductRequestRecord[]): void {
 
 declare global {
   var __omniProductRequests: ProductRequestRecord[] | undefined;
+  var __omniDeletedRequestIds: Set<string> | undefined;
+}
+
+if (!global.__omniDeletedRequestIds) {
+  global.__omniDeletedRequestIds = readDeletedRequestIds();
 }
 
 if (!global.__omniProductRequests) {
   const diskRequests = readRequestsFromDisk();
-  if (diskRequests.length > 0) {
-    global.__omniProductRequests = diskRequests;
-  } else {
-    // Initial sample from Visual Search detection
-    global.__omniProductRequests = [
-      {
-        id: "req-gow-ragnarok-ps5",
-        title: "God of War Ragnarök (PS5)",
-        franchise: "God of War",
-        category: "VIDEO_GAME",
-        userEmail: "ilhamelin5@gmail.com",
-        userName: "Benjamín (OmniCollector)",
-        userId: null,
-        isGuest: false,
-        imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&q=80&w=600",
-        aiSummary: "Identificado con Gemini Vision: God of War Ragnarök para PS5 con Kratos y Atreus.",
-        confidenceScore: 0.99,
-        userNotes: "Deseo comprar este juego en formato físico para PS5 en cuanto esté disponible.",
-        status: "PENDING",
-        createdAt: new Date().toISOString(),
-        active: true,
-      },
-    ];
-    writeRequestsToDisk(global.__omniProductRequests);
-  }
+  const deletedSet = global.__omniDeletedRequestIds;
+  global.__omniProductRequests = diskRequests.filter(
+    (r) => r && r.id && !deletedSet.has(r.id) && r.active !== false && !r.isDeleted
+  );
 }
 
 const memoryRequests = global.__omniProductRequests!;
+const deletedRequestIds = global.__omniDeletedRequestIds!;
 
 export const productRequestService = {
   /**
    * Saves or updates a product request across Cloud Firestore, Disk, and Memory cache.
    */
   async saveRequest(record: ProductRequestRecord): Promise<ProductRequestRecord> {
-    const cleanRecord = JSON.parse(JSON.stringify(record));
+    const cleanRecord: ProductRequestRecord = {
+      ...JSON.parse(JSON.stringify(record)),
+      active: true,
+      isDeleted: false,
+    };
+
+    if (deletedRequestIds.has(record.id)) {
+      deletedRequestIds.delete(record.id);
+      writeDeletedRequestIds(deletedRequestIds);
+    }
 
     // 1. In-memory update
     const existingIdx = memoryRequests.findIndex((r) => r.id === record.id);
@@ -128,22 +152,35 @@ export const productRequestService = {
   },
 
   /**
-   * Retrieves all product requests (merging Cloud Firestore, Disk, and Memory).
+   * Retrieves all product requests (merging Cloud Firestore, Disk, and Memory),
+   * strictly excluding any tombstoned / deleted requests.
    */
   async getAllRequests(): Promise<ProductRequestRecord[]> {
+    const freshDeletedIds = readDeletedRequestIds();
+    for (const id of freshDeletedIds) {
+      deletedRequestIds.add(id);
+    }
+
     const requestsMap = new Map<string, ProductRequestRecord>();
+
+    const isRecordValid = (r: ProductRequestRecord | undefined | null): boolean => {
+      if (!r || !r.id) return false;
+      if (deletedRequestIds.has(r.id)) return false;
+      if (r.active === false || r.isDeleted === true) return false;
+      return true;
+    };
 
     // 1. Add from disk
     const fromDisk = readRequestsFromDisk();
     for (const r of fromDisk) {
-      if (r.id && r.active !== false) {
+      if (isRecordValid(r)) {
         requestsMap.set(r.id, r);
       }
     }
 
     // 2. Add from memory
     for (const r of memoryRequests) {
-      if (r.id && r.active !== false) {
+      if (isRecordValid(r)) {
         requestsMap.set(r.id, r);
       }
     }
@@ -155,7 +192,7 @@ export const productRequestService = {
         if (!snapshot.empty) {
           for (const d of snapshot.docs) {
             const data = d.data() as ProductRequestRecord;
-            if (data.id && data.active !== false) {
+            if (isRecordValid(data)) {
               requestsMap.set(data.id, data);
             }
           }
@@ -172,7 +209,7 @@ export const productRequestService = {
         if (!snapshot.empty) {
           for (const d of snapshot.docs) {
             const data = d.data() as ProductRequestRecord;
-            if (data.id && data.active !== false) {
+            if (isRecordValid(data)) {
               requestsMap.set(data.id, data);
             }
           }
@@ -206,25 +243,44 @@ export const productRequestService = {
   },
 
   /**
-   * Deactivates or removes a product request
+   * Deactivates or removes a product request permanently.
+   * Tombstones the ID to prevent resurrection on refresh.
    */
   async deleteRequest(id: string): Promise<boolean> {
+    if (!id) return false;
+
+    // 1. Mark as tombstoned
+    deletedRequestIds.add(id);
+    writeDeletedRequestIds(deletedRequestIds);
+
+    // 2. Remove from memory and disk
     const idx = memoryRequests.findIndex((r) => r.id === id);
     if (idx >= 0) {
       memoryRequests.splice(idx, 1);
-      writeRequestsToDisk(memoryRequests);
     }
+    writeRequestsToDisk(memoryRequests);
 
+    // 3. Mark inactive & delete in Firestore Admin
     if (adminDb) {
       try {
+        await adminDb.collection(COLLECTIONS.PRODUCT_REQUESTS).doc(id).set(
+          { active: false, isDeleted: true, deletedAt: new Date().toISOString() },
+          { merge: true }
+        );
         await adminDb.collection(COLLECTIONS.PRODUCT_REQUESTS).doc(id).delete();
       } catch (err) {
         console.warn("[ProductRequestService] Could not delete from Firestore Admin:", err);
       }
     }
 
+    // 4. Mark inactive & delete in Firestore Client
     if (db && isFirebaseConfigured()) {
       try {
+        await setDoc(
+          doc(db, COLLECTIONS.PRODUCT_REQUESTS, id),
+          { active: false, isDeleted: true, deletedAt: new Date().toISOString() },
+          { merge: true }
+        );
         await deleteDoc(doc(db, COLLECTIONS.PRODUCT_REQUESTS, id));
       } catch (err) {
         console.warn("[ProductRequestService] Could not delete from Firestore Client:", err);

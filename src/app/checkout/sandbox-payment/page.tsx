@@ -27,7 +27,7 @@ function SandboxPaymentContent() {
   const isBalanceSettlement = mode === "balance_settlement";
 
   const [cardNumber, setCardNumber] = useState("4025 8011 2233 4455");
-  const [cardHolder, setCardHolder] = useState("RODRIGO VALENZUELA");
+  const [cardHolder, setCardHolder] = useState("TITULAR DE PRUEBA");
   const [cardExpiry, setCardExpiry] = useState("11/28");
   const [cardCvv, setCardCvv] = useState("123");
   const [installments, setInstallments] = useState("1");

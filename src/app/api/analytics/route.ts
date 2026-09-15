@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { db, isFirebaseConfigured } from "@/lib/firebase/config";
@@ -6,7 +8,7 @@ import { COLLECTIONS } from "@/lib/firebase/collections";
 
 export const dynamic = "force-dynamic";
 
-// In-memory persistent analytics store for instant sub-millisecond retrieval
+// Analytics store schema for strictly genuine activity
 interface AnalyticsStore {
   totalPageViews: number;
   uniqueVisitors: Set<string>;
@@ -37,101 +39,59 @@ interface AnalyticsStore {
   dailyViews: Record<string, number>;
 }
 
-// Seed initial realistic metrics so admin sees meaningful feedback immediately
+// Persistent disk file path for analytics summary
+const DATA_DIR = path.join(process.cwd(), "src", "data");
+const DISK_ANALYTICS_PATH = path.join(DATA_DIR, "analytics_summary.json");
+
+function ensureDataDir(): void {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+function readAnalyticsFromDisk(): Partial<AnalyticsStore> | null {
+  try {
+    if (fs.existsSync(DISK_ANALYTICS_PATH)) {
+      const raw = fs.readFileSync(DISK_ANALYTICS_PATH, "utf-8");
+      const parsed = JSON.parse(raw);
+      return parsed;
+    }
+  } catch (err) {
+    console.warn("[Analytics] Could not read analytics summary from disk:", err);
+  }
+  return null;
+}
+
+function writeAnalyticsToDisk(store: AnalyticsStore): void {
+  try {
+    ensureDataDir();
+    const payload = {
+      totalPageViews: store.totalPageViews,
+      uniqueVisitors: Array.from(store.uniqueVisitors),
+      totalProductClicks: store.totalProductClicks,
+      productStats: store.productStats,
+      categoryStats: store.categoryStats,
+      userStats: store.userStats,
+      dailyViews: store.dailyViews,
+      lastUpdated: new Date().toISOString(),
+    };
+    fs.writeFileSync(DISK_ANALYTICS_PATH, JSON.stringify(payload, null, 2), "utf-8");
+  } catch (err) {
+    console.warn("[Analytics] Could not write analytics summary to disk:", err);
+  }
+}
+
+// Initialized strictly with genuine 0 metrics - NO INVENTED NUMBERS
+const diskSaved = readAnalyticsFromDisk();
+
 const globalAnalytics: AnalyticsStore = {
-  totalPageViews: 1420,
-  uniqueVisitors: new Set([
-    "vis_chrome_win_101",
-    "vis_safari_mac_202",
-    "vis_iphone_ios_303",
-    "vis_android_404",
-  ]),
-  totalProductClicks: 685,
-  productStats: {
-    "VG-CYBERP-2077": {
-      sku: "VG-CYBERP-2077",
-      name: "Cyberpunk 2077",
-      category: "VIDEO_GAME",
-      price: 39900,
-      clicks: 142,
-      views: 98,
-      lastInteractionAt: Date.now() - 1000 * 60 * 15,
-    },
-    "FIG-MAKIMA-17": {
-      sku: "FIG-MAKIMA-17",
-      name: "Makima 1/7 Scale PVC Figure",
-      category: "FIGURE",
-      price: 189900,
-      clicks: 118,
-      views: 84,
-      lastInteractionAt: Date.now() - 1000 * 60 * 30,
-    },
-    "VG-FORZA-HORIZON-5": {
-      sku: "VG-FORZA-HORIZON-5",
-      name: "Forza Horizon 5",
-      category: "VIDEO_GAME",
-      price: 49900,
-      clicks: 94,
-      views: 65,
-      lastInteractionAt: Date.now() - 1000 * 60 * 60,
-    },
-    "TCG-CHARIZARD-PSA10": {
-      sku: "TCG-CHARIZARD-PSA10",
-      name: "Charizard Base Set Holo PSA 10",
-      category: "COLLECTIBLE",
-      price: 1890000,
-      clicks: 86,
-      views: 72,
-      lastInteractionAt: Date.now() - 1000 * 60 * 90,
-    },
-    "BND-SOULS-COLLECTOR": {
-      sku: "BND-SOULS-COLLECTOR",
-      name: "Master Souls Collector Pack",
-      category: "BUNDLE",
-      price: 159900,
-      clicks: 65,
-      views: 45,
-      lastInteractionAt: Date.now() - 1000 * 60 * 120,
-    },
-    "VG-HALO-REACH": {
-      sku: "VG-HALO-REACH",
-      name: "Halo: Reach",
-      category: "VIDEO_GAME",
-      price: 14900,
-      clicks: 58,
-      views: 40,
-      lastInteractionAt: Date.now() - 1000 * 60 * 180,
-    },
-  },
-  categoryStats: {
-    VIDEO_GAME: 320,
-    FIGURE: 195,
-    COLLECTIBLE: 110,
-    BUNDLE: 60,
-  },
-  userStats: {
-    "usr-admin-01": {
-      userId: "usr-admin-01",
-      visitsCount: 45,
-      clicksCount: 88,
-      lastVisitAt: Date.now() - 1000 * 60 * 5,
-      lastDevice: "Chrome en Windows",
-    },
-    "usr-client-01": {
-      userId: "usr-client-01",
-      visitsCount: 18,
-      clicksCount: 34,
-      lastVisitAt: Date.now() - 1000 * 60 * 60 * 4,
-      lastDevice: "Safari en iOS",
-    },
-  },
-  dailyViews: {
-    "2026-09-08": 180,
-    "2026-09-09": 240,
-    "2026-09-10": 310,
-    "2026-09-11": 390,
-    "2026-09-12": 300,
-  },
+  totalPageViews: typeof diskSaved?.totalPageViews === "number" ? diskSaved.totalPageViews : 0,
+  uniqueVisitors: new Set(Array.isArray(diskSaved?.uniqueVisitors) ? (diskSaved.uniqueVisitors as string[]) : []),
+  totalProductClicks: typeof diskSaved?.totalProductClicks === "number" ? diskSaved.totalProductClicks : 0,
+  productStats: diskSaved?.productStats || {},
+  categoryStats: diskSaved?.categoryStats || {},
+  userStats: diskSaved?.userStats || {},
+  dailyViews: diskSaved?.dailyViews || {},
 };
 
 let isAnalyticsLoadedFromDb = false;
@@ -155,6 +115,11 @@ async function syncAnalyticsWithFirestore() {
       if (typeof snapData.totalProductClicks === "number" && snapData.totalProductClicks > globalAnalytics.totalProductClicks) {
         globalAnalytics.totalProductClicks = snapData.totalProductClicks;
       }
+      if (Array.isArray(snapData.uniqueVisitors)) {
+        for (const v of snapData.uniqueVisitors) {
+          globalAnalytics.uniqueVisitors.add(v);
+        }
+      }
       if (snapData.productStats && typeof snapData.productStats === "object") {
         globalAnalytics.productStats = { ...globalAnalytics.productStats, ...snapData.productStats };
       }
@@ -173,12 +138,16 @@ async function syncAnalyticsWithFirestore() {
 
 let saveDebounceTimer: any = null;
 function scheduleSaveAnalyticsToDb() {
+  // Always persist to local disk immediately
+  writeAnalyticsToDisk(globalAnalytics);
+
   if (saveDebounceTimer) return;
   saveDebounceTimer = setTimeout(async () => {
     saveDebounceTimer = null;
     try {
       const payload = {
         totalPageViews: globalAnalytics.totalPageViews,
+        uniqueVisitors: Array.from(globalAnalytics.uniqueVisitors),
         totalProductClicks: globalAnalytics.totalProductClicks,
         productStats: globalAnalytics.productStats,
         categoryStats: globalAnalytics.categoryStats,
@@ -195,7 +164,7 @@ function scheduleSaveAnalyticsToDb() {
     } catch (err) {
       console.warn("[Analytics] Could not save summary to Firestore:", err);
     }
-  }, 4000);
+  }, 2000);
 }
 
 export async function GET(request: NextRequest) {
@@ -206,10 +175,7 @@ export async function GET(request: NextRequest) {
       (a, b) => b.clicks - a.clicks
     );
 
-    const totalClicks = Object.values(globalAnalytics.productStats).reduce(
-      (acc, curr) => acc + curr.clicks,
-      0
-    );
+    const totalClicks = globalAnalytics.totalProductClicks;
 
     // Calculate Category distribution percentage
     const categoryBreakdown = Object.entries(globalAnalytics.categoryStats).map(
@@ -227,25 +193,14 @@ export async function GET(request: NextRequest) {
       data: {
         summary: {
           totalPageViews: globalAnalytics.totalPageViews,
-          uniqueVisitorsCount: Math.max(
-            globalAnalytics.uniqueVisitors.size,
-            Math.round(globalAnalytics.totalPageViews * 0.42)
-          ),
+          uniqueVisitorsCount: globalAnalytics.uniqueVisitors.size,
           totalProductClicks: totalClicks,
-          activeTodayViews: globalAnalytics.dailyViews[todayKey] || 320,
+          activeTodayViews: globalAnalytics.dailyViews[todayKey] || 0,
         },
         topClickedProducts,
         categoryBreakdown,
         userStats: Object.values(globalAnalytics.userStats),
-        popularTags: [
-          { tag: "Preventa", count: 184 },
-          { tag: "Nintendo Switch", count: 156 },
-          { tag: "PSA 10", count: 128 },
-          { tag: "Escala 1/7", count: 112 },
-          { tag: "Cyberpunk", count: 96 },
-          { tag: "Good Smile", count: 85 },
-          { tag: "PlayStation 5", count: 74 },
-        ],
+        popularTags: [],
       },
     });
   } catch (error: any) {
@@ -324,7 +279,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Debounce save to Cloud Firestore so analytics persist across reboots
+    // Persist immediately to disk and queue Firestore write
     scheduleSaveAnalyticsToDb();
 
     return NextResponse.json({ success: true, processedCount: events.length });

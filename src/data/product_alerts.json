@@ -15,38 +15,5 @@
     "isOutOfStock": false,
     "createdAt": "2026-09-14T08:59:00.000Z",
     "active": true
-  },
-  {
-    "id": "alert-demo-1",
-    "productId": "VG-CYBERP-2077",
-    "productSku": "VG-CYBERP-2077",
-    "productName": "Cyberpunk 2077 - Edición Coleccionista",
-    "productPrice": 39900,
-    "productOriginalPrice": 54900,
-    "productImageUrl": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600",
-    "email": "benjaigancioreyes56@gmail.com",
-    "userId": null,
-    "userName": "Benjamín",
-    "isGuest": false,
-    "alertType": "PRICE_DROP",
-    "isOutOfStock": false,
-    "createdAt": "2026-09-14T08:55:55.147Z",
-    "active": true
-  },
-  {
-    "id": "alert-demo-2",
-    "productId": "MAN-SOLO-015",
-    "productSku": "MAN-SOLO-015",
-    "productName": "Solo Leveling Vol 15 (Manga / Artbook)",
-    "productPrice": 18990,
-    "productImageUrl": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=600",
-    "email": "coleccionista.invitado@gmail.com",
-    "userId": null,
-    "userName": "Invitado Web",
-    "isGuest": true,
-    "alertType": "STOCK_AVAILABLE",
-    "isOutOfStock": true,
-    "createdAt": "2026-09-14T04:55:55.148Z",
-    "active": true
   }
 ]

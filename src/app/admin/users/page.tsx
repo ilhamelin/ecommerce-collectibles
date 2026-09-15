@@ -115,10 +115,10 @@ export default function AdminUsersAnalyticsPage() {
 
   // Analytics data
   const [summary, setSummary] = useState({
-    totalPageViews: 1420,
-    uniqueVisitorsCount: 596,
-    totalProductClicks: 685,
-    activeTodayViews: 320,
+    totalPageViews: 0,
+    uniqueVisitorsCount: 0,
+    totalProductClicks: 0,
+    activeTodayViews: 0,
   });
   const [topProducts, setTopProducts] = useState<ProductClickStat[]>([]);
   const [categories, setCategories] = useState<CategoryStat[]>([]);
@@ -333,15 +333,21 @@ export default function AdminUsersAnalyticsPage() {
 
   // Most popular category
   const topCategory = useMemo(() => {
-    if (!categories.length) return "Videojuegos";
+    if (!categories.length || categories.every((c) => c.count === 0)) {
+      return "Sin registros";
+    }
     const sorted = [...categories].sort((a, b) => b.count - a.count);
-    return sorted[0].category === "VIDEO_GAME"
+    const top = sorted[0];
+    if (!top || top.count === 0) return "Sin registros";
+    return top.category === "VIDEO_GAME"
       ? "Videojuegos"
-      : sorted[0].category === "FIGURE"
+      : top.category === "FIGURE"
       ? "Figuras"
-      : sorted[0].category === "COLLECTIBLE"
-      ? "TCG & PSA"
-      : "Bundles";
+      : top.category === "COLLECTIBLE"
+      ? "TCG & Rarezas"
+      : top.category === "BUNDLE"
+      ? "Bundles"
+      : top.category;
   }, [categories]);
 
   return (
@@ -629,32 +635,38 @@ export default function AdminUsersAnalyticsPage() {
               </p>
 
               <div className="space-y-3 pt-2">
-                {categories.map((c) => {
-                  const label =
-                    c.category === "VIDEO_GAME"
-                      ? "Videojuegos"
-                      : c.category === "FIGURE"
-                      ? "Figuras de Escala"
-                      : c.category === "COLLECTIBLE"
-                      ? "TCG & Rarezas PSA"
-                      : "Bundles Compuestos";
-                  return (
-                    <div key={c.category} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-white">
-                        <span>{label}</span>
-                        <span className="font-mono text-[#FF6B35]">
-                          {c.count} clics ({c.percentage}%)
-                        </span>
+                {categories.length === 0 || categories.every((c) => c.count === 0) ? (
+                  <p className="text-xs text-[#9bb5c2] italic py-4 text-center">
+                    Aún no hay interacciones registradas por categoría.
+                  </p>
+                ) : (
+                  categories.map((c) => {
+                    const label =
+                      c.category === "VIDEO_GAME"
+                        ? "Videojuegos"
+                        : c.category === "FIGURE"
+                        ? "Figuras de Escala"
+                        : c.category === "COLLECTIBLE"
+                        ? "TCG & Rarezas PSA"
+                        : "Bundles Compuestos";
+                    return (
+                      <div key={c.category} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs font-bold text-white">
+                          <span>{label}</span>
+                          <span className="font-mono text-[#FF6B35]">
+                            {c.count} clics ({c.percentage}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-2.5 rounded-full bg-[#05161f] overflow-hidden border border-[#004E72]/40">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#FF6B35] to-amber-400 rounded-full"
+                            style={{ width: `${c.percentage}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-2.5 rounded-full bg-[#05161f] overflow-hidden border border-[#004E72]/40">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#FF6B35] to-amber-400 rounded-full"
-                          style={{ width: `${c.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -669,17 +681,23 @@ export default function AdminUsersAnalyticsPage() {
               </p>
 
               <div className="flex flex-wrap gap-2.5 pt-2">
-                {popularTags.map((t) => (
-                  <div
-                    key={t.tag}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs"
-                  >
-                    <span className="font-bold text-white">{t.tag}</span>
-                    <span className="px-1.5 py-0.5 rounded-md bg-[#FF6B35]/20 text-[#FF6B35] font-mono text-[10px] font-bold">
-                      {t.count} interacciones
-                    </span>
-                  </div>
-                ))}
+                {popularTags.length === 0 ? (
+                  <p className="text-xs text-[#9bb5c2] italic py-2">
+                    Aún no se registran búsquedas o filtros frecuentes en la tienda.
+                  </p>
+                ) : (
+                  popularTags.map((t) => (
+                    <div
+                      key={t.tag}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs"
+                    >
+                      <span className="font-bold text-white">{t.tag}</span>
+                      <span className="px-1.5 py-0.5 rounded-md bg-[#FF6B35]/20 text-[#FF6B35] font-mono text-[10px] font-bold">
+                        {t.count} interacciones
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -699,80 +717,91 @@ export default function AdminUsersAnalyticsPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[#004E72]/60 text-[11px] font-bold text-[#9bb5c2] uppercase tracking-wider bg-[#05161f]">
-                    <th className="py-3 px-4">Ranking</th>
-                    <th className="py-3 px-4">SKU / Producto</th>
-                    <th className="py-3 px-4">Categoría</th>
-                    <th className="py-3 px-4">Precio CLP</th>
-                    <th className="py-3 px-4">Total Clics</th>
-                    <th className="py-3 px-4">Vistas Ficha</th>
-                    <th className="py-3 px-4">Interés Visual</th>
-                    <th className="py-3 px-4">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#004E72]/30 text-xs text-[#F9F9F9]">
-                  {topProducts.map((p, idx) => {
-                    const maxClicks = topProducts[0]?.clicks || 1;
-                    const pct = Math.round((p.clicks / maxClicks) * 100);
-                    return (
-                      <tr key={p.sku} className="hover:bg-[#004E72]/20 transition">
-                        <td className="py-3.5 px-4 font-mono font-bold">
-                          <span
-                            className={`w-6 h-6 rounded-lg inline-flex items-center justify-center ${
-                              idx === 0
-                                ? "bg-amber-400 text-slate-950 font-black"
-                                : idx === 1
-                                ? "bg-slate-300 text-slate-950 font-black"
-                                : idx === 2
-                                ? "bg-amber-700 text-white font-black"
-                                : "bg-[#05161f] text-[#9bb5c2]"
-                            }`}
-                          >
-                            #{idx + 1}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-bold text-white block">{p.name}</span>
-                          <span className="text-[10px] text-[#FF6B35] font-mono">{p.sku}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#05161f] border border-[#004E72]/50 text-[#9bb5c2]">
-                            {p.category}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-white">
-                          $ {p.price.toLocaleString("es-CL")} CLP
-                        </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#FF6B35]">
-                          {p.clicks} clics
-                        </td>
-                        <td className="py-3.5 px-4 font-mono text-[#9bb5c2]">
-                          {p.views} vistas
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="w-24 h-2 rounded-full bg-[#05161f] overflow-hidden border border-[#004E72]/40">
-                            <div
-                              className="h-full bg-[#FF6B35] rounded-full"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <Link
-                            href={`/product/${p.sku.toLowerCase()}`}
-                            target="_blank"
-                            className="inline-flex items-center gap-1 text-[11px] text-[#FF6B35] hover:underline font-bold"
-                          >
-                            Ver en Tienda <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {topProducts.length === 0 ? (
+                <div className="p-8 text-center space-y-2">
+                  <p className="text-sm font-semibold text-white">
+                    Aún no se registran clics en productos del catálogo
+                  </p>
+                  <p className="text-xs text-[#9bb5c2] max-w-md mx-auto">
+                    Las estadísticas de interacción se generarán automáticamente en tiempo real conforme los usuarios naveguen y hagan clic en los artículos de la tienda.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#004E72]/60 text-[11px] font-bold text-[#9bb5c2] uppercase tracking-wider bg-[#05161f]">
+                      <th className="py-3 px-4">Ranking</th>
+                      <th className="py-3 px-4">SKU / Producto</th>
+                      <th className="py-3 px-4">Categoría</th>
+                      <th className="py-3 px-4">Precio CLP</th>
+                      <th className="py-3 px-4">Total Clics</th>
+                      <th className="py-3 px-4">Vistas Ficha</th>
+                      <th className="py-3 px-4">Interés Visual</th>
+                      <th className="py-3 px-4">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#004E72]/30 text-xs text-[#F9F9F9]">
+                    {topProducts.map((p, idx) => {
+                      const maxClicks = topProducts[0]?.clicks || 1;
+                      const pct = Math.round((p.clicks / maxClicks) * 100);
+                      return (
+                        <tr key={p.sku} className="hover:bg-[#004E72]/20 transition">
+                          <td className="py-3.5 px-4 font-mono font-bold">
+                            <span
+                              className={`w-6 h-6 rounded-lg inline-flex items-center justify-center ${
+                                idx === 0
+                                  ? "bg-amber-400 text-slate-950 font-black"
+                                  : idx === 1
+                                  ? "bg-slate-300 text-slate-950 font-black"
+                                  : idx === 2
+                                  ? "bg-amber-700 text-white font-black"
+                                  : "bg-[#05161f] text-[#9bb5c2]"
+                              }`}
+                            >
+                              #{idx + 1}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="font-bold text-white block">{p.name}</span>
+                            <span className="text-[10px] text-[#FF6B35] font-mono">{p.sku}</span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#05161f] border border-[#004E72]/50 text-[#9bb5c2]">
+                              {p.category}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-white">
+                            $ {p.price.toLocaleString("es-CL")} CLP
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-[#FF6B35]">
+                            {p.clicks} clics
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[#9bb5c2]">
+                            {p.views} vistas
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="w-24 h-2 rounded-full bg-[#05161f] overflow-hidden border border-[#004E72]/40">
+                              <div
+                                className="h-full bg-[#FF6B35] rounded-full"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <Link
+                              href={`/product/${p.sku.toLowerCase()}`}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 text-[11px] text-[#FF6B35] hover:underline font-bold"
+                            >
+                              Ver en Tienda <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

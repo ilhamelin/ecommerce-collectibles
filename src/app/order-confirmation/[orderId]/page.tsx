@@ -60,53 +60,30 @@ function OrderConfirmationContent() {
     );
   }
 
-  // Fallback demo order if refreshed after memory reset
-  const displayOrder: ConfirmedOrderEntity = order || {
-    id: orderId,
-    orderNumber: `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-    createdAt: new Date().toISOString(),
-    status: "CONFIRMED",
-    customer: {
-      fullName: "Rodrigo Valenzuela",
-      email: "r.valenzuela@gmail.com",
-      phone: "+56 9 8765 4321",
-      rut: "18.420.915-K",
-      region: "Región Metropolitana",
-      comuna: "Providencia",
-      address: "Av. Providencia 1234",
-      apartment: "Depto 501",
-    },
-    shippingMethod: {
-      name: "Starken Express (1 a 2 días hábiles)",
-      cost: 0,
-      estimatedDelivery: "2 días hábiles",
-      trackingNumber: "STK-CHL-88291048",
-    },
-    paymentMethod: "WEBPAY",
-    items: [
-      {
-        productId: "prod-fig-01",
-        sku: "FIG-MAKIMA-17",
-        name: "Makima 1/7 Scale PVC Figure (Chainsaw Man)",
-        quantity: 1,
-        unitPrice: 249990,
-        isPreOrder: true,
-        isPartialDeposit: true,
-        unitDeposit: 49998,
-        remainingBalancePerUnit: 199992,
-        imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-      },
-    ],
-    subtotal: 49998,
-    discountAmount: 5000,
-    couponCode: "COLECCIONISTA5K",
-    shippingCost: 0,
-    totalChargedNow: 44998,
-    remainingBalanceLater: 199992,
-    reservationIds: ["res-demo-01"],
-  };
+  if (!order) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-24 text-center space-y-6">
+        <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-center mx-auto">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-black text-[#1A1A1A]">Orden no encontrada</h1>
+          <p className="text-sm text-[#666666]">
+            No pudimos localizar la orden con código #{orderId}. Si realizaste una compra recientemente, comprueba tu bandeja de entrada o contacta a soporte.
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#FF6B35] text-white font-bold text-sm shadow-md hover:bg-[#E85D2A] transition"
+        >
+          Volver a la Tienda
+        </Link>
+      </div>
+    );
+  }
 
-  const trackingNumber = displayOrder.shippingMethod.trackingNumber;
+  const displayOrder: ConfirmedOrderEntity = order;
+  const trackingNumber = displayOrder.shippingMethod?.trackingNumber || `STK-${displayOrder.id}`;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">

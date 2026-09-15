@@ -133,47 +133,56 @@ export default function OrderTrackingPage() {
     }
   }, [orderIdParam]);
 
-  // Fallback demo order if order not found in DB
+  if (!loading && !order) {
+    return (
+      <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-[#E5E5E5] text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h1 className="text-xl font-black text-[#1A1A1A]">Pedido no encontrado</h1>
+          <p className="text-xs text-[#666666]">
+            No encontramos ningún pedido registrado con el identificador #{orderIdParam}. Comprueba el código ingresado en el enlace o revisa tus pedidos en tu cuenta.
+          </p>
+          <Link
+            href="/account?tab=orders"
+            className="inline-block px-6 py-2.5 rounded-xl bg-[#1F3A5F] text-white text-xs font-bold hover:bg-[#152843] transition"
+          >
+            Ir a Mis Pedidos
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Display genuine order from database
   const displayOrder: ConfirmedOrderEntity = order || {
-    id: orderIdParam || "DEMO-ORD-7821",
-    orderNumber: orderIdParam.startsWith("ORD-") ? orderIdParam : "ORD-7821-DEMO",
+    id: orderIdParam,
+    orderNumber: orderIdParam,
     createdAt: new Date().toISOString(),
-    status: "DISPATCHED",
+    status: "CONFIRMED",
     customer: {
-      fullName: "Rodrigo Valenzuela",
-      email: "cliente@omnicollector.cl",
-      phone: "+56 9 8765 4321",
-      rut: "18.452.931-4",
-      region: "Región Metropolitana de Santiago",
-      comuna: "Providencia",
-      address: "Av. Pedro de Valdivia 1420",
-      apartment: "Dpto 604",
+      fullName: "Cliente OmniCollector",
+      email: "",
+      phone: "",
+      rut: "",
+      region: "",
+      comuna: "",
+      address: "",
+      apartment: "",
     },
     shippingMethod: {
       name: "Starken Express",
-      cost: 4990,
+      cost: 0,
       estimatedDelivery: "24 a 48 hrs hábiles",
-      trackingNumber: `STK-${Math.floor(100000000 + Math.random() * 900000000)}`,
+      trackingNumber: `STK-${orderIdParam}`,
     },
     paymentMethod: "WEBPAY",
-    items: [
-      {
-        productId: "p1",
-        sku: "FIG-GSC-SABER-01",
-        name: "Saber / Altria Pendragon 1/7 Scale Deluxe",
-        quantity: 1,
-        unitPrice: 189990,
-        isPreOrder: false,
-        isPartialDeposit: false,
-        unitDeposit: 0,
-        remainingBalancePerUnit: 0,
-        imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500&auto=format&fit=crop&q=80",
-      },
-    ],
-    subtotal: 189990,
+    items: [],
+    subtotal: 0,
     discountAmount: 0,
-    shippingCost: 4990,
-    totalChargedNow: 194980,
+    shippingCost: 0,
+    totalChargedNow: 0,
     remainingBalanceLater: 0,
     reservationIds: [],
   };

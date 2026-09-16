@@ -382,35 +382,82 @@ function generateWithSmartEngine(
         }
       : undefined;
 
+  const isPcGame = lower.includes("pc") || lower.includes("steam") || lower.includes("epic") || lower.includes("gog");
+  const gameType = isPcGame ? "PC" : "CONSOLE";
   const gameSpecs =
     type === "VIDEO_GAME"
       ? {
-          platform: lower.includes("switch")
+          gameType,
+          title: cleanName || "Título del Videojuego",
+          developer: lower.includes("capcom")
+            ? "Capcom"
+            : lower.includes("fromsoftware") || lower.includes("elden")
+            ? "FromSoftware"
+            : lower.includes("square") || lower.includes("final fantasy")
+            ? "Square Enix"
+            : lower.includes("nintendo") || lower.includes("zelda") || lower.includes("mario")
+            ? "Nintendo EPD"
+            : lower.includes("cd projekt") || lower.includes("cyberpunk") || lower.includes("witcher")
+            ? "CD Projekt RED"
+            : lower.includes("game science") || lower.includes("wukong")
+            ? "Game Science"
+            : "Desarrolladora Oficial",
+          publisher: lower.includes("nintendo")
+            ? "Nintendo"
+            : lower.includes("sony") || lower.includes("playstation")
+            ? "Sony Interactive Entertainment"
+            : lower.includes("capcom")
+            ? "Capcom"
+            : lower.includes("square")
+            ? "Square Enix"
+            : lower.includes("bandai")
+            ? "Bandai Namco Entertainment"
+            : lower.includes("valve")
+            ? "Valve Corporation"
+            : "Distribuidora Oficial",
+          releaseYear: "2025",
+          genre: lower.includes("rpg") || lower.includes("fantasy")
+            ? "Acción / RPG / Aventura"
+            : lower.includes("lucha") || lower.includes("tekken") || lower.includes("street fighter")
+            ? "Lucha / Peleas Competitivo"
+            : lower.includes("carreras") || lower.includes("forza") || lower.includes("gran turismo")
+            ? "Carreras / Simulación"
+            : "Acción / Aventura",
+          gameModes: "Un jugador, Cooperativo online",
+          gameEngine: lower.includes("wukong") || lower.includes("unreal")
+            ? "Unreal Engine 5.4"
+            : lower.includes("capcom") || lower.includes("resident")
+            ? "RE Engine"
+            : "Motor Gráfico Especializado Propietario",
+          supportedPlatforms: isPcGame
+            ? "Steam, Epic Games Store, GOG Galaxy"
+            : "PlayStation 5, Xbox Series X|S, Nintendo Switch",
+          platform: isPcGame
+            ? "PC"
+            : lower.includes("switch")
             ? "NINTENDO_SWITCH"
             : lower.includes("xbox")
             ? "XBOX_SERIES"
-            : lower.includes("pc")
-            ? "PC"
             : "PS5",
           edition: lower.includes("deluxe")
             ? "DELUXE"
             : lower.includes("collector")
             ? "COLLECTORS"
             : "STANDARD",
-          publisher: lower.includes("nintendo")
-            ? "Nintendo"
-            : lower.includes("sony")
-            ? "Sony Interactive Entertainment"
-            : lower.includes("capcom")
-            ? "Capcom"
-            : lower.includes("square")
-            ? "Square Enix"
-            : "Publisher Oficial",
           audioLanguages: "Español Latino, Inglés, Japonés",
-          subtitleLanguages: "Español Latino, Inglés",
-          players: "1 Jugador (Modo Online disponible)",
-          fileSize: "Aprox. 45 a 70 GB",
-          resolution: "4K Dinámico 60fps / Soporte HDR",
+          subtitleLanguages: "Español Latino, Inglés, Portugués, Francés",
+          ageRating: "ESRB Teen (13+) / PEGI 16",
+          fileSize: isPcGame ? "85 GB en SSD NVMe" : "65 GB en SSD interno",
+          // Consola: Rendimiento
+          displayModes: "Modo Rendimiento (1440p 60fps) / Modo Calidad (4K 30fps Ray Tracing)",
+          xboxSeriesSOptimization: "1080p 60fps con resolución dinámica optimizada",
+          hardwareFeatures: "Gatillos adaptativos DualSense, retroalimentación háptica, Audio 3D Tempest, cargas ultrarrápidas SSD",
+          // PC: Requisitos de Hardware
+          pcOs: "Windows 11 / Windows 10 (64-bit)",
+          pcProcessor: "Intel Core i7-12700K / AMD Ryzen 7 7800X3D",
+          pcRam: "16 GB RAM (32 GB recomendado para 4K)",
+          pcGpu: "NVIDIA GeForce RTX 4070 12GB / AMD Radeon RX 7800 XT 16GB",
+          pcStorage: "85 GB de espacio disponible en SSD NVMe",
         }
       : undefined;
 
@@ -989,14 +1036,29 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "depositPercent": 0.2
   },
   "gameSpecs": {
+    "gameType": "CONSOLE" | "PC",
+    "title": "Nombre oficial del juego",
+    "developer": "Estudio desarrollador",
+    "publisher": "Distribuidor o publisher",
+    "releaseYear": "Año de lanzamiento ej. 2025",
+    "genre": "Género del juego",
+    "gameModes": "Modos de juego",
+    "gameEngine": "Motor gráfico ej. Unreal Engine 5",
+    "supportedPlatforms": "Plataformas compatibles",
     "platform": "PS5" | "NINTENDO_SWITCH" | "XBOX_SERIES" | "PC",
     "edition": "STANDARD" | "DELUXE" | "COLLECTORS",
-    "publisher": "Distribuidor o desarrollador",
     "audioLanguages": "Idiomas de audio",
     "subtitleLanguages": "Idiomas de subtítulos",
-    "players": "Cantidad de jugadores",
-    "fileSize": "Tamaño estimado",
-    "resolution": "Resolución y framerate"
+    "ageRating": "Clasificación ej. ESRB Teen (13+)",
+    "fileSize": "Espacio en disco ej. 65 GB SSD",
+    "displayModes": "Modos gráficos consola ej. Calidad 4K 30fps / Rendimiento 60fps",
+    "xboxSeriesSOptimization": "Optimización Series S ej. 1080p 60fps dinámico",
+    "hardwareFeatures": "Funciones DualSense / Audio 3D / SSD",
+    "pcOs": "Windows 11 / Windows 10 64-bit",
+    "pcProcessor": "Intel Core i7 / AMD Ryzen 7",
+    "pcRam": "16 GB RAM (32 GB recomendado)",
+    "pcGpu": "NVIDIA GeForce RTX 4070 / AMD Radeon RX 7800 XT",
+    "pcStorage": "85 GB SSD NVMe"
   },
   "collectibleSpecs": {
     "category": "TCG" | "MEMORABILIA" | "COMIC",

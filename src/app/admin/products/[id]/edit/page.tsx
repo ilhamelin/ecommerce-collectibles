@@ -30,6 +30,9 @@ import {
   Download,
   Tag,
   X,
+  Monitor,
+  Tv,
+  Cpu,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import {
@@ -107,16 +110,35 @@ export default function EditProductAdminPage() {
     setContentGallery((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  // Dynamic: Game Technical Specs
-  const [gamePlatform, setGamePlatform] = useState<GamePlatform>("PS5");
-  const [gameEdition, setGameEdition] = useState<GameEdition>("STANDARD");
-  const [gamePublisher, setGamePublisher] = useState("Bandai Namco");
+  // Dynamic: Game Technical Specs (Console vs PC)
+  const [gameType, setGameType] = useState<"CONSOLE" | "PC">("CONSOLE");
+  const [gamePlatform, setGamePlatform] = useState<GamePlatform | string>("PS5");
+  const [gameEdition, setGameEdition] = useState<GameEdition | string>("STANDARD");
   const [gameIsDigital, setGameIsDigital] = useState(false);
-  const [gameAudioLanguages, setGameAudioLanguages] = useState("Español - Inglés");
-  const [gameSubtitleLanguages, setGameSubtitleLanguages] = useState("Español - Inglés");
-  const [gamePlayers, setGamePlayers] = useState("1 Jugador");
-  const [gameFileSize, setGameFileSize] = useState("");
-  const [gameResolution, setGameResolution] = useState("");
+  // Información General
+  const [gameTitle, setGameTitle] = useState("");
+  const [gameDeveloper, setGameDeveloper] = useState("");
+  const [gamePublisher, setGamePublisher] = useState("");
+  const [gameReleaseYear, setGameReleaseYear] = useState("");
+  const [gameGenre, setGameGenre] = useState("");
+  const [gameModes, setGameModes] = useState("Un jugador");
+  // Aspectos de Software y Desarrollo
+  const [gameEngine, setGameEngine] = useState("");
+  const [gameSupportedPlatforms, setGameSupportedPlatforms] = useState("PlayStation 5, Xbox Series X|S");
+  const [gameAudioLanguages, setGameAudioLanguages] = useState("Español Latino, Inglés, Japonés");
+  const [gameSubtitleLanguages, setGameSubtitleLanguages] = useState("Español Latino, Inglés");
+  const [gameAgeRating, setGameAgeRating] = useState("ESRB Teen (13+)");
+  // Consola: Rendimiento
+  const [gameFileSize, setGameFileSize] = useState("65 GB");
+  const [gameDisplayModes, setGameDisplayModes] = useState("Modo Rendimiento 60fps / Modo Calidad 4K 30fps Ray Tracing");
+  const [gameXboxSeriesSOptimization, setGameXboxSeriesSOptimization] = useState("1080p 60fps optimizado con resolución dinámica");
+  const [gameHardwareFeatures, setGameHardwareFeatures] = useState("Gatillos adaptativos y retroalimentación háptica DualSense, Audio 3D Tempest, Cargas ultrarrápidas con SSD M.2");
+  // PC: Requisitos de Hardware
+  const [gamePcOs, setGamePcOs] = useState("Windows 11 / Windows 10 (64-bit)");
+  const [gamePcProcessor, setGamePcProcessor] = useState("Intel Core i7-12700K / AMD Ryzen 7 7800X3D");
+  const [gamePcRam, setGamePcRam] = useState("16 GB RAM (32 GB recomendado)");
+  const [gamePcGpu, setGamePcGpu] = useState("NVIDIA GeForce RTX 4070 12GB / AMD Radeon RX 7800 XT 16GB");
+  const [gamePcStorage, setGamePcStorage] = useState("85 GB de espacio disponible en SSD NVMe");
 
   // Dynamic: Figure Technical Specs
   const [figureScale, setFigureScale] = useState<FigureScale>("SCALE_1_7");
@@ -210,15 +232,30 @@ export default function EditProductAdminPage() {
           setImages(prodImages);
 
           if (p.gameMetadata) {
-            setGamePlatform(p.gameMetadata.platform);
-            setGameEdition(p.gameMetadata.edition);
-            setGamePublisher(p.gameMetadata.publisher);
+            setGameType(p.gameMetadata.gameType || (p.gameMetadata.platform === "PC" ? "PC" : "CONSOLE"));
+            setGamePlatform(p.gameMetadata.platform || "PS5");
+            setGameEdition(p.gameMetadata.edition || "STANDARD");
+            setGamePublisher(p.gameMetadata.publisher || "");
             setGameIsDigital(Boolean(p.gameMetadata.isDigital));
-            setGameAudioLanguages(p.gameMetadata.audioLanguages || "Español - Inglés");
-            setGameSubtitleLanguages(p.gameMetadata.subtitleLanguages || "Español - Inglés");
-            setGamePlayers(p.gameMetadata.players || "1 Jugador");
+            setGameAudioLanguages(p.gameMetadata.audioLanguages || "Español Latino, Inglés");
+            setGameSubtitleLanguages(p.gameMetadata.subtitleLanguages || "Español Latino, Inglés");
             setGameFileSize(p.gameMetadata.fileSize || "");
-            setGameResolution(p.gameMetadata.resolution || "");
+            setGameTitle(p.gameMetadata.title || p.name || "");
+            setGameDeveloper(p.gameMetadata.developer || "");
+            setGameReleaseYear(p.gameMetadata.releaseYear || "");
+            setGameGenre(p.gameMetadata.genre || "");
+            setGameModes(p.gameMetadata.gameModes || p.gameMetadata.players || "Un jugador");
+            setGameEngine(p.gameMetadata.gameEngine || "");
+            setGameSupportedPlatforms(p.gameMetadata.supportedPlatforms || "");
+            setGameAgeRating(p.gameMetadata.ageRating || "");
+            setGameDisplayModes(p.gameMetadata.displayModes || p.gameMetadata.resolution || "");
+            setGameXboxSeriesSOptimization(p.gameMetadata.xboxSeriesSOptimization || "");
+            setGameHardwareFeatures(p.gameMetadata.hardwareFeatures || "");
+            setGamePcOs(p.gameMetadata.pcOs || "");
+            setGamePcProcessor(p.gameMetadata.pcProcessor || "");
+            setGamePcRam(p.gameMetadata.pcRam || "");
+            setGamePcGpu(p.gameMetadata.pcGpu || "");
+            setGamePcStorage(p.gameMetadata.pcStorage || "");
           }
           if (p.figureMetadata) {
             setFigureScale(p.figureMetadata.scale);
@@ -525,15 +562,32 @@ export default function EditProductAdminPage() {
 
       if (type === "VIDEO_GAME") {
         payload.gameMetadata = {
-          platform: gamePlatform,
+          gameType,
+          platform: gameType === "PC" ? "PC" : gamePlatform,
           edition: gameEdition,
           isDigital: Boolean(gameIsDigital),
-          publisher: gamePublisher,
+          publisher: gamePublisher || "Publisher Oficial",
           audioLanguages: gameAudioLanguages || undefined,
           subtitleLanguages: gameSubtitleLanguages || undefined,
-          players: gamePlayers || undefined,
-          fileSize: gameFileSize || undefined,
-          resolution: gameResolution || undefined,
+          players: gameModes || undefined,
+          fileSize: gameType === "CONSOLE" ? (gameFileSize || undefined) : undefined,
+          resolution: gameType === "CONSOLE" ? (gameDisplayModes || undefined) : undefined,
+          title: gameTitle || name || undefined,
+          developer: gameDeveloper || undefined,
+          releaseYear: gameReleaseYear || undefined,
+          genre: gameGenre || undefined,
+          gameModes: gameModes || undefined,
+          gameEngine: gameEngine || undefined,
+          supportedPlatforms: gameSupportedPlatforms || undefined,
+          ageRating: gameAgeRating || undefined,
+          displayModes: gameType === "CONSOLE" ? (gameDisplayModes || undefined) : undefined,
+          xboxSeriesSOptimization: gameType === "CONSOLE" ? (gameXboxSeriesSOptimization || undefined) : undefined,
+          hardwareFeatures: gameType === "CONSOLE" ? (gameHardwareFeatures || undefined) : undefined,
+          pcOs: gameType === "PC" ? (gamePcOs || undefined) : undefined,
+          pcProcessor: gameType === "PC" ? (gamePcProcessor || undefined) : undefined,
+          pcRam: gameType === "PC" ? (gamePcRam || undefined) : undefined,
+          pcGpu: gameType === "PC" ? (gamePcGpu || undefined) : undefined,
+          pcStorage: gameType === "PC" ? (gamePcStorage || undefined) : undefined,
         };
       } else if (type === "FIGURE") {
         payload.figureMetadata = {
@@ -1298,146 +1352,546 @@ export default function EditProductAdminPage() {
           )}
 
           {type === "VIDEO_GAME" && (
-            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-xl">
+            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-5 shadow-xl">
               <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2 border-b border-[#004E72]/40 pb-3">
                 <Gamepad2 className="w-4 h-4 text-[#FF6E42]" />
                 Ficha de Especificaciones Técnicas del Videojuego
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Formato de Entrega: Físico vs Digital */}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-semibold text-[#F9F9F9] block">
-                    Formato de Entrega del Videojuego *
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setGameIsDigital(false)}
-                      className={`p-3 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
-                        !gameIsDigital
-                          ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
-                          : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
-                      }`}
-                    >
-                      <Disc className={`w-5 h-5 shrink-0 ${!gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
-                      <div>
-                        <div className="text-xs font-bold">Formato Físico (Caja & Disco/Cartucho)</div>
-                        <div className="text-[10px] opacity-80">Incluye caja sellada, disco Blu-ray o cartucho.</div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setGameIsDigital(true)}
-                      className={`p-3 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
-                        gameIsDigital
-                          ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
-                          : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
-                      }`}
-                    >
-                      <Download className={`w-5 h-5 shrink-0 ${gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
-                      <div>
-                        <div className="text-xs font-bold">Formato Digital (Código Canjeable / Key)</div>
-                        <div className="text-[10px] opacity-80">Licencia descargable para PS Store, eShop, Steam, Xbox.</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Plataforma</label>
-                  <select
-                    value={gamePlatform}
-                    onChange={(e) => setGamePlatform(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
+              {/* Sub-selector Tipo de Videojuego: Consola vs PC */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-[#FF6E42]" />
+                  Tipo de Videojuego *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGameType("CONSOLE");
+                      if (gamePlatform === "PC") setGamePlatform("PS5");
+                    }}
+                    className={`p-3.5 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                      gameType === "CONSOLE"
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                        : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
+                    }`}
                   >
-                    <option value="PS5">PlayStation 5</option>
-                    <option value="NINTENDO_SWITCH">Nintendo Switch</option>
-                    <option value="PC">PC</option>
-                    <option value="XBOX_SERIES">Xbox Series X|S</option>
-                  </select>
-                </div>
+                    <Tv className={`w-5 h-5 shrink-0 ${gameType === "CONSOLE" ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                    <div>
+                      <div className="text-xs font-bold">Videojuego de Consola</div>
+                      <div className="text-[10px] opacity-80">PlayStation 5, Xbox Series X|S, Nintendo Switch</div>
+                    </div>
+                  </button>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Edición</label>
-                  <select
-                    value={gameEdition}
-                    onChange={(e) => setGameEdition(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGameType("PC");
+                      setGamePlatform("PC");
+                    }}
+                    className={`p-3.5 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                      gameType === "PC"
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                        : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
+                    }`}
                   >
-                    <option value="STANDARD">Estándar</option>
-                    <option value="DELUXE">Deluxe</option>
-                    <option value="COLLECTORS">Coleccionista</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Fabricante / Publisher</label>
-                  <input
-                    type="text"
-                    value={gamePublisher}
-                    onChange={(e) => setGamePublisher(e.target.value)}
-                    placeholder="Nintendo / Capcom / Sony"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Idioma Audio (Voces)</label>
-                  <input
-                    type="text"
-                    value={gameAudioLanguages}
-                    onChange={(e) => setGameAudioLanguages(e.target.value)}
-                    placeholder="Español - Inglés"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Idioma Subtítulos</label>
-                  <input
-                    type="text"
-                    value={gameSubtitleLanguages}
-                    onChange={(e) => setGameSubtitleLanguages(e.target.value)}
-                    placeholder="Español - Inglés"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">N° de Jugadores</label>
-                  <input
-                    type="text"
-                    value={gamePlayers}
-                    onChange={(e) => setGamePlayers(e.target.value)}
-                    placeholder="1 Jugador"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Espacio en Disco</label>
-                  <input
-                    type="text"
-                    value={gameFileSize}
-                    onChange={(e) => setGameFileSize(e.target.value)}
-                    placeholder="55 GB"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Resolución / Rendimiento</label>
-                  <input
-                    type="text"
-                    value={gameResolution}
-                    onChange={(e) => setGameResolution(e.target.value)}
-                    placeholder="4K 60fps / Ray Tracing"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
+                    <Monitor className={`w-5 h-5 shrink-0 ${gameType === "PC" ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                    <div>
+                      <div className="text-xs font-bold">Videojuego de PC</div>
+                      <div className="text-[10px] opacity-80">Steam, Epic Games Store, GOG, PC Gaming</div>
+                    </div>
+                  </button>
                 </div>
               </div>
+
+              {/* Formato de Entrega: Físico vs Digital */}
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-semibold text-[#F9F9F9] block">
+                  Formato de Entrega del Videojuego *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGameIsDigital(false)}
+                    className={`p-3 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                      !gameIsDigital
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                        : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
+                    }`}
+                  >
+                    <Disc className={`w-5 h-5 shrink-0 ${!gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                    <div>
+                      <div className="text-xs font-bold">Formato Físico (Caja & Disco/Cartucho)</div>
+                      <div className="text-[10px] opacity-80">Incluye caja sellada, disco Blu-ray o cartucho.</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGameIsDigital(true)}
+                    className={`p-3 rounded-xl border flex items-center gap-3 transition cursor-pointer text-left ${
+                      gameIsDigital
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                        : "bg-[#05161f] border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/20 hover:text-white"
+                    }`}
+                  >
+                    <Download className={`w-5 h-5 shrink-0 ${gameIsDigital ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                    <div>
+                      <div className="text-xs font-bold">Formato Digital (Código Canjeable / Key)</div>
+                      <div className="text-[10px] opacity-80">Licencia descargable para PS Store, eShop, Steam, Xbox.</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* SUB-TEMPLATE 1: VIDEOJUEGO DE CONSOLA */}
+              {gameType === "CONSOLE" && (
+                <div className="space-y-5 pt-2 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 px-3 py-2 rounded-xl">
+                    <Tv className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Especificaciones Técnicas para Videojuegos de Consola</span>
+                  </div>
+
+                  {/* Grupo 1: Información General */}
+                  <div className="space-y-3">
+                    <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                      1. Información General
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                        <label className="text-xs text-[#9bb5c2]">Título del Videojuego *</label>
+                        <input
+                          type="text"
+                          value={gameTitle}
+                          onChange={(e) => setGameTitle(e.target.value)}
+                          placeholder="ej: Final Fantasy VII Rebirth / GTA VI"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Desarrolladora *</label>
+                        <input
+                          type="text"
+                          value={gameDeveloper}
+                          onChange={(e) => setGameDeveloper(e.target.value)}
+                          placeholder="ej: Square Enix / FromSoftware / Capcom"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Distribuidora / Publisher *</label>
+                        <input
+                          type="text"
+                          value={gamePublisher}
+                          onChange={(e) => setGamePublisher(e.target.value)}
+                          placeholder="ej: Sony Interactive / Square Enix / Nintendo"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Año de Lanzamiento</label>
+                        <input
+                          type="text"
+                          value={gameReleaseYear}
+                          onChange={(e) => setGameReleaseYear(e.target.value)}
+                          placeholder="ej: 2024 / 2025 / 2026"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Género *</label>
+                        <input
+                          type="text"
+                          value={gameGenre}
+                          onChange={(e) => setGameGenre(e.target.value)}
+                          placeholder="ej: Acción / RPG / Aventura / Lucha"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Modos de Juego</label>
+                        <input
+                          type="text"
+                          value={gameModes}
+                          onChange={(e) => setGameModes(e.target.value)}
+                          placeholder="ej: Un jugador, Cooperativo local, Multijugador online"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grupo 2: Aspectos de Software y Desarrollo */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                      2. Aspectos de Software y Desarrollo
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Motor de Juego</label>
+                        <input
+                          type="text"
+                          value={gameEngine}
+                          onChange={(e) => setGameEngine(e.target.value)}
+                          placeholder="ej: Unreal Engine 5.4 / Decima Engine / RE Engine"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Plataformas de Consola</label>
+                        <input
+                          type="text"
+                          value={gameSupportedPlatforms}
+                          onChange={(e) => setGameSupportedPlatforms(e.target.value)}
+                          placeholder="ej: PlayStation 5, Xbox Series X|S, Nintendo Switch"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Plataforma Principal (Filtro)</label>
+                        <select
+                          value={gamePlatform}
+                          onChange={(e) => setGamePlatform(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        >
+                          <option value="PS5">PlayStation 5</option>
+                          <option value="NINTENDO_SWITCH">Nintendo Switch</option>
+                          <option value="XBOX_SERIES">Xbox Series X|S</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Edición</label>
+                        <select
+                          value={gameEdition}
+                          onChange={(e) => setGameEdition(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        >
+                          <option value="STANDARD">Edición Estándar</option>
+                          <option value="DELUXE">Edición Deluxe</option>
+                          <option value="COLLECTORS">Edición Coleccionista / SteelBook</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Idiomas Audio (Voces)</label>
+                        <input
+                          type="text"
+                          value={gameAudioLanguages}
+                          onChange={(e) => setGameAudioLanguages(e.target.value)}
+                          placeholder="ej: Español Latino, Inglés, Japonés"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Idiomas Subtítulos (Textos)</label>
+                        <input
+                          type="text"
+                          value={gameSubtitleLanguages}
+                          onChange={(e) => setGameSubtitleLanguages(e.target.value)}
+                          placeholder="ej: Español Latino, Inglés, Portugués, Francés"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                        <label className="text-xs text-[#9bb5c2]">Clasificación por Edad</label>
+                        <input
+                          type="text"
+                          value={gameAgeRating}
+                          onChange={(e) => setGameAgeRating(e.target.value)}
+                          placeholder="ej: ESRB Teen (13+) / PEGI 16 / ESRB Mature 17+"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grupo 3: Rendimiento en Consola */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                      3. Especificaciones de Rendimiento en Consola
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Espacio de Almacenamiento *</label>
+                        <input
+                          type="text"
+                          value={gameFileSize}
+                          onChange={(e) => setGameFileSize(e.target.value)}
+                          placeholder="ej: 145 GB en SSD interno"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Modos de Visualización (PS5 / Xbox Series X)</label>
+                        <input
+                          type="text"
+                          value={gameDisplayModes}
+                          onChange={(e) => setGameDisplayModes(e.target.value)}
+                          placeholder="ej: Modo Rendimiento (1440p-4K 60fps) / Modo Calidad (4K 30fps Ray Tracing)"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Optimización Xbox Series S</label>
+                        <input
+                          type="text"
+                          value={gameXboxSeriesSOptimization}
+                          onChange={(e) => setGameXboxSeriesSOptimization(e.target.value)}
+                          placeholder="ej: 1080p 60fps dinámico optimizado"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Funciones Específicas de Hardware</label>
+                        <input
+                          type="text"
+                          value={gameHardwareFeatures}
+                          onChange={(e) => setGameHardwareFeatures(e.target.value)}
+                          placeholder="ej: Gatillos adaptativos y hápticos DualSense, Audio 3D Tempest, SSD ultrarrápido"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUB-TEMPLATE 2: VIDEOJUEGO DE PC */}
+              {gameType === "PC" && (
+                <div className="space-y-5 pt-2 animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 bg-cyan-950/30 border border-cyan-500/30 px-3 py-2 rounded-xl">
+                    <Monitor className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <span>Especificaciones Técnicas para Videojuegos de PC</span>
+                  </div>
+
+                  {/* Grupo 1: Información General */}
+                  <div className="space-y-3">
+                    <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                      1. Información General
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                        <label className="text-xs text-[#9bb5c2]">Título del Videojuego *</label>
+                        <input
+                          type="text"
+                          value={gameTitle}
+                          onChange={(e) => setGameTitle(e.target.value)}
+                          placeholder="ej: Cyberpunk 2077 / Black Myth: Wukong"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Desarrolladora *</label>
+                        <input
+                          type="text"
+                          value={gameDeveloper}
+                          onChange={(e) => setGameDeveloper(e.target.value)}
+                          placeholder="ej: Game Science / CD Projekt RED"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Distribuidora / Publisher *</label>
+                        <input
+                          type="text"
+                          value={gamePublisher}
+                          onChange={(e) => setGamePublisher(e.target.value)}
+                          placeholder="ej: CD PROJEKT / Game Science / Valve"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Año de Lanzamiento</label>
+                        <input
+                          type="text"
+                          value={gameReleaseYear}
+                          onChange={(e) => setGameReleaseYear(e.target.value)}
+                          placeholder="ej: 2024 / 2025 / 2026"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Género *</label>
+                        <input
+                          type="text"
+                          value={gameGenre}
+                          onChange={(e) => setGameGenre(e.target.value)}
+                          placeholder="ej: ARPG / Acción / Mundo Abierto"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Modos de Juego</label>
+                        <input
+                          type="text"
+                          value={gameModes}
+                          onChange={(e) => setGameModes(e.target.value)}
+                          placeholder="ej: Un jugador, Cooperativo online"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grupo 2: Aspectos de Software y Desarrollo */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                      2. Aspectos de Software y Desarrollo
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Motor de Juego</label>
+                        <input
+                          type="text"
+                          value={gameEngine}
+                          onChange={(e) => setGameEngine(e.target.value)}
+                          placeholder="ej: Unreal Engine 5.4 / REDengine 4 / Unity"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Plataformas de PC (Tiendas)</label>
+                        <input
+                          type="text"
+                          value={gameSupportedPlatforms}
+                          onChange={(e) => setGameSupportedPlatforms(e.target.value)}
+                          placeholder="ej: Steam, Epic Games Store, GOG, EA App"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Edición</label>
+                        <select
+                          value={gameEdition}
+                          onChange={(e) => setGameEdition(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        >
+                          <option value="STANDARD">Edición Estándar</option>
+                          <option value="DELUXE">Edición Deluxe</option>
+                          <option value="COLLECTORS">Edición Coleccionista</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Idiomas Audio (Voces)</label>
+                        <input
+                          type="text"
+                          value={gameAudioLanguages}
+                          onChange={(e) => setGameAudioLanguages(e.target.value)}
+                          placeholder="ej: Español Latino, Inglés, Chino, Japonés"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Idiomas Subtítulos (Textos)</label>
+                        <input
+                          type="text"
+                          value={gameSubtitleLanguages}
+                          onChange={(e) => setGameSubtitleLanguages(e.target.value)}
+                          placeholder="ej: Español Latino, Inglés, Francés, Alemán"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Clasificación por Edad</label>
+                        <input
+                          type="text"
+                          value={gameAgeRating}
+                          onChange={(e) => setGameAgeRating(e.target.value)}
+                          placeholder="ej: ESRB Mature 17+ / PEGI 18"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grupo 3: Requisitos de Hardware para PC */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                      3. Requisitos de Hardware para PC
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Sistema Operativo *</label>
+                        <input
+                          type="text"
+                          value={gamePcOs}
+                          onChange={(e) => setGamePcOs(e.target.value)}
+                          placeholder="ej: Windows 11 / Windows 10 64-bit"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Procesador (CPU) *</label>
+                        <input
+                          type="text"
+                          value={gamePcProcessor}
+                          onChange={(e) => setGamePcProcessor(e.target.value)}
+                          placeholder="ej: Intel Core i7-12700K / AMD Ryzen 7 7800X3D"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Memoria RAM *</label>
+                        <input
+                          type="text"
+                          value={gamePcRam}
+                          onChange={(e) => setGamePcRam(e.target.value)}
+                          placeholder="ej: 16 GB RAM (32 GB recomendado)"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+                        <label className="text-xs text-[#9bb5c2]">Tarjeta Gráfica (GPU) *</label>
+                        <input
+                          type="text"
+                          value={gamePcGpu}
+                          onChange={(e) => setGamePcGpu(e.target.value)}
+                          placeholder="ej: NVIDIA GeForce RTX 4070 12GB / AMD Radeon RX 7800 XT 16GB"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-[#9bb5c2]">Almacenamiento *</label>
+                        <input
+                          type="text"
+                          value={gamePcStorage}
+                          onChange={(e) => setGamePcStorage(e.target.value)}
+                          placeholder="ej: 85 GB de espacio libre en SSD NVMe"
+                          className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

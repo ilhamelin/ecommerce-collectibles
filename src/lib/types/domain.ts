@@ -50,11 +50,13 @@ export type PreOrderDepositStatus =
 
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "RELEASED" | "EXPIRED";
 
+export type VideoGameType = "CONSOLE" | "PC";
+
 export interface GameMetadata {
   id: string;
   productId: string;
-  platform: GamePlatform;
-  edition: GameEdition;
+  platform: GamePlatform | string;
+  edition: GameEdition | string;
   isDigital: boolean;
   publisher: string;
   audioLanguages?: string;
@@ -62,6 +64,27 @@ export interface GameMetadata {
   players?: string;
   fileSize?: string;
   resolution?: string;
+  gameType?: VideoGameType;
+  // Información General
+  title?: string;
+  developer?: string;
+  releaseYear?: string;
+  genre?: string;
+  gameModes?: string;
+  // Aspectos de Software y Desarrollo
+  gameEngine?: string;
+  supportedPlatforms?: string;
+  ageRating?: string;
+  // Rendimiento en Consola
+  displayModes?: string;
+  xboxSeriesSOptimization?: string;
+  hardwareFeatures?: string;
+  // Requisitos de Hardware para PC
+  pcOs?: string;
+  pcProcessor?: string;
+  pcRam?: string;
+  pcGpu?: string;
+  pcStorage?: string;
 }
 
 export interface FigureMetadata {

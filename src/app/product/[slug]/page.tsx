@@ -304,14 +304,16 @@ function getProductCategoryInfo(product: any) {
   }
 
   if (type === "VIDEO_GAME") {
+    const isPc = product?.gameMetadata?.gameType === "PC" || product?.gameMetadata?.platform === "PC";
+    const tagPlatform = isPc ? "PC Gaming" : (product?.gameMetadata?.platform?.replace(/_/g, " ") || "Consola");
     return {
       key: "VIDEO_GAME",
       label: "Videojuegos",
       href: "/catalog?category=VIDEO_GAME",
-      defaultTags: ["Acción", "Aventuras", "Videojuegos"],
+      defaultTags: isPc ? ["PC Gaming", "Steam", "Videojuegos"] : ["Consola", tagPlatform, "Videojuegos"],
       formatLabel: product?.gameMetadata?.isDigital ? "Digital (Código Oficial)" : "Físico (Disco / Cartucho Sellado)",
-      brand: product?.gameMetadata?.publisher || "Publisher Oficial",
-      bracketTag: `Juego ${product?.gameMetadata?.platform || "PS5"}`,
+      brand: product?.gameMetadata?.developer || product?.gameMetadata?.publisher || "Publisher Oficial",
+      bracketTag: isPc ? "Juego PC" : `Juego ${tagPlatform}`,
     };
   }
 
@@ -535,20 +537,68 @@ export default function ProductDetailPage() {
       label: "Fabricante / Marca",
       value: categoryInfo.brand,
     },
+    // Videojuegos (Consola y PC)
+    ...(product.gameMetadata?.title
+      ? [{ label: "Título", value: product.gameMetadata.title }]
+      : []),
+    ...(product.gameMetadata?.developer
+      ? [{ label: "Desarrolladora", value: product.gameMetadata.developer }]
+      : []),
+    ...(product.gameMetadata?.publisher
+      ? [{ label: "Distribuidora", value: product.gameMetadata.publisher }]
+      : []),
+    ...(product.gameMetadata?.releaseYear
+      ? [{ label: "Año de Lanzamiento", value: product.gameMetadata.releaseYear }]
+      : []),
+    ...(product.gameMetadata?.genre
+      ? [{ label: "Género", value: product.gameMetadata.genre }]
+      : []),
+    ...(product.gameMetadata?.gameModes
+      ? [{ label: "Modos de Juego", value: product.gameMetadata.gameModes }]
+      : []),
+    ...(product.gameMetadata?.gameEngine
+      ? [{ label: "Motor de Juego", value: product.gameMetadata.gameEngine }]
+      : []),
+    ...(product.gameMetadata?.supportedPlatforms
+      ? [{ label: "Plataformas", value: product.gameMetadata.supportedPlatforms }]
+      : []),
     ...(product.gameMetadata?.audioLanguages
-      ? [{ label: "Idioma Audio", value: product.gameMetadata.audioLanguages }]
+      ? [{ label: "Idioma Audio (Voces)", value: product.gameMetadata.audioLanguages }]
       : []),
     ...(product.gameMetadata?.subtitleLanguages
-      ? [{ label: "Idioma Subtítulos", value: product.gameMetadata.subtitleLanguages }]
+      ? [{ label: "Idioma Subtítulos (Textos)", value: product.gameMetadata.subtitleLanguages }]
       : []),
-    ...(product.gameMetadata?.players
-      ? [{ label: "N° Jugadores", value: product.gameMetadata.players }]
+    ...(product.gameMetadata?.ageRating
+      ? [{ label: "Clasificación por Edad", value: product.gameMetadata.ageRating }]
       : []),
+    // Consola: Rendimiento y Hardware
     ...(product.gameMetadata?.fileSize
       ? [{ label: "Espacio en Disco", value: product.gameMetadata.fileSize }]
       : []),
-    ...(product.gameMetadata?.resolution
-      ? [{ label: "Resolución / Rendimiento", value: product.gameMetadata.resolution }]
+    ...(product.gameMetadata?.displayModes || product.gameMetadata?.resolution
+      ? [{ label: "Modos de Visualización", value: product.gameMetadata.displayModes || product.gameMetadata.resolution }]
+      : []),
+    ...(product.gameMetadata?.xboxSeriesSOptimization
+      ? [{ label: "Optimización Xbox Series S", value: product.gameMetadata.xboxSeriesSOptimization }]
+      : []),
+    ...(product.gameMetadata?.hardwareFeatures
+      ? [{ label: "Funciones de Hardware", value: product.gameMetadata.hardwareFeatures }]
+      : []),
+    // PC: Requisitos de Hardware
+    ...(product.gameMetadata?.pcOs
+      ? [{ label: "Sistema Operativo", value: product.gameMetadata.pcOs }]
+      : []),
+    ...(product.gameMetadata?.pcProcessor
+      ? [{ label: "Procesador (CPU)", value: product.gameMetadata.pcProcessor }]
+      : []),
+    ...(product.gameMetadata?.pcRam
+      ? [{ label: "Memoria RAM", value: product.gameMetadata.pcRam }]
+      : []),
+    ...(product.gameMetadata?.pcGpu
+      ? [{ label: "Tarjeta Gráfica (GPU)", value: product.gameMetadata.pcGpu }]
+      : []),
+    ...(product.gameMetadata?.pcStorage
+      ? [{ label: "Almacenamiento PC", value: product.gameMetadata.pcStorage }]
       : []),
     ...(product.figureMetadata?.material
       ? [{ label: "Materiales", value: product.figureMetadata.material }]

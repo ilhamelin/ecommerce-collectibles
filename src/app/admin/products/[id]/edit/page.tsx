@@ -157,6 +157,141 @@ export default function EditProductAdminPage() {
   const [collectibleAuth, setCollectibleAuth] = useState<Authenticator>("PSA");
   const [collectibleSerial, setCollectibleSerial] = useState("");
 
+  // Auto-fill state
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [autoFillSuccessMsg, setAutoFillSuccessMsg] = useState<string | null>(null);
+  const [aiEngineUsed, setAiEngineUsed] = useState<"GEMINI_AI" | "SMART_KNOWLEDGE_ENGINE">("SMART_KNOWLEDGE_ENGINE");
+  const [aiEngineErrorDetail, setAiEngineErrorDetail] = useState<string | null>(null);
+
+  const handleAutoFillWithAI = async () => {
+    if (!name.trim()) {
+      setErrorMsg("Por favor, ingresa al menos el Nombre Comercial del producto para auto-completar.");
+      return;
+    }
+
+    setIsAutoFilling(true);
+    setErrorMsg(null);
+    setAutoFillSuccessMsg(null);
+
+    const chosenType = type;
+    const chosenCustomCategory = customCategoryLabel;
+
+    try {
+      const res = await fetch("/api/admin/auto-fill-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          selectedType: chosenType,
+          customCategoryLabel: chosenType === "OTHER" ? chosenCustomCategory : undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "No se pudo auto-completar el producto.");
+      }
+
+      const d = data.data;
+
+      // In edit mode: preserve current SKU if already defined to protect URLs & database key
+      if (!sku.trim() && d.sku) {
+        setSku(d.sku);
+      }
+
+      // Preserve admin category selection
+      if (chosenType) {
+        setType(chosenType);
+        if (chosenType === "OTHER") {
+          setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
+        }
+      } else if (d.type) {
+        setType(d.type);
+        if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+      }
+
+      if (d.description) setDescription(d.description);
+      if (typeof d.price === "number") setPrice(d.price);
+      if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
+      if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
+      if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
+      if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
+      
+      if (d.ageRating) {
+        const match = WORLDWIDE_AGE_RATINGS.find(
+          (r) => r.value.toLowerCase() === d.ageRating.toLowerCase()
+        );
+        if (match) {
+          setAgeRating(match.value);
+        } else {
+          setAgeRating("CUSTOM");
+          setCustomAgeRating(d.ageRating);
+        }
+      }
+
+      if (d.genres) setGenresInput(d.genres);
+
+      // Category-specific specs
+      const targetCategoryType = chosenType || d.type;
+      if (targetCategoryType === "FIGURE" && d.figureSpecs) {
+        if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
+        if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
+        if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
+        if (d.figureSpecs.dimensions) setFigureDimensions(d.figureSpecs.dimensions);
+        if (d.figureSpecs.sculptor) setFigureSculptor(d.figureSpecs.sculptor);
+        if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
+        if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
+        if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
+      } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
+        if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
+        if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
+        if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
+        if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
+        if (d.gameSpecs.releaseYear) setGameReleaseYear(d.gameSpecs.releaseYear);
+        if (d.gameSpecs.genre) setGameGenre(d.gameSpecs.genre);
+        if (d.gameSpecs.gameModes) setGameModes(d.gameSpecs.gameModes);
+        if (d.gameSpecs.gameEngine) setGameEngine(d.gameSpecs.gameEngine);
+        if (d.gameSpecs.supportedPlatforms) setGameSupportedPlatforms(d.gameSpecs.supportedPlatforms);
+        if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
+        if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
+        if (d.gameSpecs.audioLanguages) setGameAudioLanguages(d.gameSpecs.audioLanguages);
+        if (d.gameSpecs.subtitleLanguages) setGameSubtitleLanguages(d.gameSpecs.subtitleLanguages);
+        if (d.gameSpecs.ageRating) setGameAgeRating(d.gameSpecs.ageRating);
+        if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
+        if (d.gameSpecs.displayModes) setGameDisplayModes(d.gameSpecs.displayModes);
+        if (d.gameSpecs.xboxSeriesSOptimization) setGameXboxSeriesSOptimization(d.gameSpecs.xboxSeriesSOptimization);
+        if (d.gameSpecs.hardwareFeatures) setGameHardwareFeatures(d.gameSpecs.hardwareFeatures);
+        if (d.gameSpecs.pcOs) setGamePcOs(d.gameSpecs.pcOs);
+        if (d.gameSpecs.pcProcessor) setGamePcProcessor(d.gameSpecs.pcProcessor);
+        if (d.gameSpecs.pcRam) setGamePcRam(d.gameSpecs.pcRam);
+        if (d.gameSpecs.pcGpu) setGamePcGpu(d.gameSpecs.pcGpu);
+        if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
+      } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
+        if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
+        if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
+        if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
+        if (d.collectibleSpecs.language) setCollectibleLanguage(d.collectibleSpecs.language);
+        if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
+      }
+
+      if (d.customSpecifications) {
+        setCustomSpecifications(d.customSpecifications);
+      }
+
+      // DO NOT alter images (photo gallery stays pristine)
+
+      setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
+      setAiEngineErrorDetail(d.geminiErrorDetail || null);
+      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini 1.5 Flash" : "Motor Heurístico Especializado";
+      setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron actualizados respetando la categoría.`);
+      setTimeout(() => setAutoFillSuccessMsg(null), 8000);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al autocompletar con IA.");
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
   // Submission State
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -774,10 +909,59 @@ export default function EditProductAdminPage() {
         <form onSubmit={handleSubmit} className="lg:col-span-8 space-y-6">
           {/* Section 1: Basic Info */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-xl">
-            <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2 border-b border-[#004E72]/40 pb-3">
-              <Package className="w-4 h-4 text-[#FF6E42]" />
-              Información Básica del Producto
-            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#004E72]/40 pb-3">
+              <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2">
+                <Package className="w-4 h-4 text-[#FF6E42]" />
+                Información Básica del Producto
+              </h2>
+
+              {/* Botón Auto-completar con IA en la vista de edición */}
+              <button
+                type="button"
+                onClick={handleAutoFillWithAI}
+                disabled={isAutoFilling || !name.trim()}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#ff5421] text-[#092634] font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                title="Genera automáticamente o actualiza los datos del producto (categoría, precios, ficha técnica y descripción) a partir del Nombre con IA"
+              >
+                {isAutoFilling ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-[#092634] border-t-transparent rounded-full animate-spin" />
+                    <span>Generando con IA...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-[#092634]" />
+                    <span>Auto-completar con IA</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {autoFillSuccessMsg && (
+              <div className="p-3.5 rounded-xl bg-[#004E72]/30 border border-emerald-500/50 text-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in-50 shadow-md">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{autoFillSuccessMsg}</span>
+                </div>
+                {aiEngineUsed === "GEMINI_AI" ? (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-blue-600/30 to-purple-600/30 border border-blue-400/50 text-blue-200 font-mono text-[11px] font-bold shrink-0 shadow-inner">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+                    <span>Google Gemini 1.5 Flash Oficial</span>
+                  </div>
+                ) : (
+                  <div
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/40 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-medium shrink-0"
+                    title={aiEngineErrorDetail || "Motor Heurístico Local"}
+                  >
+                    <span>
+                      {aiEngineErrorDetail
+                        ? `Motor Heurístico (${aiEngineErrorDetail})`
+                        : "Motor Heurístico Local (Sin Gemini API Key activa)"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

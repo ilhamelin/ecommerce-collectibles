@@ -534,7 +534,6 @@ export default function ProductDetailPage() {
 
   const isVideoGame = pType === "VIDEO_GAME";
   const isFigure = pType === "FIGURE";
-  const isCollectible = pType === "COLLECTIBLE";
   const isConsoleCat = specCat === "CONSOLE" || pType === "CONSOLE" || (labelLower.includes("consola") && !labelLower.includes("accesorio"));
   const isHardwareCat = specCat === "HARDWARE" || pType === "HARDWARE" || labelLower.includes("hardware") || labelLower.includes("componente");
   const isAccessoryCat = specCat === "GAMING_ACCESSORY" || pType === "ACCESSORY" || labelLower.includes("accesorio") || labelLower.includes("periférico") || labelLower.includes("mando") || labelLower.includes("mouse") || labelLower.includes("teclado");

@@ -30,6 +30,8 @@ export default function AdminLayout({
   const visualMenuRef = useRef<HTMLDivElement>(null);
   const [isMetricsMenuOpen, setIsMetricsMenuOpen] = useState(false);
   const metricsMenuRef = useRef<HTMLDivElement>(null);
+  const [isInventoryMenuOpen, setIsInventoryMenuOpen] = useState(false);
+  const inventoryMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -40,40 +42,16 @@ export default function AdminLayout({
       if (metricsMenuRef.current && !metricsMenuRef.current.contains(e.target as Node)) {
         setIsMetricsMenuOpen(false);
       }
+      if (inventoryMenuRef.current && !inventoryMenuRef.current.contains(e.target as Node)) {
+        setIsInventoryMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const isMetricsActive = pathname === "/admin" || pathname.startsWith("/admin/predictive-stock");
-
-  const navItems = [
-    {
-      href: "/admin/products",
-      label: "Catálogo & Inventario",
-      icon: Package,
-      active: pathname === "/admin/products",
-    },
-    {
-      href: "/admin/radar",
-      label: "Radar Japón IA",
-      icon: Radio,
-      active: pathname === "/admin/radar",
-    },
-    {
-      href: "/admin/products/new",
-      label: "Agregar Producto",
-      icon: PlusCircle,
-      active: pathname === "/admin/products/new",
-    },
-    {
-      href: "/admin/orders",
-      label: "Gestión de Pedidos",
-      icon: ShoppingBag,
-      active: pathname === "/admin/orders",
-    },
-  ];
-
+  const isInventoryActive = pathname.startsWith("/admin/products") || pathname.startsWith("/admin/orders");
   const isVisualActive = pathname.startsWith("/admin/slider") || pathname.startsWith("/admin/branding");
 
   const otherNavItems = [
@@ -195,23 +173,120 @@ export default function AdminLayout({
                 )}
               </div>
 
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition ${
-                      item.active
-                        ? "bg-[#FF6B35] text-white shadow-sm"
-                        : "text-white/80 hover:text-white hover:bg-white/10"
+              {/* Dropdown Menu: Inventario & Catálogo */}
+              <div className="relative" ref={inventoryMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsInventoryMenuOpen(!isInventoryMenuOpen)}
+                  onMouseEnter={() => setIsInventoryMenuOpen(true)}
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    isInventoryActive
+                      ? "bg-[#FF6B35] text-white shadow-sm"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  }`}
+                  aria-expanded={isInventoryMenuOpen}
+                >
+                  <Package className="w-4 h-4" />
+                  <span className="hidden md:inline">Inventario & Productos</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isInventoryMenuOpen ? "rotate-180" : ""
                     }`}
+                  />
+                </button>
+
+                {isInventoryMenuOpen && (
+                  <div
+                    onMouseLeave={() => setIsInventoryMenuOpen(false)}
+                    className="absolute left-0 mt-1.5 w-80 rounded-2xl bg-white text-[#1A1A1A] border border-[#E5E5E5] shadow-xl p-2 space-y-1 z-50 animate-in fade-in-50 zoom-in-95 duration-150"
                   >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden md:inline">{item.label}</span>
-                  </Link>
-                );
-              })}
+                    <div className="px-3 py-1.5 border-b border-[#F0F0F0]">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
+                        Inventario & Catálogo
+                      </span>
+                    </div>
+
+                    <Link
+                      href="/admin/products"
+                      onClick={() => setIsInventoryMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/products"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#1F3A5F]/10 text-[#1F3A5F] shrink-0 mt-0.5">
+                        <Package className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Inventario & Gestión de Productos
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Ver catálogo completo, existencias, precios y edición
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/products/new"
+                      onClick={() => setIsInventoryMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/products/new"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] shrink-0 mt-0.5">
+                        <PlusCircle className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Crear Nuevo Producto en Catálogo
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Publicar nuevo producto con autocompletado y fichas técnicas
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/orders"
+                      onClick={() => setIsInventoryMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/orders"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#1F3A5F]/10 text-[#1F3A5F] shrink-0 mt-0.5">
+                        <ShoppingBag className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Gestión Centralizada de Órdenes
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Seguimiento de compras, despachos, estados y reservas
+                        </span>
+                      </div>
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Radar Japón IA */}
+              <Link
+                href="/admin/radar"
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  pathname === "/admin/radar"
+                    ? "bg-[#FF6B35] text-white shadow-sm"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <Radio className="w-4 h-4" />
+                <span className="hidden md:inline">Radar Japón IA</span>
+              </Link>
 
               {/* Dropdown Menu: Slider & Portada / Logotipo */}
               <div className="relative" ref={visualMenuRef}>

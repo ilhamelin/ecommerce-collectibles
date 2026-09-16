@@ -388,7 +388,7 @@ function generateWithSmartEngine(
     type === "VIDEO_GAME"
       ? {
           gameType,
-          title: cleanName || "Título del Videojuego",
+          title: name || "Título del Videojuego",
           developer: lower.includes("capcom")
             ? "Capcom"
             : lower.includes("fromsoftware") || lower.includes("elden")

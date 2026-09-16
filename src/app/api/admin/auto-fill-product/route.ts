@@ -1092,7 +1092,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "gamingAccessory": {
       "accessoryType": "CONTROLLER" | "MOUSE" | "KEYBOARD" | "HEADSET",
       "controller": { "brand": "", "platformCompatibility": "", "connectionType": "", "feedbackHaptic": "", "weight": "", "color": "", "layout": "", "batteryLife": "", "rechargeableBattery": "", "programmableBackPaddles": "", "triggerStops": "", "audioJack": "", "hallEffectSticks": "", "lighting": "", "softwareCustomization": "" },
-      "mouse": { "brand": "", "tracking": "", "buttonCount": 6, "maxDpi": 16000, "wiring": "", "weight": "", "dimensions": "", "adjustableDpi": "", "color": "", "pollingRate": "", "adjustableWeight": "", "handedness": "", "technology": "", "lighting": "", "powerSource": "" },
+      "mouse": { "brand": "", "tracking": "", "buttonCount": "", "maxDpi": "", "wiring": "", "weight": "", "dimensions": "", "adjustableDpi": "", "color": "", "pollingRate": "", "adjustableWeight": "", "handedness": "", "technology": "", "lighting": "", "powerSource": "" },
       "keyboard": { "brand": "", "partNumber": "", "type": "", "category": "", "backlight": "", "switchType": "", "wiring": "", "connectionTechnology": "", "macroKeys": "", "hasWristRest": "", "hasMediaKeys": "" },
       "headset": { "type": "", "microphone": "", "frequencyResponse": "", "color": "", "lighting": "", "connectivity": "", "activeNoiseCancelling": "", "inLineControls": "", "driverSize": "", "impedance": "", "cableLength": "" }
     },
@@ -1130,28 +1130,20 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       "cabinet": { "brand": "", "model": "", "format": "", "sidePanel": "", "bays": "", "expansionSlots": "", "maxGpuLength": "", "maxCoolerHeight": "", "radiatorSupport": "", "frontConnectors": "" },
       "fan": { "brand": "", "size": "", "rpm": "", "airflow": "", "noiseLevel": "", "connectorPins": "", "lighting": "", "staticPressure": "", "bearing": "" }
     },
-    "apparel": {
-      "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": ""
-    },
-    "merch": {
-      "itemType": "", "material": "", "dimensions": "", "franchise": ""
-    },
-    "audio": {
-      "format": "", "discCount": "", "recordLabel": "", "includesArtbook": "", "featuredTracks": ""
-    }
+    "apparel": { "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": "" },
+    "merch": { "itemType": "", "material": "", "dimensions": "", "franchise": "" },
+    "audio": { "format": "", "discCount": "", "recordLabel": "", "includesArtbook": "", "featuredTracks": "" }
   }
 }`;
 
-        const candidateModels = [
-          "gemini-flash-lite-latest",
-          "gemini-3.5-flash-lite",
-          "gemini-3.6-flash",
-          "gemini-flash-latest",
-          "gemini-3-flash-preview",
+        const candidates = [
+          "gemini-2.5-flash",
+          "gemini-1.5-flash-latest",
+          "gemini-1.5-flash",
         ];
         let geminiRes: Response | null = null;
 
-        for (const model of candidateModels) {
+        for (const model of candidates) {
           try {
             // Use header authentication (required for Google AI Studio API keys)
             const res = await fetch(
@@ -1209,34 +1201,26 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               }
             }
 
-            // Always guarantee full customSpecifications if OTHER or HARDWARE
+            // Always guarantee isolated, clean customSpecifications if OTHER or HARDWARE
             if (parsed.type === "OTHER" || parsed.type === "HARDWARE" || (parsed.customCategoryLabel && parsed.customCategoryLabel.toLowerCase().includes("hardware"))) {
               const fallbackHeuristic = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
               const fallbackSpecs = fallbackHeuristic.customSpecifications || {};
               const catType = fallbackSpecs.categoryType || getCategoryTypeFromLabel(parsed.customCategoryLabel);
 
-              parsed.customSpecifications = {
+              const cleanSpecs: any = {
                 categoryType: catType,
-                ...fallbackSpecs,
-                ...(parsed.customSpecifications || {}),
               };
 
               if (catType === "BOOK") {
-                parsed.customSpecifications.book = {
-                  ...(fallbackSpecs.book || {}),
-                  ...(parsed.customSpecifications.book || {}),
-                };
+                cleanSpecs.book = mergeNonEmpty(fallbackSpecs.book || {}, parsed.customSpecifications?.book || {});
               } else if (catType === "CONSOLE") {
-                parsed.customSpecifications.console = {
-                  ...(fallbackSpecs.console || {}),
-                  ...(parsed.customSpecifications.console || {}),
-                };
+                cleanSpecs.console = mergeNonEmpty(fallbackSpecs.console || {}, parsed.customSpecifications?.console || {});
               } else if (catType === "HARDWARE") {
-                const incomingHw = parsed.customSpecifications.hardware || {};
+                const incomingHw = parsed.customSpecifications?.hardware || {};
                 const fallbackHw = fallbackSpecs.hardware || {};
                 const hwType = incomingHw.hardwareType || fallbackHw.hardwareType || "TARJETA_DE_VIDEO";
 
-                parsed.customSpecifications.hardware = {
+                cleanSpecs.hardware = {
                   ...mergeNonEmpty(fallbackHw, incomingHw),
                   hardwareType: hwType,
                   gpu: hwType === "TARJETA_DE_VIDEO" ? mergeNonEmpty(fallbackHw.gpu || {}, incomingHw.gpu || {}) : undefined,
@@ -1251,32 +1235,37 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                   fan: hwType === "VENTILADORES" ? mergeNonEmpty(fallbackHw.fan || {}, incomingHw.fan || {}) : undefined,
                 };
               } else if (catType === "APPAREL") {
-                parsed.customSpecifications.apparel = {
-                  ...(fallbackSpecs.apparel || {}),
-                  ...(parsed.customSpecifications.apparel || {}),
-                };
+                cleanSpecs.apparel = mergeNonEmpty(fallbackSpecs.apparel || {}, parsed.customSpecifications?.apparel || {});
               } else if (catType === "MERCH") {
-                parsed.customSpecifications.merch = {
-                  ...(fallbackSpecs.merch || {}),
-                  ...(parsed.customSpecifications.merch || {}),
-                };
+                cleanSpecs.merch = mergeNonEmpty(fallbackSpecs.merch || {}, parsed.customSpecifications?.merch || {});
               } else if (catType === "AUDIO") {
-                parsed.customSpecifications.audio = {
-                  ...(fallbackSpecs.audio || {}),
-                  ...(parsed.customSpecifications.audio || {}),
-                };
+                cleanSpecs.audio = mergeNonEmpty(fallbackSpecs.audio || {}, parsed.customSpecifications?.audio || {});
               } else if (catType === "GAMING_ACCESSORY") {
-                parsed.customSpecifications.gamingAccessory = {
-                  ...(fallbackSpecs.gamingAccessory || {}),
-                  ...(parsed.customSpecifications.gamingAccessory || {}),
+                const incomingAcc = parsed.customSpecifications?.gamingAccessory || {};
+                const fallbackAcc = fallbackSpecs.gamingAccessory || {};
+                const accType = incomingAcc.accessoryType || fallbackAcc.accessoryType || "MOUSE";
+                cleanSpecs.gamingAccessory = {
+                  accessoryType: accType,
+                  controller: accType === "CONTROLLER" ? mergeNonEmpty(fallbackAcc.controller || {}, incomingAcc.controller || {}) : undefined,
+                  mouse: accType === "MOUSE" ? mergeNonEmpty(fallbackAcc.mouse || {}, incomingAcc.mouse || {}) : undefined,
+                  keyboard: accType === "KEYBOARD" ? mergeNonEmpty(fallbackAcc.keyboard || {}, incomingAcc.keyboard || {}) : undefined,
+                  headset: accType === "HEADSET" ? mergeNonEmpty(fallbackAcc.headset || {}, incomingAcc.headset || {}) : undefined,
                 };
               }
+
+              parsed.customSpecifications = cleanSpecs;
             }
 
             if (parsed.type === "VIDEO_GAME") {
               const fallbackHeuristic = generateWithSmartEngine(productName, "VIDEO_GAME");
               parsed.gameSpecs = mergeNonEmpty(fallbackHeuristic.gameSpecs || {}, parsed.gameSpecs || {});
             }
+
+            // Cross-category cleanup: strictly delete specifications not belonging to the chosen type
+            if (parsed.type !== "FIGURE") delete parsed.figureSpecs;
+            if (parsed.type !== "VIDEO_GAME") delete parsed.gameSpecs;
+            if (parsed.type !== "COLLECTIBLE") delete parsed.collectibleSpecs;
+            if (parsed.type !== "OTHER") delete parsed.customSpecifications;
 
             // Remove any image auto-generation so "4. Galería de Fotos & Portada" is NOT touched
             delete parsed.imageUrl;

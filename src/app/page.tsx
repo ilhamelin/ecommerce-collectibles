@@ -22,6 +22,11 @@ import {
   Package,
   Check,
   ChevronRight,
+  Shirt,
+  BookOpen,
+  Gift,
+  Disc3,
+  Puzzle,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
@@ -91,14 +96,64 @@ const CATEGORIES_NAV = [
     iconBg: "bg-cyan-50 text-cyan-600 border-cyan-200/60",
   },
   {
-    id: "ACCESSORY",
-    title: "Accesorios",
-    subtitle: "Mandos & Acrílicos UV",
-    href: "/catalog?category=ACCESSORY",
+    id: "GAMING_ACCESSORY",
+    title: "Accesorios Gaming",
+    subtitle: "Mandos, Mouse & Periféricos",
+    href: "/catalog?category=GAMING_ACCESSORY",
     icon: Headphones,
     badge: "Gaming Pro",
     accent: "hover:border-rose-500/50 hover:bg-rose-50/30",
     iconBg: "bg-rose-50 text-rose-600 border-rose-200/60",
+  },
+  {
+    id: "APPAREL",
+    title: "Ropa & Estilo",
+    subtitle: "Polerones, Poleras & Urbano",
+    href: "/catalog?category=APPAREL",
+    icon: Shirt,
+    badge: "Moda Gamer",
+    accent: "hover:border-emerald-500/50 hover:bg-emerald-50/30",
+    iconBg: "bg-emerald-50 text-emerald-600 border-emerald-200/60",
+  },
+  {
+    id: "BOOK",
+    title: "Manga / Artbooks",
+    subtitle: "Tomos, Ilustración & Guías",
+    href: "/catalog?category=BOOK",
+    icon: BookOpen,
+    badge: "Lectura",
+    accent: "hover:border-indigo-500/50 hover:bg-indigo-50/30",
+    iconBg: "bg-indigo-50 text-indigo-600 border-indigo-200/60",
+  },
+  {
+    id: "MERCH",
+    title: "Merchandising",
+    subtitle: "Peluches, Llaveros & Colección",
+    href: "/catalog?category=MERCH",
+    icon: Gift,
+    badge: "Exclusivos",
+    accent: "hover:border-pink-500/50 hover:bg-pink-50/30",
+    iconBg: "bg-pink-50 text-pink-600 border-pink-200/60",
+  },
+  {
+    id: "AUDIO",
+    title: "Audio / OST",
+    subtitle: "Vinilos, CDs & Soundtracks",
+    href: "/catalog?category=AUDIO",
+    icon: Disc3,
+    badge: "Soundtracks",
+    accent: "hover:border-violet-500/50 hover:bg-violet-50/30",
+    iconBg: "bg-violet-50 text-violet-600 border-violet-200/60",
+  },
+  {
+    id: "OTHER",
+    title: "Otras Categorías",
+    subtitle: "Ediciones Únicas & Especiales",
+    href: "/catalog?category=OTHER",
+    icon: Puzzle,
+    badge: "Colección",
+    accent: "hover:border-teal-500/50 hover:bg-teal-50/30",
+    iconBg: "bg-teal-50 text-teal-600 border-teal-200/60",
   },
 ];
 
@@ -111,6 +166,11 @@ const TABS = [
   { id: "BUNDLE", label: "📦 Bundles con Descuento", icon: Layers },
   { id: "CONSOLE", label: "🕹️ Consolas", icon: Tv },
   { id: "HARDWARE", label: "🖥️ Hardware & PC", icon: Cpu },
+  { id: "GAMING_ACCESSORY", label: "🎧 Accesorios Gaming", icon: Headphones },
+  { id: "APPAREL", label: "👕 Ropa & Estilo", icon: Shirt },
+  { id: "BOOK", label: "📖 Manga & Libros", icon: BookOpen },
+  { id: "MERCH", label: "🎁 Merchandising", icon: Gift },
+  { id: "AUDIO", label: "💿 Audio & OST", icon: Disc3 },
 ];
 
 export default function StorefrontHomePage() {
@@ -143,14 +203,56 @@ export default function StorefrontHomePage() {
     if (activeTab === "ALL") {
       // Pick a balanced curated mix from all categories
       const featured: any[] = [];
-      const types = ["FIGURE", "VIDEO_GAME", "COLLECTIBLE", "BUNDLE", "CONSOLE", "HARDWARE", "ACCESSORY"];
+      const types = [
+        "FIGURE",
+        "VIDEO_GAME",
+        "COLLECTIBLE",
+        "BUNDLE",
+        "CONSOLE",
+        "HARDWARE",
+        "GAMING_ACCESSORY",
+        "APPAREL",
+        "BOOK",
+        "MERCH",
+        "AUDIO",
+      ];
       types.forEach((t) => {
-        const found = products.filter((p) => p.type === t).slice(0, 2);
+        const found = products.filter((p) => {
+          if (p.type === t) return true;
+          if (p.type === "OTHER") {
+            const cat = (p.customSpecifications?.categoryType || "").toUpperCase();
+            if (cat === t) return true;
+            const lbl = (p.customCategoryLabel || "").toLowerCase();
+            if (t === "GAMING_ACCESSORY" && (lbl.includes("accesorio") || p.type === "ACCESSORY")) return true;
+            if (t === "CONSOLE" && lbl.includes("consola")) return true;
+            if (t === "HARDWARE" && lbl.includes("hardware")) return true;
+            if (t === "APPAREL" && (lbl.includes("ropa") || lbl.includes("estilo"))) return true;
+            if (t === "BOOK" && (lbl.includes("manga") || lbl.includes("artbook"))) return true;
+            if (t === "MERCH" && lbl.includes("merch")) return true;
+            if (t === "AUDIO" && (lbl.includes("audio") || lbl.includes("ost"))) return true;
+          }
+          return false;
+        }).slice(0, 2);
         featured.push(...found);
       });
       return featured.slice(0, 8);
     }
-    return products.filter((p) => p.type === activeTab).slice(0, 8);
+    return products.filter((p) => {
+      if (p.type === activeTab) return true;
+      if (p.type === "OTHER") {
+        const cat = (p.customSpecifications?.categoryType || "").toUpperCase();
+        if (cat === activeTab) return true;
+        const lbl = (p.customCategoryLabel || "").toLowerCase();
+        if (activeTab === "GAMING_ACCESSORY" && (lbl.includes("accesorio") || p.type === "ACCESSORY")) return true;
+        if (activeTab === "CONSOLE" && lbl.includes("consola")) return true;
+        if (activeTab === "HARDWARE" && lbl.includes("hardware")) return true;
+        if (activeTab === "APPAREL" && (lbl.includes("ropa") || lbl.includes("estilo"))) return true;
+        if (activeTab === "BOOK" && (lbl.includes("manga") || lbl.includes("artbook"))) return true;
+        if (activeTab === "MERCH" && lbl.includes("merch")) return true;
+        if (activeTab === "AUDIO" && (lbl.includes("audio") || lbl.includes("ost"))) return true;
+      }
+      return false;
+    }).slice(0, 8);
   }, [products, activeTab]);
 
   // Dedicated sections
@@ -190,7 +292,7 @@ export default function StorefrontHomePage() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {CATEGORIES_NAV.map((cat) => {
             const IconComponent = cat.icon;
             return (

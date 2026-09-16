@@ -1251,17 +1251,23 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 }`;
 
         const candidates = [
-          "gemini-2.5-flash",
-          "gemini-1.5-flash-latest",
-          "gemini-1.5-flash",
+          "gemini-flash-lite-latest",
+          "gemini-flash-latest",
+          "gemini-2.0-flash",
+          "gemini-2.0-flash-lite",
+          "gemini-3.5-flash-lite",
+          "gemini-3.6-flash",
+          "gemini-3-flash-preview",
+          "gemini-1.5-flash-8b",
+          "gemini-1.5-pro",
         ];
         let geminiRes: Response | null = null;
 
         for (const model of candidates) {
           try {
-            // Use header authentication (required for Google AI Studio API keys)
+            // Use header and URL parameter for maximum compatibility with Google AI Studio / Generative Language API
             const res = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
               {
                 method: "POST",
                 headers: {
@@ -1283,13 +1289,10 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             } else {
               lastErrorText = await res.text();
               console.warn(`[Auto-Fill API] Model ${model} returned ${res.status}:`, lastErrorText);
-              if (res.status !== 404 && res.status !== 503 && res.status !== 429) {
-                break;
-              }
             }
           } catch (e: any) {
             lastErrorText = e.message || String(e);
-            break;
+            console.warn(`[Auto-Fill API] Network/execution error on model ${model}:`, e);
           }
         }
 

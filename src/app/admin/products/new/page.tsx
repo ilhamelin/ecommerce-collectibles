@@ -376,7 +376,7 @@ export default function NewProductAdminPage() {
 
       setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
       setAiEngineErrorDetail(d.geminiErrorDetail || null);
-      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini 1.5 Flash" : "Motor Heurístico Especializado";
+      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
       setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);
       setTimeout(() => setAutoFillSuccessMsg(null), 8000);
     } catch (err: any) {

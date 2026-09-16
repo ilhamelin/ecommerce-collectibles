@@ -498,38 +498,32 @@ export default function ProductDetailPage() {
   const ratingSub = ratingParts.slice(1).join(" ") || "AÑOS O MÁS";
 
   // Category Classification Info
-  const categoryInfo = useMemo(() => getProductCategoryInfo(product), [product]);
+  const categoryInfo = getProductCategoryInfo(product);
 
   // Clean Genres List (Strictly eliminates erroneous TCG/Graduada tags on non-TCG items)
-  const genresList: string[] = useMemo(() => {
-    let rawList: string[] = [];
-    if (Array.isArray(product.genres)) {
-      rawList = product.genres;
-    } else if (typeof product.genres === "string" && product.genres.trim()) {
-      rawList = product.genres.split(",").map((s: string) => s.trim()).filter(Boolean);
-    }
+  let rawList: string[] = [];
+  if (Array.isArray(product.genres)) {
+    rawList = product.genres;
+  } else if (typeof product.genres === "string" && product.genres.trim()) {
+    rawList = product.genres.split(",").map((s: string) => s.trim()).filter(Boolean);
+  }
 
-    // Filter out erroneous TCG / Graduada tags if this product is NOT a TCG/COLLECTIBLE
-    if (categoryInfo.key !== "COLLECTIBLE") {
-      rawList = rawList.filter((g: string) => {
-        const lower = g.toLowerCase();
-        return (
-          !lower.includes("tcg") &&
-          !lower.includes("graduada") &&
-          !lower.includes("gem mint") &&
-          !lower.includes("psa") &&
-          !lower.includes("bgs") &&
-          !lower.includes("cgc")
-        );
-      });
-    }
+  // Filter out erroneous TCG / Graduada tags if this product is NOT a TCG/COLLECTIBLE
+  if (categoryInfo.key !== "COLLECTIBLE") {
+    rawList = rawList.filter((g: string) => {
+      const lower = g.toLowerCase();
+      return (
+        !lower.includes("tcg") &&
+        !lower.includes("graduada") &&
+        !lower.includes("gem mint") &&
+        !lower.includes("psa") &&
+        !lower.includes("bgs") &&
+        !lower.includes("cgc")
+      );
+    });
+  }
 
-    if (rawList.length > 0) {
-      return rawList;
-    }
-
-    return categoryInfo.defaultTags;
-  }, [product.genres, categoryInfo]);
+  const genresList: string[] = rawList.length > 0 ? rawList : categoryInfo.defaultTags;
 
   // Technical Specifications List
   const technicalSpecs = [

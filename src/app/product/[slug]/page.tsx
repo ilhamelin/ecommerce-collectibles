@@ -36,7 +36,7 @@ import { ProductAlertSubscription } from "@/components/product/ProductAlertSubsc
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
-export function getProductCategoryInfo(product: any) {
+function getProductCategoryInfo(product: any) {
   if (!product) {
     return {
       key: "ALL",

@@ -540,35 +540,37 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     featuredHighlights: "",
   };
 
-  const gpuData: GpuSpecifications = value.hardware?.gpu || {
-    manufacturer: "",
-    gpu: "",
-    memory: "",
-    bus: "",
-    coreClocks: "",
-    memoryClock: "",
-    coreName: "",
-    profile: "",
-    cooling: "",
-    slots: "",
-    length: "",
-    lighting: "",
-    hasBackplate: "",
-    powerConnectors: "",
-    videoPorts: "",
+  const rawGpu: any = value.hardware?.gpu || {};
+  const gpuData: GpuSpecifications = {
+    manufacturer: rawGpu.manufacturer || "",
+    gpu: rawGpu.gpu || "",
+    memory: rawGpu.memory || "",
+    bus: rawGpu.bus || "",
+    coreClocks: rawGpu.coreClocks || rawGpu.coreFrequencies || "",
+    memoryClock: rawGpu.memoryClock || rawGpu.memoryFrequency || "",
+    coreName: rawGpu.coreName || rawGpu.core || "",
+    profile: rawGpu.profile || "",
+    cooling: rawGpu.cooling || "",
+    slots: rawGpu.slots || "",
+    length: rawGpu.length || "",
+    lighting: rawGpu.lighting || "",
+    hasBackplate: rawGpu.hasBackplate || rawGpu.backplate || "",
+    powerConnectors: rawGpu.powerConnectors || "",
+    videoPorts: rawGpu.videoPorts || "",
   };
 
-  const cpuData: CpuSpecifications = value.hardware?.cpu || {
-    frequency: "",
-    turboFrequency: "",
-    coresThreads: "",
-    cache: "",
-    socket: "",
-    coreName: "",
-    manufacturingProcess: "",
-    tdp: "",
-    cooler: "",
-    integratedGraphics: "",
+  const rawCpu: any = value.hardware?.cpu || {};
+  const cpuData: CpuSpecifications = {
+    frequency: rawCpu.frequency || "",
+    turboFrequency: rawCpu.turboFrequency || "",
+    coresThreads: rawCpu.coresThreads || "",
+    cache: rawCpu.cache || "",
+    socket: rawCpu.socket || "",
+    coreName: rawCpu.coreName || rawCpu.core || "",
+    manufacturingProcess: rawCpu.manufacturingProcess || "",
+    tdp: rawCpu.tdp || "",
+    cooler: rawCpu.cooler || "",
+    integratedGraphics: rawCpu.integratedGraphics || "",
   };
 
   const motherboardData: MotherboardSpecifications = value.hardware?.motherboard || {
@@ -589,18 +591,19 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     expansions: "",
   };
 
-  const ramData: RamSpecifications = value.hardware?.ram || {
-    capacity: "",
-    type: "",
-    speed: "",
-    format: "",
-    voltage: "",
-    latencyClCas: "",
-    latencyTrcd: "",
-    latencyTrp: "",
-    latencyTras: "",
-    eccSupport: "",
-    fullBufferedSupport: "",
+  const rawRam: any = value.hardware?.ram || {};
+  const ramData: RamSpecifications = {
+    capacity: rawRam.capacity || "",
+    type: rawRam.type || "",
+    speed: rawRam.speed || "",
+    format: rawRam.format || "",
+    voltage: rawRam.voltage || "",
+    latencyClCas: rawRam.latencyClCas || rawRam.casLatency || "",
+    latencyTrcd: rawRam.latencyTrcd || rawRam.trcdLatency || "",
+    latencyTrp: rawRam.latencyTrp || rawRam.trpLatency || "",
+    latencyTras: rawRam.latencyTras || rawRam.trasLatency || "",
+    eccSupport: rawRam.eccSupport || "",
+    fullBufferedSupport: rawRam.fullBufferedSupport || "",
   };
 
   const hddData: HddSpecifications = value.hardware?.hdd || {
@@ -625,48 +628,52 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     sequentialWrite: "",
   };
 
-  const psuData: PowerSupplySpecifications = value.hardware?.powerSupply || {
-    power: "",
-    certification: "",
-    size: "",
-    activePfc: "",
-    modular: "",
-    rail12vCurrent: "",
-    rail5vCurrent: "",
-    rail33vCurrent: "",
-    powerConnectors: "",
+  const rawPsu: any = value.hardware?.powerSupply || {};
+  const psuData: PowerSupplySpecifications = {
+    power: rawPsu.power || "",
+    certification: rawPsu.certification || "",
+    size: rawPsu.size || "",
+    activePfc: rawPsu.activePfc || "",
+    modular: rawPsu.modular || "",
+    rail12vCurrent: rawPsu.rail12vCurrent || rawPsu.current12v || "",
+    rail5vCurrent: rawPsu.rail5vCurrent || rawPsu.current5v || "",
+    rail33vCurrent: rawPsu.rail33vCurrent || rawPsu.current3v || "",
+    powerConnectors: rawPsu.powerConnectors || "",
   };
 
-  const coolerData: CoolerCpuSpecifications = value.hardware?.coolerCpu || {
-    brand: "",
-    type: "",
-    weight: "",
-    rpm: "",
-    noise: "",
-    airflow: "",
-    height: "",
-    fanSize: "",
-    hasHeatpipes: "",
-    compatibleSockets: "",
+  const rawCooler: any = value.hardware?.coolerCpu || {};
+  const coolerData: CoolerCpuSpecifications = {
+    brand: rawCooler.brand || "",
+    type: rawCooler.type || "",
+    weight: rawCooler.weight || "",
+    rpm: rawCooler.rpm || "",
+    noise: rawCooler.noise || "",
+    airflow: rawCooler.airflow || "",
+    height: rawCooler.height || "",
+    fanSize: rawCooler.fanSize || "",
+    hasHeatpipes: rawCooler.hasHeatpipes || "",
+    compatibleSockets: rawCooler.compatibleSockets || "",
   };
 
-  const cabinetData: any = value.hardware?.cabinet || {
-    format: "",
-    motherboardSupport: "",
-    sidePanel: "",
-    gpuMaxDimensions: "",
-    cpuCoolerMaxHeight: "",
+  const rawCabinet: any = value.hardware?.cabinet || {};
+  const cabinetData: any = {
+    format: rawCabinet.format || "",
+    motherboardSupport: rawCabinet.motherboardSupport || "E-ATX, ATX, Micro-ATX, Mini-ITX",
+    sidePanel: rawCabinet.sidePanel || "",
+    gpuMaxDimensions: rawCabinet.gpuMaxDimensions || rawCabinet.maxGpuLength || "",
+    cpuCoolerMaxHeight: rawCabinet.cpuCoolerMaxHeight || rawCabinet.maxCoolerHeight || "",
   };
 
-  const fanData: any = value.hardware?.fan || {
-    brand: "",
-    size: "",
-    rpm: "",
-    noise: "",
-    airflow: "",
-    bearingType: "",
-    lighting: "",
-    connector: "",
+  const rawFan: any = value.hardware?.fan || {};
+  const fanData: any = {
+    brand: rawFan.brand || "",
+    size: rawFan.size || "",
+    rpm: rawFan.rpm || "",
+    noise: rawFan.noise || rawFan.noiseLevel || "",
+    airflow: rawFan.airflow || "",
+    bearingType: rawFan.bearingType || rawFan.bearing || "",
+    lighting: rawFan.lighting || "",
+    connector: rawFan.connector || rawFan.connectorPins || "",
   };
 
   const mouseData = value.gamingAccessory?.mouse || {

@@ -266,7 +266,8 @@ export default function NewProductAdminPage() {
         if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
         if (d.collectibleSpecs.language) setCollectibleLang(d.collectibleSpecs.language);
         if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
-      } else if (targetCategoryType === "OTHER" && d.customSpecifications) {
+      }
+      if (d.customSpecifications) {
         // Section 6: Ficha de Especificaciones Técnicas Especializadas
         setCustomSpecifications(d.customSpecifications);
       }

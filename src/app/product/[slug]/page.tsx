@@ -277,14 +277,14 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.gpu?.bus
       ? [{ label: "Bus de Memoria", value: product.customSpecifications.hardware.gpu.bus }]
       : []),
-    ...(product.customSpecifications?.hardware?.gpu?.coreFrequencies
-      ? [{ label: "Frecuencias Core", value: product.customSpecifications.hardware.gpu.coreFrequencies }]
+    ...(((product.customSpecifications?.hardware?.gpu as any)?.coreClocks || product.customSpecifications?.hardware?.gpu?.coreFrequencies)
+      ? [{ label: "Frecuencias Core", value: (product.customSpecifications?.hardware?.gpu as any)?.coreClocks || product.customSpecifications?.hardware?.gpu?.coreFrequencies }]
       : []),
-    ...(product.customSpecifications?.hardware?.gpu?.memoryFrequency
-      ? [{ label: "Frecuencia Memorias", value: product.customSpecifications.hardware.gpu.memoryFrequency }]
+    ...(((product.customSpecifications?.hardware?.gpu as any)?.memoryClock || product.customSpecifications?.hardware?.gpu?.memoryFrequency)
+      ? [{ label: "Frecuencia Memorias", value: (product.customSpecifications?.hardware?.gpu as any)?.memoryClock || product.customSpecifications?.hardware?.gpu?.memoryFrequency }]
       : []),
-    ...(product.customSpecifications?.hardware?.gpu?.core
-      ? [{ label: "Núcleo", value: product.customSpecifications.hardware.gpu.core }]
+    ...(((product.customSpecifications?.hardware?.gpu as any)?.coreName || product.customSpecifications?.hardware?.gpu?.core)
+      ? [{ label: "Núcleo", value: (product.customSpecifications?.hardware?.gpu as any)?.coreName || product.customSpecifications?.hardware?.gpu?.core }]
       : []),
     ...(product.customSpecifications?.hardware?.gpu?.profile
       ? [{ label: "Perfil", value: product.customSpecifications.hardware.gpu.profile }]
@@ -301,8 +301,8 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.gpu?.lighting
       ? [{ label: "Iluminación", value: product.customSpecifications.hardware.gpu.lighting }]
       : []),
-    ...(product.customSpecifications?.hardware?.gpu?.backplate
-      ? [{ label: "¿Posee Backplate?", value: product.customSpecifications.hardware.gpu.backplate }]
+    ...(((product.customSpecifications?.hardware?.gpu as any)?.hasBackplate || product.customSpecifications?.hardware?.gpu?.backplate)
+      ? [{ label: "¿Posee Backplate?", value: (product.customSpecifications?.hardware?.gpu as any)?.hasBackplate || product.customSpecifications?.hardware?.gpu?.backplate }]
       : []),
     ...(product.customSpecifications?.hardware?.gpu?.powerConnectors
       ? [{ label: "Conectores de Poder", value: product.customSpecifications.hardware.gpu.powerConnectors }]
@@ -326,8 +326,8 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.cpu?.socket
       ? [{ label: "Socket CPU", value: product.customSpecifications.hardware.cpu.socket }]
       : []),
-    ...(product.customSpecifications?.hardware?.cpu?.core
-      ? [{ label: "Núcleo / Arquitectura", value: product.customSpecifications.hardware.cpu.core }]
+    ...(((product.customSpecifications?.hardware?.cpu as any)?.coreName || product.customSpecifications?.hardware?.cpu?.core)
+      ? [{ label: "Núcleo / Arquitectura", value: (product.customSpecifications?.hardware?.cpu as any)?.coreName || product.customSpecifications?.hardware?.cpu?.core }]
       : []),
     ...(product.customSpecifications?.hardware?.cpu?.manufacturingProcess
       ? [{ label: "Proceso de Manufactura", value: product.customSpecifications.hardware.cpu.manufacturingProcess }]
@@ -403,17 +403,17 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.ram?.voltage
       ? [{ label: "Voltaje", value: product.customSpecifications.hardware.ram.voltage }]
       : []),
-    ...(product.customSpecifications?.hardware?.ram?.casLatency
-      ? [{ label: "Latencia CL (CAS)", value: product.customSpecifications.hardware.ram.casLatency }]
+    ...(((product.customSpecifications?.hardware?.ram as any)?.latencyClCas || product.customSpecifications?.hardware?.ram?.casLatency)
+      ? [{ label: "Latencia CL (CAS)", value: (product.customSpecifications?.hardware?.ram as any)?.latencyClCas || product.customSpecifications?.hardware?.ram?.casLatency }]
       : []),
-    ...(product.customSpecifications?.hardware?.ram?.trcdLatency
-      ? [{ label: "Latencia Trcd", value: product.customSpecifications.hardware.ram.trcdLatency }]
+    ...(((product.customSpecifications?.hardware?.ram as any)?.latencyTrcd || product.customSpecifications?.hardware?.ram?.trcdLatency)
+      ? [{ label: "Latencia Trcd", value: (product.customSpecifications?.hardware?.ram as any)?.latencyTrcd || product.customSpecifications?.hardware?.ram?.trcdLatency }]
       : []),
-    ...(product.customSpecifications?.hardware?.ram?.trpLatency
-      ? [{ label: "Latencia Trp", value: product.customSpecifications.hardware.ram.trpLatency }]
+    ...(((product.customSpecifications?.hardware?.ram as any)?.latencyTrp || product.customSpecifications?.hardware?.ram?.trpLatency)
+      ? [{ label: "Latencia Trp", value: (product.customSpecifications?.hardware?.ram as any)?.latencyTrp || product.customSpecifications?.hardware?.ram?.trpLatency }]
       : []),
-    ...(product.customSpecifications?.hardware?.ram?.trasLatency
-      ? [{ label: "Latencia Tras", value: product.customSpecifications.hardware.ram.trasLatency }]
+    ...(((product.customSpecifications?.hardware?.ram as any)?.latencyTras || product.customSpecifications?.hardware?.ram?.trasLatency)
+      ? [{ label: "Latencia Tras", value: (product.customSpecifications?.hardware?.ram as any)?.latencyTras || product.customSpecifications?.hardware?.ram?.trasLatency }]
       : []),
     ...(product.customSpecifications?.hardware?.ram?.eccSupport
       ? [{ label: "Soporte ECC", value: product.customSpecifications.hardware.ram.eccSupport }]
@@ -487,14 +487,14 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.powerSupply?.modular
       ? [{ label: "Modular", value: product.customSpecifications.hardware.powerSupply.modular }]
       : []),
-    ...(product.customSpecifications?.hardware?.powerSupply?.current12v
-      ? [{ label: "Corriente Línea 12V", value: product.customSpecifications.hardware.powerSupply.current12v }]
+    ...(((product.customSpecifications?.hardware?.powerSupply as any)?.current12v || (product.customSpecifications?.hardware?.powerSupply as any)?.rail12vCurrent)
+      ? [{ label: "Corriente Línea 12V", value: (product.customSpecifications?.hardware?.powerSupply as any)?.current12v || (product.customSpecifications?.hardware?.powerSupply as any)?.rail12vCurrent }]
       : []),
-    ...(product.customSpecifications?.hardware?.powerSupply?.current5v
-      ? [{ label: "Corriente Línea 5V", value: product.customSpecifications.hardware.powerSupply.current5v }]
+    ...(((product.customSpecifications?.hardware?.powerSupply as any)?.current5v || (product.customSpecifications?.hardware?.powerSupply as any)?.rail5vCurrent)
+      ? [{ label: "Corriente Línea 5V", value: (product.customSpecifications?.hardware?.powerSupply as any)?.current5v || (product.customSpecifications?.hardware?.powerSupply as any)?.rail5vCurrent }]
       : []),
-    ...(product.customSpecifications?.hardware?.powerSupply?.current3v
-      ? [{ label: "Corriente Línea 3.3V", value: product.customSpecifications.hardware.powerSupply.current3v }]
+    ...(((product.customSpecifications?.hardware?.powerSupply as any)?.current3v || (product.customSpecifications?.hardware?.powerSupply as any)?.rail33vCurrent)
+      ? [{ label: "Corriente Línea 3.3V", value: (product.customSpecifications?.hardware?.powerSupply as any)?.current3v || (product.customSpecifications?.hardware?.powerSupply as any)?.rail33vCurrent }]
       : []),
     ...(product.customSpecifications?.hardware?.powerSupply?.powerConnectors
       ? [{ label: "Conectores de Energía", value: product.customSpecifications.hardware.powerSupply.powerConnectors }]
@@ -540,6 +540,9 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.cabinet?.format
       ? [{ label: "Formato Gabinete", value: product.customSpecifications.hardware.cabinet.format }]
       : []),
+    ...(((product.customSpecifications?.hardware?.cabinet as any)?.motherboardSupport)
+      ? [{ label: "Soporte Placas Madre", value: (product.customSpecifications?.hardware?.cabinet as any)?.motherboardSupport }]
+      : []),
     ...(product.customSpecifications?.hardware?.cabinet?.sidePanel
       ? [{ label: "Panel Lateral", value: product.customSpecifications.hardware.cabinet.sidePanel }]
       : []),
@@ -549,11 +552,11 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.cabinet?.expansionSlots
       ? [{ label: "Ranuras Expansión", value: product.customSpecifications.hardware.cabinet.expansionSlots }]
       : []),
-    ...(product.customSpecifications?.hardware?.cabinet?.maxGpuLength
-      ? [{ label: "Largo Máx. GPU", value: product.customSpecifications.hardware.cabinet.maxGpuLength }]
+    ...(((product.customSpecifications?.hardware?.cabinet as any)?.maxGpuLength || (product.customSpecifications?.hardware?.cabinet as any)?.gpuMaxDimensions)
+      ? [{ label: "Largo Máx. GPU", value: (product.customSpecifications?.hardware?.cabinet as any)?.maxGpuLength || (product.customSpecifications?.hardware?.cabinet as any)?.gpuMaxDimensions }]
       : []),
-    ...(product.customSpecifications?.hardware?.cabinet?.maxCoolerHeight
-      ? [{ label: "Altura Máx. Cooler", value: product.customSpecifications.hardware.cabinet.maxCoolerHeight }]
+    ...(((product.customSpecifications?.hardware?.cabinet as any)?.maxCoolerHeight || (product.customSpecifications?.hardware?.cabinet as any)?.cpuCoolerMaxHeight)
+      ? [{ label: "Altura Máx. Cooler", value: (product.customSpecifications?.hardware?.cabinet as any)?.maxCoolerHeight || (product.customSpecifications?.hardware?.cabinet as any)?.cpuCoolerMaxHeight }]
       : []),
     ...(product.customSpecifications?.hardware?.cabinet?.radiatorSupport
       ? [{ label: "Soporte Radiador", value: product.customSpecifications.hardware.cabinet.radiatorSupport }]
@@ -574,11 +577,11 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.hardware?.fan?.airflow
       ? [{ label: "Flujo de Aire", value: product.customSpecifications.hardware.fan.airflow }]
       : []),
-    ...(product.customSpecifications?.hardware?.fan?.noiseLevel
-      ? [{ label: "Nivel de Ruido", value: product.customSpecifications.hardware.fan.noiseLevel }]
+    ...(((product.customSpecifications?.hardware?.fan as any)?.noiseLevel || (product.customSpecifications?.hardware?.fan as any)?.noise)
+      ? [{ label: "Nivel de Ruido", value: (product.customSpecifications?.hardware?.fan as any)?.noiseLevel || (product.customSpecifications?.hardware?.fan as any)?.noise }]
       : []),
-    ...(product.customSpecifications?.hardware?.fan?.connectorPins
-      ? [{ label: "Conector / Pines", value: product.customSpecifications.hardware.fan.connectorPins }]
+    ...(((product.customSpecifications?.hardware?.fan as any)?.connectorPins || (product.customSpecifications?.hardware?.fan as any)?.connector)
+      ? [{ label: "Conector / Pines", value: (product.customSpecifications?.hardware?.fan as any)?.connectorPins || (product.customSpecifications?.hardware?.fan as any)?.connector }]
       : []),
     ...(product.customSpecifications?.hardware?.fan?.lighting
       ? [{ label: "Iluminación", value: product.customSpecifications.hardware.fan.lighting }]

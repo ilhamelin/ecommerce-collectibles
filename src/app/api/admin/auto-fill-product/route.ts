@@ -63,6 +63,16 @@ interface AutoFillResponse {
   engine: "GEMINI_AI" | "SMART_KNOWLEDGE_ENGINE";
 }
 
+function mergeNonEmpty<T extends Record<string, any>>(fallback: T = {} as T, incoming: Partial<T> = {}): T {
+  const result: any = { ...fallback };
+  for (const [k, v] of Object.entries(incoming || {})) {
+    if (v !== undefined && v !== null && String(v).trim() !== "") {
+      result[k] = v;
+    }
+  }
+  return result as T;
+}
+
 function getCategoryTypeFromLabel(
   label?: string
 ): "CONSOLE" | "HARDWARE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" {
@@ -575,15 +585,71 @@ function generateWithSmartEngine(
       };
     } else if (matchedCategory === "HARDWARE") {
       let hwType: any = "TARJETA_DE_VIDEO";
-      if (lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2")) hwType = "SSD";
-      else if (lower.includes("disco duro") || lower.includes("hdd")) hwType = "DISCO_DURO";
-      else if (lower.includes("ram") || lower.includes("ddr")) hwType = "RAM";
-      else if (lower.includes("placa") || lower.includes("motherboard") || lower.includes("chipset")) hwType = "PLACA_MADRE";
-      else if (lower.includes("procesador") || lower.includes("ryzen") || lower.includes("intel") || lower.includes("cpu")) hwType = "PROCESADORES";
-      else if (lower.includes("fuente") || lower.includes("power supply") || lower.includes("psu") || lower.includes("80 plus")) hwType = "FUENTE_DE_PODER";
-      else if (lower.includes("cooler") || lower.includes("refrigeraci") || lower.includes("disipador")) hwType = "COOLER_CPU";
-      else if (lower.includes("gabinete") || lower.includes("case")) hwType = "GABINETE";
-      else if (lower.includes("ventilador") || lower.includes("fan")) hwType = "VENTILADORES";
+      if (lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2") || lower.includes("990 pro") || lower.includes("kc3000") || lower.includes("sn850")) hwType = "SSD";
+      else if (lower.includes("disco duro") || lower.includes("hdd") || lower.includes("barracuda") || lower.includes("ironwolf") || lower.includes("skyhawk") || lower.includes("wd blue")) hwType = "DISCO_DURO";
+      else if (lower.includes("ram") || lower.includes("ddr") || lower.includes("dimm") || lower.includes("fury") || lower.includes("vengeance") || lower.includes("trident")) hwType = "RAM";
+      else if (lower.includes("placa") || lower.includes("motherboard") || lower.includes("b650") || lower.includes("b550") || lower.includes("x670") || lower.includes("x870") || lower.includes("z790") || lower.includes("b760") || lower.includes("z890") || lower.includes("chipset")) hwType = "PLACA_MADRE";
+      else if (lower.includes("procesador") || lower.includes("ryzen") || lower.includes("intel core") || lower.includes("core i") || lower.includes("cpu") || lower.includes("7800x3d") || lower.includes("9800x3d") || lower.includes("14700") || lower.includes("14900")) hwType = "PROCESADORES";
+      else if (lower.includes("fuente") || lower.includes("power supply") || lower.includes("psu") || lower.includes("80 plus") || lower.includes("toughpower") || lower.includes("rm850") || lower.includes("rm750")) hwType = "FUENTE_DE_PODER";
+      else if (lower.includes("cooler") || lower.includes("refrigeraci") || lower.includes("disipador") || lower.includes("aio") || lower.includes("kraken") || lower.includes("liquid") || lower.includes("peerless")) hwType = "COOLER_CPU";
+      else if (lower.includes("gabinete") || lower.includes("case") || lower.includes("chassis") || lower.includes("mid tower") || lower.includes("4000d") || lower.includes("o11") || lower.includes("h5 flow") || lower.includes("h9 flow")) hwType = "GABINETE";
+      else if (lower.includes("ventilador") || lower.includes("fan") || lower.includes("pwm fan") || lower.includes("argb fan")) hwType = "VENTILADORES";
+      else if (lower.includes("rtx") || lower.includes("gtx") || lower.includes("geforce") || lower.includes("radeon") || lower.includes("rx ") || lower.includes("gpu") || lower.includes("tarjeta") || lower.includes("grafica") || lower.includes("video")) hwType = "TARJETA_DE_VIDEO";
+
+      // VRAM detection for GPU
+      const vramMatch = name.match(/\b(\d{1,2})\s*(?:g|gb)\b/i);
+      const vramGb = vramMatch ? parseInt(vramMatch[1], 10) : (lower.includes("5090") || lower.includes("4090") ? 24 : lower.includes("5080") || lower.includes("4080") ? 16 : lower.includes("5070 ti") || lower.includes("4070 ti super") ? 16 : lower.includes("5070") || lower.includes("4070") ? 12 : 8);
+      const is50Series = lower.includes("5090") || lower.includes("5080") || lower.includes("5070") || lower.includes("5060");
+      const is40Series = lower.includes("4090") || lower.includes("4080") || lower.includes("4070") || lower.includes("4060");
+      const vramType = is50Series ? "GDDR7" : is40Series ? "GDDR6X" : "GDDR6";
+
+      // Motherboard Socket & Chipset Synchronization
+      let mbSocket = "AM5";
+      let mbChipset = "AMD B650";
+      if (lower.includes("x870")) { mbSocket = "AM5"; mbChipset = "AMD X870"; }
+      else if (lower.includes("x670")) { mbSocket = "AM5"; mbChipset = "AMD X670"; }
+      else if (lower.includes("b650")) { mbSocket = "AM5"; mbChipset = "AMD B650"; }
+      else if (lower.includes("a620")) { mbSocket = "AM5"; mbChipset = "AMD A620"; }
+      else if (lower.includes("b550")) { mbSocket = "AM4"; mbChipset = "AMD B550"; }
+      else if (lower.includes("x570")) { mbSocket = "AM4"; mbChipset = "AMD X570"; }
+      else if (lower.includes("z890")) { mbSocket = "LGA1851"; mbChipset = "Intel Z890"; }
+      else if (lower.includes("b860")) { mbSocket = "LGA1851"; mbChipset = "Intel B860"; }
+      else if (lower.includes("z790")) { mbSocket = "LGA1700"; mbChipset = "Intel Z790"; }
+      else if (lower.includes("b760")) { mbSocket = "LGA1700"; mbChipset = "Intel B760"; }
+      else if (lower.includes("z690")) { mbSocket = "LGA1700"; mbChipset = "Intel Z690"; }
+      else if (lower.includes("b660")) { mbSocket = "LGA1700"; mbChipset = "Intel B660"; }
+      else if (lower.includes("intel") || lower.includes("lga1700")) { mbSocket = "LGA1700"; mbChipset = "Intel B760"; }
+      else if (lower.includes("am5") || lower.includes("ryzen")) { mbSocket = "AM5"; mbChipset = "AMD B650"; }
+
+      // CPU Socket & Details
+      let cpuSocket = "AM5";
+      let cpuCores = "8 Núcleos / 16 Hilos";
+      let cpuBase = "3.8 GHz";
+      let cpuTurbo = "5.3 GHz Turbo";
+      let cpuCache = "32 MB L3 Cache";
+      let cpuCoreArch = "Zen 4";
+      let cpuProcess = "4 nm TSMC FinFET";
+      let cpuTdp = "105 W";
+
+      if (lower.includes("7800x3d")) {
+        cpuSocket = "AM5"; cpuCores = "8 Núcleos / 16 Hilos"; cpuBase = "4.2 GHz"; cpuTurbo = "5.0 GHz Turbo"; cpuCache = "96 MB L3 3D V-Cache (104 MB total)"; cpuCoreArch = "Zen 4 (Raphael)"; cpuProcess = "5 nm TSMC FinFET"; cpuTdp = "120 W";
+      } else if (lower.includes("9800x3d")) {
+        cpuSocket = "AM5"; cpuCores = "8 Núcleos / 16 Hilos"; cpuBase = "4.7 GHz"; cpuTurbo = "5.2 GHz Turbo"; cpuCache = "96 MB L3 2nd Gen 3D V-Cache"; cpuCoreArch = "Zen 5 (Granite Ridge)"; cpuProcess = "4 nm TSMC FinFET"; cpuTdp = "120 W";
+      } else if (lower.includes("7700x")) {
+        cpuSocket = "AM5"; cpuCores = "8 Núcleos / 16 Hilos"; cpuBase = "4.5 GHz"; cpuTurbo = "5.4 GHz Turbo"; cpuCache = "32 MB L3 Cache"; cpuCoreArch = "Zen 4"; cpuProcess = "5 nm TSMC"; cpuTdp = "105 W";
+      } else if (lower.includes("7600")) {
+        cpuSocket = "AM5"; cpuCores = "6 Núcleos / 12 Hilos"; cpuBase = "3.8 GHz"; cpuTurbo = "5.1 GHz Turbo"; cpuCache = "32 MB L3 Cache"; cpuCoreArch = "Zen 4"; cpuProcess = "5 nm TSMC"; cpuTdp = "65 W";
+      } else if (lower.includes("7950x")) {
+        cpuSocket = "AM5"; cpuCores = "16 Núcleos / 32 Hilos"; cpuBase = "4.5 GHz"; cpuTurbo = "5.7 GHz Turbo"; cpuCache = "64 MB L3 Cache"; cpuCoreArch = "Zen 4"; cpuProcess = "5 nm TSMC"; cpuTdp = "170 W";
+      } else if (lower.includes("14900")) {
+        cpuSocket = "LGA1700"; cpuCores = "24 Núcleos (8P+16E) / 32 Hilos"; cpuBase = "3.2 GHz"; cpuTurbo = "6.0 GHz Thermal Velocity Boost"; cpuCache = "36 MB Intel Smart Cache"; cpuCoreArch = "Raptor Lake Refresh"; cpuProcess = "Intel 7 (10 nm)"; cpuTdp = "125 W (Base) / 253 W (Turbo)";
+      } else if (lower.includes("14700")) {
+        cpuSocket = "LGA1700"; cpuCores = "20 Núcleos (8P+12E) / 28 Hilos"; cpuBase = "3.4 GHz"; cpuTurbo = "5.6 GHz Turbo Max"; cpuCache = "33 MB Intel Smart Cache"; cpuCoreArch = "Raptor Lake Refresh"; cpuProcess = "Intel 7 (10 nm)"; cpuTdp = "125 W (Base) / 253 W (Turbo)";
+      } else if (lower.includes("14600")) {
+        cpuSocket = "LGA1700"; cpuCores = "14 Núcleos (6P+8E) / 20 Hilos"; cpuBase = "3.5 GHz"; cpuTurbo = "5.3 GHz Turbo"; cpuCache = "24 MB Intel Smart Cache"; cpuCoreArch = "Raptor Lake Refresh"; cpuProcess = "Intel 7 (10 nm)"; cpuTdp = "125 W / 181 W";
+      } else if (lower.includes("5800x") || lower.includes("5700x") || lower.includes("5600")) {
+        cpuSocket = "AM4"; cpuCores = "8 Núcleos / 16 Hilos"; cpuBase = "3.6 GHz"; cpuTurbo = "4.8 GHz Turbo"; cpuCache = "32 MB L3 Cache"; cpuCoreArch = "Zen 3"; cpuProcess = "7 nm TSMC"; cpuTdp = "105 W";
+      }
 
       customSpecifications = {
         categoryType: "HARDWARE",
@@ -604,64 +670,170 @@ function generateWithSmartEngine(
             : lower.includes("corsair") ? "Corsair"
             : lower.includes("asus") ? "ASUS ROG"
             : lower.includes("msi") ? "MSI"
-            : lower.includes("nvidia") || lower.includes("rtx") ? "NVIDIA"
+            : lower.includes("gigabyte") ? "Gigabyte"
+            : lower.includes("asrock") ? "ASRock"
+            : lower.includes("noctua") ? "Noctua"
+            : lower.includes("lian li") ? "Lian Li"
+            : lower.includes("nzxt") ? "NZXT"
+            : lower.includes("thermalright") ? "Thermalright"
+            : lower.includes("deepcool") ? "DeepCool"
+            : lower.includes("nvidia") || lower.includes("rtx") || lower.includes("geforce") ? "NVIDIA"
             : lower.includes("amd") || lower.includes("ryzen") || lower.includes("radeon") ? "AMD"
             : lower.includes("intel") ? "Intel"
             : "Fabricante Oficial",
           model: name,
-          interfaceOrSocket: lower.includes("nvme") || lower.includes("ssd")
-            ? "PCIe 4.0 x4, NVMe 2.0 (M.2 2280)"
-            : lower.includes("ddr5") ? "DDR5 DIMM 288-pin"
+          interfaceOrSocket: hwType === "SSD" ? "PCIe 4.0 x4, NVMe 2.0 (M.2 2280)"
+            : hwType === "RAM" ? "DDR5 DIMM 288-pin"
+            : hwType === "PLACA_MADRE" ? `Socket ${mbSocket}, Chipset ${mbChipset}`
+            : hwType === "PROCESADORES" ? `Socket ${cpuSocket}`
             : "PCIe 4.0 / 5.0",
-          capacityOrSpeed: lower.includes("2tb") ? "2 TB"
-            : lower.includes("1tb") ? "1 TB"
-            : lower.includes("32gb") ? "32 GB (2x16GB)"
-            : lower.includes("16gb") ? "16 GB (2x8GB)"
+          capacityOrSpeed: hwType === "RAM" ? "32 GB (2x16GB) 6000 MT/s"
+            : hwType === "SSD" ? (lower.includes("2tb") ? "2 TB (7.450 MB/s)" : "1 TB (7.000 MB/s)")
+            : hwType === "TARJETA_DE_VIDEO" ? `${vramGb} GB ${vramType}`
+            : hwType === "PROCESADORES" ? `${cpuBase} / ${cpuTurbo}`
             : "Alto Rendimiento",
-          formFactor: lower.includes("m.2") ? "M.2 2280" : "Estándar ATX",
-          powerConsumptionTdp: "Eficiencia energética certificada",
-          warrantyYears: "3 a 5 años de garantía oficial directa del fabricante",
+          formFactor: hwType === "SSD" ? "M.2 2280" : hwType === "PLACA_MADRE" ? "ATX" : "Estándar ATX",
+          powerConsumptionTdp: hwType === "TARJETA_DE_VIDEO" ? `${vramGb >= 16 ? "285W a 320W" : "200W a 250W"} (Fuente rec. 750W)`
+            : hwType === "PROCESADORES" ? `TDP: ${cpuTdp}`
+            : "Eficiencia energética certificada",
+          warrantyYears: "3 años de garantía oficial directa del fabricante",
           featuredHighlights: "Componente de alta fidelidad, excelente refrigeración y máximo rendimiento para gaming y creación de contenido",
           gpu: hwType === "TARJETA_DE_VIDEO" ? {
-            manufacturer: lower.includes("msi") ? "MSI" : lower.includes("asus") ? "ASUS" : "NVIDIA / Partner",
+            manufacturer: lower.includes("msi") ? "MSI" : lower.includes("asus") ? "ASUS" : lower.includes("gigabyte") ? "Gigabyte" : "Fabricante Oficial",
             gpu: name,
-            memory: lower.includes("16gb") ? "16 GB GDDR6X" : lower.includes("12gb") ? "12 GB GDDR6X" : "8 GB GDDR6",
-            bus: "192-bit / 256-bit",
-            coreFrequencies: "Base: 2200 MHz / Boost: 2550 MHz",
-            memoryFrequency: "21.000 MHz (21 Gbps)",
-            cooling: "Ventilación Dual / Triple Fan",
-            slots: "2.5 slots",
-            videoPorts: "3x DisplayPort 1.4a, 1x HDMI 2.1a",
+            memory: `${vramGb} GB ${vramType}`,
+            bus: vramGb >= 24 ? "384-bit" : vramGb === 16 ? "256-bit" : vramGb === 12 ? "192-bit" : "128-bit",
+            coreFrequencies: lower.includes("5070 ti") ? "Base: 2160 MHz / Boost: 2550 MHz (OC: 2580 MHz)"
+              : lower.includes("5080") ? "Base: 2295 MHz / Boost: 2610 MHz"
+              : lower.includes("5070") ? "Base: 2160 MHz / Boost: 2505 MHz"
+              : lower.includes("4070 ti") ? "Base: 2310 MHz / Boost: 2610 MHz"
+              : lower.includes("4070") ? "Base: 1920 MHz / Boost: 2475 MHz"
+              : "Base: 2160 MHz / Boost: 2550 MHz",
+            memoryFrequency: is50Series ? "28 Gbps (1750 MHz)" : is40Series ? "21 Gbps (1313 MHz)" : "18 Gbps",
+            core: lower.includes("5090") ? "GB202"
+              : lower.includes("5080") ? "GB203-400"
+              : lower.includes("5070 ti") ? "GB203-300 / AD103"
+              : lower.includes("5070") ? "GB205 / AD104"
+              : lower.includes("4090") ? "AD102"
+              : lower.includes("4080") ? "AD103"
+              : lower.includes("4070") ? "AD104"
+              : "NVIDIA Blackwell / Ada Lovelace",
+            profile: "Estándar ATX",
+            cooling: lower.includes("slim") || lower.includes("trio") || lower.includes("triple") ? "Sistema térmico Tri Frozr 3 con ventiladores TORX Fan 5.0" : "Ventilación Dual / Triple Fan de alto flujo",
+            slots: lower.includes("slim") ? "2.5 slots" : "3.0 slots",
+            length: lower.includes("slim") ? "307 x 125 x 46 mm" : "320 x 135 x 62 mm",
+            lighting: lower.includes("msi") ? "ARGB Mystic Light" : lower.includes("asus") ? "ASUS Aura Sync RGB" : "ARGB direccionable sincronizable",
+            backplate: "Sí, metálico reforzado de aluminio con aberturas de flujo Flow-Through",
+            powerConnectors: vramGb >= 12 ? "1x 16-pin (12V-2x6 / 12VHPWR PCIe 5.0)" : "2x 8-pin PCIe",
+            videoPorts: "3x DisplayPort 2.1 / 1.4a, 1x HDMI 2.1a",
           } : undefined,
           cpu: hwType === "PROCESADORES" ? {
-            frequency: "3.8 GHz",
-            turboFrequency: "5.3 GHz Turbo",
-            coresThreads: "8 Núcleos / 16 Hilos",
-            cache: "32 MB L3 Cache",
-            socket: lower.includes("am5") || lower.includes("ryzen") ? "AM5" : "LGA1700 / LGA1851",
+            frequency: cpuBase,
+            turboFrequency: cpuTurbo,
+            coresThreads: cpuCores,
+            cache: cpuCache,
+            socket: cpuSocket,
+            core: cpuCoreArch,
+            manufacturingProcess: cpuProcess,
+            tdp: cpuTdp,
+            cooler: "No incluido (se recomienda refrigeración líquida o disipador doble torre)",
+            integratedGraphics: lower.includes("f") ? "No posee (requiere GPU dedicada)" : lower.includes("ryzen") ? "AMD Radeon Graphics (2 CUs, RDNA 2 a 2200 MHz)" : "Intel UHD Graphics 770",
           } : undefined,
           motherboard: hwType === "PLACA_MADRE" ? {
-            manufacturer: lower.includes("asus") ? "ASUS" : lower.includes("msi") ? "MSI" : "Fabricante Oficial",
-            socket: lower.includes("am5") ? "AM5" : "LGA1700",
-            chipset: lower.includes("b650") ? "AMD B650" : "Intel Z790",
-            memorySlots: "4x DDR5 DIMM",
+            manufacturer: lower.includes("asus") ? "ASUS" : lower.includes("msi") ? "MSI" : lower.includes("gigabyte") ? "Gigabyte" : lower.includes("asrock") ? "ASRock" : "Fabricante Oficial",
+            socket: mbSocket,
+            chipset: mbChipset,
+            memorySlots: "4x DDR5 DIMM (hasta 192 GB)",
             memoryChannels: "Dual Channel",
-            format: "ATX",
+            format: lower.includes("micro") || lower.includes("m-atx") ? "Micro-ATX" : lower.includes("itx") ? "Mini-ITX" : "ATX",
+            rgbSupport: "3x 3-pin ARGB Gen 2 (5V) + 1x 4-pin RGB (12V)",
+            videoPorts: "1x HDMI 2.1 (4K@60Hz), 1x DisplayPort 1.4",
+            powerPorts: "1x 24-pin ATX, 2x 8-pin EPS 12V",
+            sliSupport: "No compatible",
+            crossfireSupport: "Compatible con 2-Way AMD CrossFireX",
+            raidSupport: "RAID 0, RAID 1, RAID 10 para SATA y M.2 NVMe",
+            connectors: "4x SATA 6Gb/s, 3x M.2 (1x PCIe 5.0 x4 + 2x PCIe 4.0 x4 con disipadores Shield Frozr), 1x Conector USB-C frontal 20Gbps, 4x Fan Headers PWM",
+            ports: "1x USB 3.2 Gen 2x2 Type-C (20Gbps), 4x USB 3.2 Gen 2 Type-A, 4x USB 2.0, 1x 2.5G LAN, Wi-Fi 6E, Audio 7.1 HD",
+            expansions: "1x PCIe 5.0 x16 (SafeSlot metálico reforzado), 1x PCIe 4.0 x16 (modo x4), 2x PCIe 4.0 x1",
           } : undefined,
           ram: hwType === "RAM" ? {
-            capacity: lower.includes("32gb") ? "32 GB (2x16GB)" : "16 GB (2x8GB)",
+            capacity: lower.includes("64gb") ? "64 GB (2x32GB)" : lower.includes("16gb") ? "16 GB (2x8GB)" : "32 GB (2x16GB)",
             type: lower.includes("ddr4") ? "DDR4" : "DDR5",
-            speed: lower.includes("6000") ? "6000 MHz" : "5600 MHz",
-            format: "DIMM",
+            speed: lower.includes("6400") ? "6400 MT/s" : lower.includes("5600") ? "5600 MT/s" : "6000 MT/s",
+            format: "DIMM 288-pin",
+            voltage: "1.35 V (AMD EXPO / Intel XMP 3.0)",
+            casLatency: lower.includes("cl32") ? "CL32" : lower.includes("cl36") ? "CL36" : "CL30",
+            trcdLatency: "36",
+            trpLatency: "36",
+            trasLatency: "76",
+            eccSupport: "On-Die ECC",
+            fullBufferedSupport: "Unbuffered",
+          } : undefined,
+          hdd: hwType === "DISCO_DURO" ? {
+            type: "Disco Duro Interno Mecánico HDD 3.5\"",
+            line: lower.includes("ironwolf") ? "IronWolf NAS" : lower.includes("barracuda") ? "Barracuda Compute" : lower.includes("black") ? "WD Black Performance" : "Barracuda Compute",
+            capacity: lower.includes("4tb") ? "4 TB" : lower.includes("8tb") ? "8 TB" : lower.includes("1tb") ? "1 TB" : "2 TB",
+            rpm: lower.includes("5400") ? "5400 RPM" : "7200 RPM",
+            size: "3.5 pulgadas",
+            bus: "SATA III (6.0 Gb/s)",
+            buffer: "256 MB Multi-Tier Caching (MTC)",
           } : undefined,
           ssd: hwType === "SSD" ? {
-            line: lower.includes("990") ? "990 PRO" : "Gamer NVMe",
-            capacity: lower.includes("2tb") ? "2 TB" : "1 TB",
+            line: lower.includes("990") ? "990 PRO Heatsink" : lower.includes("kc3000") ? "KC3000" : lower.includes("sn850") ? "Black SN850X" : "High Performance Gaming NVMe",
+            capacity: lower.includes("2tb") ? "2 TB" : lower.includes("4tb") ? "4 TB" : "1 TB",
             format: "M.2 2280",
-            bus: "PCIe 4.0 x4 NVMe",
-            hasDram: "Sí",
-            sequentialRead: "7.450 MB/s",
-            sequentialWrite: "6.900 MB/s",
+            bus: lower.includes("gen5") || lower.includes("pcie 5") ? "PCIe 5.0 x4 NVMe 2.0" : "PCIe 4.0 x4 NVMe 2.0",
+            hasDram: "Sí, DRAM Caché LPDDR4 dedicada",
+            nandType: "3D TLC NAND Flash (176 capas)",
+            controller: "Samsung Pascal / Phison PS5018-E18",
+            sequentialRead: "Hasta 7.450 MB/s",
+            sequentialWrite: "Hasta 6.900 MB/s",
+          } : undefined,
+          powerSupply: hwType === "FUENTE_DE_PODER" ? {
+            power: lower.includes("1000") ? "1000 W" : lower.includes("750") ? "750 W" : lower.includes("650") ? "650 W" : "850 W",
+            certification: lower.includes("platinum") ? "80 Plus Platinum" : "80 Plus Gold (Eficiencia >90%)",
+            size: "ATX Estándar (150 x 140 x 86 mm)",
+            activePfc: "Sí, PFC Activo (>0.99)",
+            modular: "100% Modular (Full Modular)",
+            current12v: "70.8 A en riel único de +12V (850W continuos)",
+            current5v: "20 A",
+            current3v: "20 A",
+            powerConnectors: "1x 24-pin ATX, 2x 8-pin EPS (4+4), 1x 16-pin 12V-2x6 (PCIe 5.0 600W), 4x 8-pin PCIe (6+2), 8x SATA, 4x Molex",
+          } : undefined,
+          coolerCpu: hwType === "COOLER_CPU" ? {
+            brand: lower.includes("noctua") ? "Noctua" : lower.includes("corsair") ? "Corsair" : lower.includes("deepcool") ? "DeepCool" : lower.includes("nzxt") ? "NZXT" : lower.includes("thermalright") ? "Thermalright" : "Fabricante Oficial",
+            type: lower.includes("liquid") || lower.includes("aio") || lower.includes("liquida") || lower.includes("kraken") ? "Refrigeración Líquida Todo en Uno (AIO 360mm)" : "Disipador de Aire Doble Torre con ventiladores duales",
+            weight: "1.280 gramos",
+            rpm: "500 - 2.000 RPM (PWM)",
+            noise: "18.5 - 29.8 dBA",
+            airflow: "72.5 CFM (Presión 2.45 mm-H2O)",
+            height: "155 mm",
+            fanSize: "3x 120 mm (o 2x 120 mm FDB)",
+            hasHeatpipes: "6x Heatpipes de cobre sinterizado de 6 mm con base niquelada pulida",
+            compatibleSockets: "Intel LGA1700 / LGA1200 / LGA1851, AMD AM5 / AM4",
+          } : undefined,
+          cabinet: hwType === "GABINETE" ? {
+            brand: lower.includes("corsair") ? "Corsair" : lower.includes("lian li") ? "Lian Li" : lower.includes("nzxt") ? "NZXT" : lower.includes("montech") ? "Montech" : "Fabricante Oficial",
+            model: name,
+            format: "Mid Tower ATX",
+            sidePanel: "Cristal templado tintado de 4 mm",
+            bays: "2x 3.5\" HDD + 4x 2.5\" SSD",
+            expansionSlots: "7 horizontales + 2 verticales",
+            maxGpuLength: "Hasta 380 mm",
+            maxCoolerHeight: "Hasta 170 mm",
+            radiatorSupport: "Frontal hasta 360 mm, Superior hasta 360 mm, Trasero 120 mm",
+            frontConnectors: "1x USB 3.2 Gen 2 Type-C, 2x USB 3.2 Gen 1 Type-A, 1x Combo Audio/Mic 3.5mm",
+          } : undefined,
+          fan: hwType === "VENTILADORES" ? {
+            brand: lower.includes("corsair") ? "Corsair" : lower.includes("lian li") ? "Lian Li" : lower.includes("noctua") ? "Noctua" : lower.includes("arctic") ? "Arctic" : "Fabricante Oficial",
+            size: lower.includes("140") ? "140 x 140 x 25 mm" : "120 x 120 x 25 mm",
+            rpm: "500 - 1.850 RPM (PWM)",
+            airflow: "65.5 CFM",
+            noiseLevel: "16.0 - 27.5 dBA",
+            connectorPins: "4-pin PWM + 3-pin 5V ARGB",
+            lighting: "ARGB direccionable individualmente (Aura Sync, Mystic Light, RGB Fusion)",
+            staticPressure: "2.5 mm-H2O",
+            bearing: "Fluid Dynamic Bearing (FDB) de larga vida útil",
           } : undefined,
         },
       };
@@ -771,17 +943,30 @@ El administrador ha seleccionado explícitamente la categoría: "${selectedType}
                 : ""
             }.
 DEBES OBLIGATORIAMENTE respetar esta categoría ("type": "${selectedType}", "customCategoryLabel": "${customCategoryLabel || ""}").
-NO cambies la categoría a VIDEO_GAME si es un accesorio como un control, volante o headset; si es "Accesorio Gaming" o "OTHER", genera el SKU con prefijo ACC- y redacta una descripción técnica/comercial enfocada en ergonomía, botones, latencia y compatibilidad.`
+NO cambies la categoría a VIDEO_GAME si es un accesorio como un control, volante o headset; si es "Accesorio Gaming" o "OTHER", genera el SKU con prefijo ACC- y redacta una descripción técnica/comercial enfocada en ergonomía, botones, latencia y compatibilidad.
+Si es Hardware ("HARDWARE" o "Hardware & Componentes"), genera el SKU con prefijo HW- y DEBES llenar OBLIGATORIAMENTE tanto las Especificaciones Básicas como las Avanzadas del componente correspondiente.`
           : `Clasifica inteligentemente el producto entre "FIGURE", "VIDEO_GAME", "COLLECTIBLE" u "OTHER".`;
 
-        const prompt = `Eres un experto catalogador de productos de colección y e-commerce de videojuegos, figuras de anime y cartas TCG en Chile llamado OmniCollector.
+        const hardwareInstructions = `
+REGLA CRÍTICA PARA HARDWARE & COMPONENTES:
+Si el producto es un componente de hardware de PC (o si la categoría es HARDWARE o Hardware & Componentes):
+1. Detecta en "hardwareType" cuál de los 10 tipos es: "TARJETA_DE_VIDEO" | "PROCESADORES" | "PLACA_MADRE" | "RAM" | "DISCO_DURO" | "SSD" | "GABINETE" | "FUENTE_DE_PODER" | "COOLER_CPU" | "VENTILADORES".
+2. DEBES LLENAR TODOS Y CADA UNO DE LOS CAMPOS (Básicos y Avanzados) del objeto técnico que corresponda ("gpu", "cpu", "motherboard", "ram", "hdd", "ssd", "powerSupply", "coolerCpu", "cabinet", o "fan"). NO los dejes vacíos ni con cadenas genéricas.
+   - Si es "TARJETA_DE_VIDEO": completa "gpu" con Fabricante (ej. MSI, ASUS, Gigabyte), GPU (modelo exacto), Memoria (revisa el nombre, ej. si dice 16G pon 16 GB GDDR7 o GDDR6X), Bus (ej. 256-bit o 192-bit), Frecuencias core (ej. Base: 2160 MHz / Boost: 2550 MHz), Frecuencia memorias (ej. 28 Gbps o 21 Gbps), Núcleo (ej. GB203, AD104, GB205), Perfil (ej. Estándar ATX), Refrigeración (ej. Sistema Tri Frozr 3 con ventiladores TORX Fan 5.0), Slots (ej. 2.5 slots), Largo (ej. 307 mm), Iluminación (ej. ARGB Mystic Light / Aura Sync), ¿Backplate? (ej. Sí, metálico reforzado Flow-Through), Conectores de poder (ej. 1x 16-pin 12V-2x6 o 2x 8-pin), Puertos de video (ej. 3x DisplayPort 2.1 / 1.4a, 1x HDMI 2.1a).
+   - Si es "PROCESADORES": completa "cpu" con Frecuencia base (ej. 4.2 GHz), Frecuencia turbo (ej. 5.0 GHz Turbo), Núcleos / hilos (ej. 8 Núcleos / 16 Hilos), Caché (ej. 96 MB L3 3D V-Cache o 32 MB L3), Socket exacto (ej. AM5 para Ryzen 7000/8000/9000, LGA1700 para Intel 13/14va), Núcleo/arquitectura (ej. Zen 4, Zen 5, Raptor Lake Refresh), Proceso de manufactura (ej. 4 nm TSMC), TDP (ej. 120 W o 105 W o 65 W), Cooler (ej. No incluido), Gráficos integrados (ej. AMD Radeon Graphics 2 CUs o Intel UHD 770 o No posee).
+   - Si es "PLACA_MADRE": completa "motherboard" asegurando coherencia ABSOLUTA entre Socket y Chipset (ej. si es AMD B650/X670/X870 el socket es AM5; si es Intel B760/Z790 el socket es LGA1700; NUNCA mezcles socket Intel con chipset AMD ni viceversa), Slots memorias (4x DDR5 DIMM), Canales (Dual Channel), Formato (ATX o Micro-ATX), Soporte RGB (ej. 3x 3-pin ARGB Gen 2 + 1x 4-pin RGB), Puertos de video (1x HDMI 2.1, 1x DisplayPort 1.4), Puertos de energía (1x 24-pin ATX, 2x 8-pin EPS 12V), Soporte SLI, Soporte CrossFire, Soporte RAID, Conectores internos, Puertos traseros, Expansiones PCIe.
+   - Si es "RAM", "DISCO_DURO", "SSD", "FUENTE_DE_PODER", "COOLER_CPU", "GABINETE" o "VENTILADORES": completa todos sus atributos básicos y avanzados con valores técnicos coherentes.
+`;
+
+        const prompt = `Eres un experto catalogador de productos de colección y e-commerce de videojuegos, figuras de anime y componentes de hardware en Chile llamado OmniCollector.
 Genera la ficha técnica completa en formato JSON para el siguiente producto: "${productName}".
 
 ${categoryConstraint}
+${hardwareInstructions}
 
 Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código tipo \`\`\`json) con esta estructura exacta:
 {
-  "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o COL-CHARIZ-001",
+  "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o HW-RTX5070-01",
   "name": "${productName}",
   "type": "${selectedType || "FIGURE"}",
   "customCategoryLabel": "${customCategoryLabel || ""}",
@@ -842,7 +1027,26 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       "baseModel": "", "capacity": "", "format": "", "controllersIncluded": "", "bundleIncluded": "", "ports": "", "gameCompatibility": "", "featuredHighlights": ""
     },
     "hardware": {
-      "componentType": "", "brand": "", "model": "", "interfaceOrSocket": "", "capacityOrSpeed": "", "formFactor": "", "powerConsumptionTdp": "", "warrantyYears": "", "featuredHighlights": ""
+      "hardwareType": "TARJETA_DE_VIDEO" | "PROCESADORES" | "PLACA_MADRE" | "RAM" | "DISCO_DURO" | "SSD" | "GABINETE" | "FUENTE_DE_PODER" | "COOLER_CPU" | "VENTILADORES",
+      "componentType": "",
+      "brand": "",
+      "model": "",
+      "interfaceOrSocket": "",
+      "capacityOrSpeed": "",
+      "formFactor": "",
+      "powerConsumptionTdp": "",
+      "warrantyYears": "",
+      "featuredHighlights": "",
+      "gpu": { "manufacturer": "", "gpu": "", "memory": "", "bus": "", "coreFrequencies": "", "memoryFrequency": "", "core": "", "profile": "", "cooling": "", "slots": "", "length": "", "lighting": "", "backplate": "", "powerConnectors": "", "videoPorts": "" },
+      "cpu": { "frequency": "", "turboFrequency": "", "coresThreads": "", "cache": "", "socket": "", "core": "", "manufacturingProcess": "", "tdp": "", "cooler": "", "integratedGraphics": "" },
+      "motherboard": { "manufacturer": "", "socket": "", "chipset": "", "memorySlots": "", "memoryChannels": "", "format": "", "rgbSupport": "", "videoPorts": "", "powerPorts": "", "sliSupport": "", "crossfireSupport": "", "raidSupport": "", "connectors": "", "ports": "", "expansions": "" },
+      "ram": { "capacity": "", "type": "", "speed": "", "format": "", "voltage": "", "casLatency": "", "trcdLatency": "", "trpLatency": "", "trasLatency": "", "eccSupport": "", "fullBufferedSupport": "" },
+      "hdd": { "type": "", "line": "", "capacity": "", "rpm": "", "size": "", "bus": "", "buffer": "" },
+      "ssd": { "line": "", "capacity": "", "format": "", "bus": "", "hasDram": "", "nandType": "", "controller": "", "sequentialRead": "", "sequentialWrite": "" },
+      "powerSupply": { "power": "", "certification": "", "size": "", "activePfc": "", "modular": "", "current12v": "", "current5v": "", "current3v": "", "powerConnectors": "" },
+      "coolerCpu": { "brand": "", "type": "", "weight": "", "rpm": "", "noise": "", "airflow": "", "height": "", "fanSize": "", "hasHeatpipes": "", "compatibleSockets": "" },
+      "cabinet": { "brand": "", "model": "", "format": "", "sidePanel": "", "bays": "", "expansionSlots": "", "maxGpuLength": "", "maxCoolerHeight": "", "radiatorSupport": "", "frontConnectors": "" },
+      "fan": { "brand": "", "size": "", "rpm": "", "airflow": "", "noiseLevel": "", "connectorPins": "", "lighting": "", "staticPressure": "", "bearing": "" }
     },
     "apparel": {
       "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": ""
@@ -923,8 +1127,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               }
             }
 
-            // Always guarantee full customSpecifications if OTHER
-            if (parsed.type === "OTHER") {
+            // Always guarantee full customSpecifications if OTHER or HARDWARE
+            if (parsed.type === "OTHER" || parsed.type === "HARDWARE" || (parsed.customCategoryLabel && parsed.customCategoryLabel.toLowerCase().includes("hardware"))) {
               const fallbackHeuristic = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
               const fallbackSpecs = fallbackHeuristic.customSpecifications || {};
               const catType = fallbackSpecs.categoryType || getCategoryTypeFromLabel(parsed.customCategoryLabel);
@@ -946,9 +1150,23 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                   ...(parsed.customSpecifications.console || {}),
                 };
               } else if (catType === "HARDWARE") {
+                const incomingHw = parsed.customSpecifications.hardware || {};
+                const fallbackHw = fallbackSpecs.hardware || {};
+                const hwType = incomingHw.hardwareType || fallbackHw.hardwareType || "TARJETA_DE_VIDEO";
+
                 parsed.customSpecifications.hardware = {
-                  ...(fallbackSpecs.hardware || {}),
-                  ...(parsed.customSpecifications.hardware || {}),
+                  ...mergeNonEmpty(fallbackHw, incomingHw),
+                  hardwareType: hwType,
+                  gpu: hwType === "TARJETA_DE_VIDEO" ? mergeNonEmpty(fallbackHw.gpu || {}, incomingHw.gpu || {}) : undefined,
+                  cpu: hwType === "PROCESADORES" ? mergeNonEmpty(fallbackHw.cpu || {}, incomingHw.cpu || {}) : undefined,
+                  motherboard: hwType === "PLACA_MADRE" ? mergeNonEmpty(fallbackHw.motherboard || {}, incomingHw.motherboard || {}) : undefined,
+                  ram: hwType === "RAM" ? mergeNonEmpty(fallbackHw.ram || {}, incomingHw.ram || {}) : undefined,
+                  hdd: hwType === "DISCO_DURO" ? mergeNonEmpty(fallbackHw.hdd || {}, incomingHw.hdd || {}) : undefined,
+                  ssd: hwType === "SSD" ? mergeNonEmpty(fallbackHw.ssd || {}, incomingHw.ssd || {}) : undefined,
+                  powerSupply: hwType === "FUENTE_DE_PODER" ? mergeNonEmpty(fallbackHw.powerSupply || {}, incomingHw.powerSupply || {}) : undefined,
+                  coolerCpu: hwType === "COOLER_CPU" ? mergeNonEmpty(fallbackHw.coolerCpu || {}, incomingHw.coolerCpu || {}) : undefined,
+                  cabinet: hwType === "GABINETE" ? mergeNonEmpty(fallbackHw.cabinet || {}, incomingHw.cabinet || {}) : undefined,
+                  fan: hwType === "VENTILADORES" ? mergeNonEmpty(fallbackHw.fan || {}, incomingHw.fan || {}) : undefined,
                 };
               } else if (catType === "APPAREL") {
                 parsed.customSpecifications.apparel = {

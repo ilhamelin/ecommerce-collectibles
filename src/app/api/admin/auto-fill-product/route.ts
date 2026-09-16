@@ -1203,8 +1203,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 
             // Always guarantee isolated, clean customSpecifications if OTHER or HARDWARE
             if (parsed.type === "OTHER" || parsed.type === "HARDWARE" || (parsed.customCategoryLabel && parsed.customCategoryLabel.toLowerCase().includes("hardware"))) {
-              const fallbackHeuristic = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
-              const fallbackSpecs = fallbackHeuristic.customSpecifications || {};
+              const fallbackHeuristic: any = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
+              const fallbackSpecs: any = fallbackHeuristic.customSpecifications || {};
               const catType = fallbackSpecs.categoryType || getCategoryTypeFromLabel(parsed.customCategoryLabel);
 
               const cleanSpecs: any = {
@@ -1216,8 +1216,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               } else if (catType === "CONSOLE") {
                 cleanSpecs.console = mergeNonEmpty(fallbackSpecs.console || {}, parsed.customSpecifications?.console || {});
               } else if (catType === "HARDWARE") {
-                const incomingHw = parsed.customSpecifications?.hardware || {};
-                const fallbackHw = fallbackSpecs.hardware || {};
+                const incomingHw: any = parsed.customSpecifications?.hardware || {};
+                const fallbackHw: any = fallbackSpecs.hardware || {};
                 const hwType = incomingHw.hardwareType || fallbackHw.hardwareType || "TARJETA_DE_VIDEO";
 
                 cleanSpecs.hardware = {
@@ -1241,8 +1241,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               } else if (catType === "AUDIO") {
                 cleanSpecs.audio = mergeNonEmpty(fallbackSpecs.audio || {}, parsed.customSpecifications?.audio || {});
               } else if (catType === "GAMING_ACCESSORY") {
-                const incomingAcc = parsed.customSpecifications?.gamingAccessory || {};
-                const fallbackAcc = fallbackSpecs.gamingAccessory || {};
+                const incomingAcc: any = parsed.customSpecifications?.gamingAccessory || {};
+                const fallbackAcc: any = fallbackSpecs.gamingAccessory || {};
                 const accType = incomingAcc.accessoryType || fallbackAcc.accessoryType || "MOUSE";
                 cleanSpecs.gamingAccessory = {
                   accessoryType: accType,
@@ -1257,7 +1257,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             }
 
             if (parsed.type === "VIDEO_GAME") {
-              const fallbackHeuristic = generateWithSmartEngine(productName, "VIDEO_GAME");
+              const fallbackHeuristic: any = generateWithSmartEngine(productName, "VIDEO_GAME");
               parsed.gameSpecs = mergeNonEmpty(fallbackHeuristic.gameSpecs || {}, parsed.gameSpecs || {});
             }
 

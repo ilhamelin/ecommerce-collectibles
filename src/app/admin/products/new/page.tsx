@@ -30,6 +30,11 @@ import {
   Monitor,
   Tv,
   Cpu,
+  Ruler,
+  Paintbrush,
+  Box,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import {
@@ -168,15 +173,44 @@ export default function NewProductAdminPage() {
   const [gamePcGpu, setGamePcGpu] = useState("NVIDIA GeForce RTX 4070 12GB / AMD Radeon RX 7800 XT 16GB");
   const [gamePcStorage, setGamePcStorage] = useState("85 GB de espacio disponible en SSD NVMe");
 
-  // Dynamic: Figure Technical Specs
+  // Dynamic: Figure Technical Specs - 5 Categorías Especializadas
+  // 1. Información General del Producto
+  const [figureProductName, setFigureProductName] = useState("");
+  const [figureFranchise, setFigureFranchise] = useState("Evangelion / Rebuild of Evangelion");
   const [figureScale, setFigureScale] = useState<FigureScale>("SCALE_1_7");
   const [figureManufacturer, setFigureManufacturer] = useState<FigureManufacturer>("GOOD_SMILE_COMPANY");
-  const [figureArrivalDate, setFigureArrivalDate] = useState("Noviembre 2026");
-  const [figureDepositPercent, setFigureDepositPercent] = useState<number>(0.2);
-  const [figureMaterial, setFigureMaterial] = useState("PVC & ABS pintado a mano");
-  const [figureDimensions, setFigureDimensions] = useState("28 cm de alto x 18 cm ancho");
+  const [figureProductLine, setFigureProductLine] = useState("Scale Figure 1/7");
   const [figureSculptor, setFigureSculptor] = useState("Design COCO / eStream");
+  const [figureArrivalDate, setFigureArrivalDate] = useState("Noviembre 2026");
+  const [figureReleaseDate, setFigureReleaseDate] = useState("Noviembre 2026");
+  const [figureLicenseStatus, setFigureLicenseStatus] = useState("Licencia Oficial Japonesa (Sello Holográfico de Autenticidad)");
+
+  // 2. Especificaciones Físicas y Dimensiones
+  const [figureHeight, setFigureHeight] = useState("28 cm");
+  const [figureWidth, setFigureWidth] = useState("18 cm");
+  const [figureWeight, setFigureWeight] = useState("650 g");
+  const [figureDimensions, setFigureDimensions] = useState("28 cm de alto x 18 cm ancho");
+  const [figureBase, setFigureBase] = useState("Base temática personalizada con soporte acrílico incluida");
+
+  // 3. Materiales y Fabricación
+  const [figureMaterial, setFigureMaterial] = useState("PVC & ABS de alta densidad pintado a mano");
+  const [figureMaterials, setFigureMaterials] = useState("PVC, ABS y acrílico de grado coleccionista");
+  const [figurePaintTechnique, setFigurePaintTechnique] = useState("Pintado artesanal a mano con gradientes aerográficos");
+  const [figureArticulation, setFigureArticulation] = useState("Estatua Fija (Sin articulación, pose dinámica)");
+
+  // 4. Contenido de la Caja y Accesorio
+  const [figureInterchangeableParts, setFigureInterchangeableParts] = useState("2 rostros alternativos, 4 manos intercambiables");
+  const [figureAccessories, setFigureAccessories] = useState("Arma emblemática, peana soporte, efectos de aura");
+  const [figureCertificate, setFigureCertificate] = useState("Sello oficial de autenticidad en caja");
+
+  // 5. Seguridad y Logística
+  const [figureAgeRecommendation, setFigureAgeRecommendation] = useState("15+ años (Coleccionismo adulto)");
+  const [figureBoxDimensions, setFigureBoxDimensions] = useState("35 x 25 x 20 cm");
   const [figureBoxCondition, setFigureBoxCondition] = useState("Caja sellada impecable de fábrica (Mint in Box)");
+  const [figureShippingWeight, setFigureShippingWeight] = useState("1.4 kg (Embalaje protector reforzado)");
+
+  // Preventa / Reserva
+  const [figureDepositPercent, setFigureDepositPercent] = useState<number>(0.2);
 
   // Dynamic: Collectible
   const [collectibleCategory, setCollectibleCategory] = useState<CollectibleCategory>("TCG");
@@ -273,6 +307,34 @@ export default function NewProductAdminPage() {
         if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
         if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
         if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
+
+        // 1. Información General del Producto
+        if (d.figureSpecs.productName) setFigureProductName(d.figureSpecs.productName);
+        if (d.figureSpecs.franchise) setFigureFranchise(d.figureSpecs.franchise);
+        if (d.figureSpecs.productLine) setFigureProductLine(d.figureSpecs.productLine);
+        if (d.figureSpecs.releaseDate) setFigureReleaseDate(d.figureSpecs.releaseDate);
+        if (d.figureSpecs.licenseStatus) setFigureLicenseStatus(d.figureSpecs.licenseStatus);
+
+        // 2. Especificaciones Físicas y Dimensiones
+        if (d.figureSpecs.height) setFigureHeight(d.figureSpecs.height);
+        if (d.figureSpecs.width) setFigureWidth(d.figureSpecs.width);
+        if (d.figureSpecs.weight) setFigureWeight(d.figureSpecs.weight);
+        if (d.figureSpecs.base) setFigureBase(d.figureSpecs.base);
+
+        // 3. Materiales y Fabricación
+        if (d.figureSpecs.materials) setFigureMaterials(d.figureSpecs.materials);
+        if (d.figureSpecs.paintTechnique) setFigurePaintTechnique(d.figureSpecs.paintTechnique);
+        if (d.figureSpecs.articulation) setFigureArticulation(d.figureSpecs.articulation);
+
+        // 4. Contenido de la Caja y Accesorio
+        if (d.figureSpecs.interchangeableParts) setFigureInterchangeableParts(d.figureSpecs.interchangeableParts);
+        if (d.figureSpecs.accessories) setFigureAccessories(d.figureSpecs.accessories);
+        if (d.figureSpecs.certificate) setFigureCertificate(d.figureSpecs.certificate);
+
+        // 5. Seguridad y Logística
+        if (d.figureSpecs.ageRecommendation) setFigureAgeRecommendation(d.figureSpecs.ageRecommendation);
+        if (d.figureSpecs.boxDimensions) setFigureBoxDimensions(d.figureSpecs.boxDimensions);
+        if (d.figureSpecs.shippingWeight) setFigureShippingWeight(d.figureSpecs.shippingWeight);
       } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
         if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
         if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
@@ -533,6 +595,24 @@ export default function NewProductAdminPage() {
               dimensions: figureDimensions,
               sculptor: figureSculptor,
               boxCondition: figureBoxCondition,
+              productName: figureProductName || name,
+              franchise: figureFranchise,
+              productLine: figureProductLine,
+              releaseDate: figureReleaseDate || figureArrivalDate,
+              licenseStatus: figureLicenseStatus,
+              height: figureHeight,
+              width: figureWidth,
+              weight: figureWeight,
+              base: figureBase,
+              materials: figureMaterials || figureMaterial,
+              paintTechnique: figurePaintTechnique,
+              articulation: figureArticulation,
+              interchangeableParts: figureInterchangeableParts,
+              accessories: figureAccessories,
+              certificate: figureCertificate,
+              ageRecommendation: figureAgeRecommendation,
+              boxDimensions: figureBoxDimensions,
+              shippingWeight: figureShippingWeight,
             }
           : undefined,
       collectibleMetadata:
@@ -601,6 +681,24 @@ export default function NewProductAdminPage() {
     figureDimensions,
     figureSculptor,
     figureBoxCondition,
+    figureProductName,
+    figureFranchise,
+    figureProductLine,
+    figureReleaseDate,
+    figureLicenseStatus,
+    figureHeight,
+    figureWidth,
+    figureWeight,
+    figureBase,
+    figureMaterials,
+    figurePaintTechnique,
+    figureArticulation,
+    figureInterchangeableParts,
+    figureAccessories,
+    figureCertificate,
+    figureAgeRecommendation,
+    figureBoxDimensions,
+    figureShippingWeight,
     collectibleCategory,
     collectibleCondition,
     collectibleAuth,
@@ -691,6 +789,24 @@ export default function NewProductAdminPage() {
         dimensions: figureDimensions || undefined,
         sculptor: figureSculptor || undefined,
         boxCondition: figureBoxCondition || undefined,
+        productName: figureProductName || name.trim() || undefined,
+        franchise: figureFranchise || undefined,
+        productLine: figureProductLine || undefined,
+        releaseDate: figureReleaseDate || figureArrivalDate || undefined,
+        licenseStatus: figureLicenseStatus || undefined,
+        height: figureHeight || undefined,
+        width: figureWidth || undefined,
+        weight: figureWeight || undefined,
+        base: figureBase || undefined,
+        materials: figureMaterials || figureMaterial || undefined,
+        paintTechnique: figurePaintTechnique || undefined,
+        articulation: figureArticulation || undefined,
+        interchangeableParts: figureInterchangeableParts || undefined,
+        accessories: figureAccessories || undefined,
+        certificate: figureCertificate || undefined,
+        ageRecommendation: figureAgeRecommendation || undefined,
+        boxDimensions: figureBoxDimensions || undefined,
+        shippingWeight: figureShippingWeight || undefined,
       };
     } else if (type === "COLLECTIBLE") {
       payload.collectibleMetadata = {
@@ -1417,123 +1533,362 @@ export default function NewProductAdminPage() {
 
           {/* Section 6: Specific Field Sets by Type */}
           {type === "FIGURE" && (
-            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md animate-in fade-in duration-200">
-              <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                6. Especificaciones de Figura Japonesa & Preventa
-              </h2>
+            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-6 shadow-md animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#004E72]/40 pb-4">
+                <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
+                  6. Ficha Técnica de Figura Japonesa & Preventa
+                </h2>
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6E42]/10 text-[#FF6E42] border border-[#FF6E42]/30 font-medium">
+                  5 Categorías Oficiales
+                </span>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Escala de la Figura</label>
-                  <select
-                    value={figureScale}
-                    onChange={(e) => setFigureScale(e.target.value as FigureScale)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  >
-                    <option value="SCALE_1_7">Escala 1/7 (Estándar Coleccionista)</option>
-                    <option value="SCALE_1_4">Escala 1/4 (Gran Formato Premium)</option>
-                    <option value="SCALE_1_6">Escala 1/6</option>
-                    <option value="SCALE_1_8">Escala 1/8</option>
-                    <option value="SCALE_1_12">Escala 1/12</option>
-                    <option value="NON_SCALE">Non-Scale (Sin Escala / Myth Cloth / Prize)</option>
-                    <option value="NENDOROID">Nendoroid (Chibi Articulado)</option>
-                    <option value="POP_UP_PARADE">Pop Up Parade</option>
-                    <option value="ACTION_FIGURE">Figura de Acción Articulada</option>
-                  </select>
+              {/* Categoría 1: Información General del Producto */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Info className="w-4 h-4 text-[#FF6E42]" />
+                  <span>1. Información General del Producto</span>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Nombre Oficial de la Figura</label>
+                    <input
+                      type="text"
+                      value={figureProductName}
+                      onChange={(e) => setFigureProductName(e.target.value)}
+                      placeholder="Ej: Hatsune Miku - Cantarella Ver. 1/7 Scale Figure"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Fabricante Oficial</label>
-                  <select
-                    value={figureManufacturer}
-                    onChange={(e) => setFigureManufacturer(e.target.value as FigureManufacturer)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  >
-                    <option value="GOOD_SMILE_COMPANY">Good Smile Company</option>
-                    <option value="BANDAI_SPIRITS">Bandai Spirits / Tamashii Nations</option>
-                    <option value="BANPRESTO">Banpresto</option>
-                    <option value="KOTOBUKIYA">Kotobukiya</option>
-                    <option value="ALTER">Alter</option>
-                    <option value="MEGAHOUSE">Megahouse</option>
-                    <option value="MAX_FACTORY">Max Factory</option>
-                    <option value="FREEING">FREEing</option>
-                    <option value="ANIPLEX">Aniplex</option>
-                    <option value="SEGA">Sega</option>
-                    <option value="TAITO">Taito</option>
-                    <option value="FURYU">FuRyu</option>
-                    <option value="OTHER">Otro Fabricante</option>
-                  </select>
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Franquicia / Anime / Manga</label>
+                    <input
+                      type="text"
+                      value={figureFranchise}
+                      onChange={(e) => setFigureFranchise(e.target.value)}
+                      placeholder="Ej: Vocaloid / Fate Grand Order / Spy x Family"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Fecha Estimada de Llegada</label>
-                  <input
-                    type="text"
-                    value={figureArrivalDate}
-                    onChange={(e) => setFigureArrivalDate(e.target.value)}
-                    placeholder="Noviembre 2026"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Escala de la Figura</label>
+                    <select
+                      value={figureScale}
+                      onChange={(e) => setFigureScale(e.target.value as FigureScale)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="SCALE_1_7">Escala 1/7 (Estándar Coleccionista)</option>
+                      <option value="SCALE_1_4">Escala 1/4 (Gran Formato Premium)</option>
+                      <option value="SCALE_1_6">Escala 1/6</option>
+                      <option value="SCALE_1_8">Escala 1/8</option>
+                      <option value="SCALE_1_12">Escala 1/12</option>
+                      <option value="NON_SCALE">Non-Scale (Sin Escala / Myth Cloth / Prize)</option>
+                      <option value="NENDOROID">Nendoroid (Chibi Articulado)</option>
+                      <option value="POP_UP_PARADE">Pop Up Parade</option>
+                      <option value="ACTION_FIGURE">Figura de Acción Articulada</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Porcentaje de Pie Mínimo</label>
-                  <select
-                    value={figureDepositPercent}
-                    onChange={(e) => setFigureDepositPercent(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  >
-                    <option value={0.2}>20% del valor total (Recomendado)</option>
-                    <option value={0.3}>30% del valor total</option>
-                    <option value={0.5}>50% del valor total</option>
-                    <option value={1.0}>100% (Pago Completo Anticipado)</option>
-                  </select>
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Fabricante Oficial</label>
+                    <select
+                      value={figureManufacturer}
+                      onChange={(e) => setFigureManufacturer(e.target.value as FigureManufacturer)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="GOOD_SMILE_COMPANY">Good Smile Company</option>
+                      <option value="BANDAI_SPIRITS">Bandai Spirits / Tamashii Nations</option>
+                      <option value="BANPRESTO">Banpresto</option>
+                      <option value="KOTOBUKIYA">Kotobukiya</option>
+                      <option value="ALTER">Alter</option>
+                      <option value="MEGAHOUSE">Megahouse</option>
+                      <option value="MAX_FACTORY">Max Factory</option>
+                      <option value="FREEING">FREEing</option>
+                      <option value="ANIPLEX">Aniplex</option>
+                      <option value="SEGA">Sega</option>
+                      <option value="TAITO">Taito</option>
+                      <option value="FURYU">FuRyu</option>
+                      <option value="OTHER">Otro Fabricante</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Materiales de Fabricación</label>
-                  <input
-                    type="text"
-                    value={figureMaterial}
-                    onChange={(e) => setFigureMaterial(e.target.value)}
-                    placeholder="PVC & ABS pintado a mano"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Línea de Producto</label>
+                    <input
+                      type="text"
+                      value={figureProductLine}
+                      onChange={(e) => setFigureProductLine(e.target.value)}
+                      placeholder="Ej: Pop Up Parade / F:NEX / S.H.Figuarts"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Dimensiones / Altura</label>
-                  <input
-                    type="text"
-                    value={figureDimensions}
-                    onChange={(e) => setFigureDimensions(e.target.value)}
-                    placeholder="28 cm de alto x 20 cm ancho"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Escultor / Diseñador Original</label>
+                    <input
+                      type="text"
+                      value={figureSculptor}
+                      onChange={(e) => setFigureSculptor(e.target.value)}
+                      placeholder="Ej: Design COCO / eStream / Good Smile Arts"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Escultor / Diseñador Original</label>
-                  <input
-                    type="text"
-                    value={figureSculptor}
-                    onChange={(e) => setFigureSculptor(e.target.value)}
-                    placeholder="Design COCO / eStream / Good Smile Arts"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  />
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Fecha Estimada de Llegada</label>
+                    <input
+                      type="text"
+                      value={figureArrivalDate}
+                      onChange={(e) => setFigureArrivalDate(e.target.value)}
+                      placeholder="Ej: Diciembre 2026"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Estado del Empaque</label>
-                  <input
-                    type="text"
-                    value={figureBoxCondition}
-                    onChange={(e) => setFigureBoxCondition(e.target.value)}
-                    placeholder="Caja sellada impecable de fábrica (Mint in Box)"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Fecha Lanzamiento Japón</label>
+                    <input
+                      type="text"
+                      value={figureReleaseDate}
+                      onChange={(e) => setFigureReleaseDate(e.target.value)}
+                      placeholder="Ej: Noviembre 2026"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Estado de Licencia</label>
+                    <input
+                      type="text"
+                      value={figureLicenseStatus}
+                      onChange={(e) => setFigureLicenseStatus(e.target.value)}
+                      placeholder="Ej: 100% Original con Licencia Oficial"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
                 </div>
+              </div>
+
+              {/* Categoría 2: Especificaciones Físicas y Dimensiones */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Ruler className="w-4 h-4 text-[#FF6E42]" />
+                  <span>2. Especificaciones Físicas y Dimensiones</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Altura</label>
+                    <input
+                      type="text"
+                      value={figureHeight}
+                      onChange={(e) => setFigureHeight(e.target.value)}
+                      placeholder="Ej: 24 cm aprox."
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Ancho / Profundidad</label>
+                    <input
+                      type="text"
+                      value={figureWidth}
+                      onChange={(e) => setFigureWidth(e.target.value)}
+                      placeholder="Ej: 18 cm x 15 cm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Peso Neto de la Figura</label>
+                    <input
+                      type="text"
+                      value={figureWeight}
+                      onChange={(e) => setFigureWeight(e.target.value)}
+                      placeholder="Ej: 650 g"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Dimensiones Totales</label>
+                    <input
+                      type="text"
+                      value={figureDimensions}
+                      onChange={(e) => setFigureDimensions(e.target.value)}
+                      placeholder="Ej: 24 x 18 x 15 cm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Base y Soporte</label>
+                    <input
+                      type="text"
+                      value={figureBase}
+                      onChange={(e) => setFigureBase(e.target.value)}
+                      placeholder="Ej: Base temática dedicada incluida"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoría 3: Materiales y Fabricación */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Paintbrush className="w-4 h-4 text-[#FF6E42]" />
+                  <span>3. Materiales y Fabricación</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Materiales Principales</label>
+                    <input
+                      type="text"
+                      value={figureMaterials || figureMaterial}
+                      onChange={(e) => {
+                        setFigureMaterials(e.target.value);
+                        setFigureMaterial(e.target.value);
+                      }}
+                      placeholder="Ej: PVC, ABS & Polystone"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Técnica de Pintura y Acabado</label>
+                    <input
+                      type="text"
+                      value={figurePaintTechnique}
+                      onChange={(e) => setFigurePaintTechnique(e.target.value)}
+                      placeholder="Ej: Pintura artesanal de alta precisión con sombreado y barniz mate"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Tipo de Articulación / Estatua</label>
+                    <input
+                      type="text"
+                      value={figureArticulation}
+                      onChange={(e) => setFigureArticulation(e.target.value)}
+                      placeholder="Ej: Estatua fija estática de alta fidelidad"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoría 4: Contenido de la Caja y Accesorios */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Box className="w-4 h-4 text-[#FF6E42]" />
+                  <span>4. Contenido de la Caja y Accesorios</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Piezas Intercambiables</label>
+                    <input
+                      type="text"
+                      value={figureInterchangeableParts}
+                      onChange={(e) => setFigureInterchangeableParts(e.target.value)}
+                      placeholder="Ej: 2 rostros con expresiones, manos opcionales"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Accesorios Incluidos</label>
+                    <input
+                      type="text"
+                      value={figureAccessories}
+                      onChange={(e) => setFigureAccessories(e.target.value)}
+                      placeholder="Ej: Efectos de energía traslúcidos, arma y peana"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Certificado y Sellos</label>
+                    <input
+                      type="text"
+                      value={figureCertificate}
+                      onChange={(e) => setFigureCertificate(e.target.value)}
+                      placeholder="Ej: Sello holográfico de autenticidad en caja"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoría 5: Seguridad, Empaque y Logística */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <ShieldCheck className="w-4 h-4 text-[#FF6E42]" />
+                  <span>5. Seguridad, Empaque y Logística</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Edad Recomendada</label>
+                    <input
+                      type="text"
+                      value={figureAgeRecommendation}
+                      onChange={(e) => setFigureAgeRecommendation(e.target.value)}
+                      placeholder="Ej: +15 años (Coleccionismo adulto)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Estado del Empaque</label>
+                    <input
+                      type="text"
+                      value={figureBoxCondition}
+                      onChange={(e) => setFigureBoxCondition(e.target.value)}
+                      placeholder="Ej: Mint in Box (Sellada de fábrica)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Dimensiones de la Caja</label>
+                    <input
+                      type="text"
+                      value={figureBoxDimensions}
+                      onChange={(e) => setFigureBoxDimensions(e.target.value)}
+                      placeholder="Ej: 30 x 22 x 18 cm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Peso de Envío</label>
+                    <input
+                      type="text"
+                      value={figureShippingWeight}
+                      onChange={(e) => setFigureShippingWeight(e.target.value)}
+                      placeholder="Ej: 1.1 kg aprox."
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Porcentaje de Pie Mínimo */}
+              <div className="space-y-1.5 max-w-sm">
+                <label className="text-xs font-medium text-[#9bb5c2]">Porcentaje de Pie Mínimo Preventa</label>
+                <select
+                  value={figureDepositPercent}
+                  onChange={(e) => setFigureDepositPercent(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                >
+                  <option value={0.2}>20% del valor total (Recomendado)</option>
+                  <option value={0.3}>30% del valor total</option>
+                  <option value={0.5}>50% del valor total</option>
+                  <option value={1.0}>100% (Pago Completo Anticipado)</option>
+                </select>
               </div>
 
               {/* Pre-order Live Math */}

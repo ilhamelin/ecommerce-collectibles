@@ -18,14 +18,32 @@ interface AutoFillResponse {
   imageUrl?: string;
   trailerUrl?: string;
   figureSpecs?: {
-    scale: string;
-    manufacturer: string;
-    material: string;
-    dimensions: string;
-    sculptor: string;
-    boxCondition: string;
-    arrivalDate: string;
-    depositPercent: number;
+    scale?: string;
+    manufacturer?: string;
+    material?: string;
+    dimensions?: string;
+    sculptor?: string;
+    boxCondition?: string;
+    arrivalDate?: string;
+    depositPercent?: number;
+    productName?: string;
+    franchise?: string;
+    productLine?: string;
+    releaseDate?: string;
+    licenseStatus?: string;
+    height?: string;
+    width?: string;
+    weight?: string;
+    base?: string;
+    materials?: string;
+    paintTechnique?: string;
+    articulation?: string;
+    interchangeableParts?: string;
+    accessories?: string;
+    certificate?: string;
+    ageRecommendation?: string;
+    boxDimensions?: string;
+    shippingWeight?: string;
   };
   gameSpecs?: {
     gameType?: "CONSOLE" | "PC" | string;
@@ -381,7 +399,19 @@ function generateWithSmartEngine(
   const figureSpecs =
     type === "FIGURE"
       ? {
-          scale: lower.includes("1/4") ? "SCALE_1_4" : lower.includes("1/6") ? "SCALE_1_6" : "SCALE_1_7",
+          scale: lower.includes("1/4")
+            ? "SCALE_1_4"
+            : lower.includes("1/6")
+            ? "SCALE_1_6"
+            : lower.includes("1/8")
+            ? "SCALE_1_8"
+            : lower.includes("pop up")
+            ? "POP_UP_PARADE"
+            : lower.includes("nendoroid")
+            ? "NENDOROID"
+            : lower.includes("action") || lower.includes("figma")
+            ? "ACTION_FIGURE"
+            : "SCALE_1_7",
           manufacturer: lower.includes("alter")
             ? "ALTER"
             : lower.includes("kotobukiya")
@@ -390,13 +420,79 @@ function generateWithSmartEngine(
             ? "BANDAI_SPIRITS"
             : lower.includes("max factory")
             ? "MAX_FACTORY"
+            : lower.includes("megahouse")
+            ? "MEGAHOUSE"
+            : lower.includes("freeing")
+            ? "FREEING"
+            : lower.includes("aniplex")
+            ? "ANIPLEX"
+            : lower.includes("sega")
+            ? "SEGA"
+            : lower.includes("taito")
+            ? "TAITO"
+            : lower.includes("furyu")
+            ? "FURYU"
             : "GOOD_SMILE_COMPANY",
-          material: "PVC & ABS de alta densidad pintado a mano",
-          dimensions: "Aprox. 26 a 30 cm de altura con base",
-          sculptor: "Escultor oficial de estudio japonés",
-          boxCondition: "Caja sellada impecable de fábrica (Mint in Box 10/10)",
           arrivalDate: "Diciembre 2026",
           depositPercent: 0.2,
+
+          // 1. Información General del Producto
+          productName: name || "Figura Coleccionable Japonesa",
+          franchise: lower.includes("evangelion")
+            ? "Neon Genesis Evangelion / Rebuild"
+            : lower.includes("fate")
+            ? "Fate / Grand Order"
+            : lower.includes("dragon ball")
+            ? "Dragon Ball Z / Super"
+            : lower.includes("one piece")
+            ? "One Piece"
+            : lower.includes("naruto")
+            ? "Naruto Shippuden"
+            : lower.includes("kimetsu") || lower.includes("demon slayer")
+            ? "Demon Slayer (Kimetsu no Yaiba)"
+            : lower.includes("jujutsu")
+            ? "Jujutsu Kaisen"
+            : lower.includes("genshin")
+            ? "Genshin Impact"
+            : lower.includes("final fantasy")
+            ? "Final Fantasy"
+            : "Anime / Videojuegos Japoneses",
+          productLine: lower.includes("pop up")
+            ? "Pop Up Parade"
+            : lower.includes("nendoroid")
+            ? "Nendoroid"
+            : lower.includes("figma")
+            ? "Figma"
+            : "Scale Figure Premium 1/7",
+          sculptor: "Escultor oficial de estudio japonés / Design Team",
+          releaseDate: "Diciembre 2026",
+          licenseStatus: "Licencia Oficial Japonesa (Sello Holográfico de Autenticidad)",
+
+          // 2. Especificaciones Físicas y Dimensiones
+          height: lower.includes("1/4") ? "42 cm" : lower.includes("1/6") ? "32 cm" : "28 cm",
+          width: "18 cm",
+          weight: lower.includes("1/4") ? "1.8 kg" : "650 g",
+          base: "Base temática con soporte acrílico y grabado conmemorativo incluida",
+
+          // 3. Materiales y Fabricación
+          material: "PVC & ABS de alta densidad pintado a mano",
+          materials: "PVC, ABS de alta densidad y componentes acrílicos translúcidos",
+          paintTechnique: "Pintura artesanal a mano con gradientes sombreados aerográficos",
+          articulation: lower.includes("figma") || lower.includes("nendoroid") || lower.includes("action")
+            ? "Articulada con más de 16 puntos de movimiento"
+            : "Estatua Fija (Pose de alta fidelidad)",
+
+          // 4. Contenido de la Caja y Accesorio
+          interchangeableParts: "2 expresiones faciales intercambiables, 4 manos adicionales",
+          accessories: "Arma / accesorio emblemático, peana expositora, efectos de aura",
+          certificate: "Sello de Autenticidad Oficial de Fabricante en Caja",
+
+          // 5. Seguridad y Logística
+          ageRecommendation: "15+ años (Coleccionismo adulto)",
+          dimensions: "28 cm de alto x 18 cm ancho",
+          boxDimensions: "35 cm x 25 cm x 20 cm",
+          boxCondition: "Caja sellada impecable de fábrica (Mint in Box 10/10)",
+          shippingWeight: "1.4 kg (Embalaje protector reforzado)",
         }
       : undefined;
 
@@ -1046,13 +1142,31 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
   "ageRating": "TE" | "M18" | "ALL" | "ESRB_T" | "ESRB_M",
   "genres": "Palabras clave separadas por coma",
   "figureSpecs": {
-    "scale": "SCALE_1_7" | "SCALE_1_4" | "SCALE_1_6" | "SCALE_1_8" | "NON_SCALE",
-    "manufacturer": "GOOD_SMILE_COMPANY" | "ALTER" | "KOTOBUKIYA" | "MAX_FACTORY" | "MEGAHOUSE" | "BANDAI_SPIRITS" | "FREEING",
-    "material": "Materiales (ej. PVC & ABS pintado a mano)",
-    "dimensions": "Dimensiones en cm",
-    "sculptor": "Nombre escultor o taller",
+    "productName": "Nombre oficial de la figura o personaje",
+    "franchise": "Franquicia u origen ej. Neon Genesis Evangelion, Fate/Grand Order, Dragon Ball",
+    "manufacturer": "GOOD_SMILE_COMPANY" | "ALTER" | "KOTOBUKIYA" | "MAX_FACTORY" | "MEGAHOUSE" | "BANDAI_SPIRITS" | "FREEING" | "ANIPLEX" | "SEGA" | "TAITO" | "FURYU" | "OTHER",
+    "productLine": "Línea de producto ej. Scale Figure 1/7, Pop Up Parade, Nendoroid, Figma",
+    "sculptor": "Nombre del diseñador o escultor original",
+    "releaseDate": "Fecha o mes de lanzamiento ej. Noviembre 2026",
+    "licenseStatus": "Estado de licencia ej. Licencia Oficial Japonesa (Sello Holográfico de Autenticidad)",
+    "scale": "SCALE_1_7" | "SCALE_1_4" | "SCALE_1_6" | "SCALE_1_8" | "NON_SCALE" | "NENDOROID" | "POP_UP_PARADE" | "ACTION_FIGURE",
+    "height": "Altura total ej. 28 cm de alto",
+    "width": "Ancho total ej. 18 cm de ancho",
+    "weight": "Peso neto ej. 650 g",
+    "base": "Detalle de base ej. Base temática personalizada con soporte acrílico incluida",
+    "material": "Materiales principales ej. PVC & ABS pintado a mano",
+    "materials": "Materiales principales ej. PVC, ABS y acrílico",
+    "paintTechnique": "Técnica de pintura ej. Pintado artesanal a mano con gradientes aerográficos",
+    "articulation": "Estatua Fija (Sin articulación) o Articulada",
+    "interchangeableParts": "Partes intercambiables ej. 2 expresiones faciales, 4 manos adicionales",
+    "accessories": "Accesorios incluidos ej. Arma emblemática, peana soporte, efectos de aura",
+    "certificate": "Sello oficial de autenticidad o certificado en caja",
+    "ageRecommendation": "Edad mínima recomendada ej. 15+ años (Coleccionismo adulto)",
+    "dimensions": "Dimensiones en cm ej. 28 cm x 18 cm",
+    "boxDimensions": "Dimensiones del empaque ej. 35 cm x 25 cm x 20 cm",
     "boxCondition": "Caja sellada impecable de fábrica (Mint in Box)",
-    "arrivalDate": "Mes y año estimado de arribo (ej. Noviembre 2026)",
+    "shippingWeight": "Peso de envío ej. 1.4 kg",
+    "arrivalDate": "Mes y año estimado de arribo ej. Noviembre 2026",
     "depositPercent": 0.2
   },
   "gameSpecs": {
@@ -1254,6 +1368,11 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               }
 
               parsed.customSpecifications = cleanSpecs;
+            }
+
+            if (parsed.type === "FIGURE") {
+              const fallbackHeuristic: any = generateWithSmartEngine(productName, "FIGURE");
+              parsed.figureSpecs = mergeNonEmpty(fallbackHeuristic.figureSpecs || {}, parsed.figureSpecs || {});
             }
 
             if (parsed.type === "VIDEO_GAME") {

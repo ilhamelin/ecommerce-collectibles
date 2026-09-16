@@ -99,6 +99,34 @@ export interface FigureMetadata {
   dimensions?: string;
   sculptor?: string;
   boxCondition?: string;
+
+  // Información General del Producto
+  productName?: string;
+  franchise?: string;
+  productLine?: string;
+  releaseDate?: string;
+  licenseStatus?: string;
+
+  // Especificaciones Físicas y Dimensiones
+  height?: string;
+  width?: string;
+  weight?: string;
+  base?: string;
+
+  // Materiales y Fabricación
+  materials?: string;
+  paintTechnique?: string;
+  articulation?: string;
+
+  // Contenido de la Caja y Accesorio
+  interchangeableParts?: string;
+  accessories?: string;
+  certificate?: string;
+
+  // Seguridad y Logística
+  ageRecommendation?: string;
+  boxDimensions?: string;
+  shippingWeight?: string;
 }
 
 export interface CollectibleMetadata {

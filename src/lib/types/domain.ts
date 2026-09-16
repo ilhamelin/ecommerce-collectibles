@@ -58,7 +58,7 @@ export interface GameMetadata {
   platform: GamePlatform | string;
   edition: GameEdition | string;
   isDigital: boolean;
-  publisher: string;
+  publisher?: string;
   audioLanguages?: string;
   subtitleLanguages?: string;
   players?: string;

@@ -255,6 +255,7 @@ export async function POST(request: NextRequest) {
       gameMetadata: data.gameMetadata ? {
         id: `meta-gm-${Date.now()}`,
         productId: "",
+        publisher: data.gameMetadata.publisher || "Publisher Oficial",
         ...data.gameMetadata,
       } : undefined,
       figureMetadata: data.figureMetadata ? {
@@ -383,6 +384,7 @@ export async function PUT(request: NextRequest) {
         gameMetadata: {
           id: `meta-gm-${Date.now()}`,
           productId: data.id,
+          publisher: data.gameMetadata.publisher || "Publisher Oficial",
           ...data.gameMetadata,
         },
       }),

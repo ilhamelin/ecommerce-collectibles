@@ -4,9 +4,25 @@ const nextConfig = {
   // 1. Remove x-powered-by header to prevent fingerprinting
   poweredByHeader: false,
 
-  // Images configuration to allow any CDN/remote storage
+  swcMinify: true,
+
+  // Modern compressed image formats & CDN patterns
   images: {
-    unoptimized: true,
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.firebasestorage.googleapis.com",
+      },
+    ],
   },
 
   // 2. Global Security Headers

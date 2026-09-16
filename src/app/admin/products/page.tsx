@@ -793,7 +793,7 @@ export default function AdminProductsListPage() {
                         <div className="flex items-center gap-2.5">
                           {imgUrl ? (
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#05161f] border border-[#004E72]/60 shrink-0">
-                              <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={imgUrl} alt={prod.name} className="w-full h-full object-cover" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 rounded-lg bg-[#004E72]/30 border border-[#004E72]/50 flex items-center justify-center shrink-0">

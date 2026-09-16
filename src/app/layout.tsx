@@ -1,12 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { StoreNavbar } from "@/components/layout/StoreNavbar";
 import { StoreFooter } from "@/components/layout/StoreFooter";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { CookieConsentBanner } from "@/components/common/CookieConsentBanner";
 
 import { SommelierChatWidget } from "@/components/chat/SommelierChatWidget";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#1F3A5F",
+};
 
 export const metadata: Metadata = {
   title: "OmniCollector | E-Commerce Especializado en Videojuegos, Figuras & Coleccionables",
@@ -21,7 +29,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="min-h-screen bg-[#F7F7F5] text-[#1A1A1A] antialiased selection:bg-[#FF6B35] selection:text-white flex flex-col justify-between pb-14 sm:pb-0">
+      <head>
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+      </head>
+      <body className="min-h-screen bg-[#F7F7F5] text-[#1A1A1A] antialiased selection:bg-[#FF6B35] selection:text-white flex flex-col justify-between pb-14 sm:pb-0 overflow-x-hidden">
         <div className="flex-1 flex flex-col">
           <StoreNavbar />
           <CartDrawer />
@@ -30,6 +42,7 @@ export default function RootLayout({
         <SommelierChatWidget />
         <ScrollToTopButton />
         <MobileBottomNav />
+        <CookieConsentBanner />
         <StoreFooter />
       </body>
     </html>

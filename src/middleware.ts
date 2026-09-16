@@ -80,6 +80,15 @@ export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const clientIp = getClientIp(req);
 
+  // Force HTTPS redirect in production environments (SERNAC & Payment PCI standard)
+  if (
+    process.env.NODE_ENV === "production" &&
+    req.headers.get("x-forwarded-proto") === "http"
+  ) {
+    const host = req.headers.get("host") || req.nextUrl.host;
+    return NextResponse.redirect(`https://${host}${pathname}${search}`, 301);
+  }
+
   // 0. Bot Protection: Block malicious vulnerability scanners & automated bots
   const userAgent = req.headers.get("user-agent")?.toLowerCase() || "";
   const MALICIOUS_BOTS = ["sqlmap", "nikto", "acunetix", "dirbuster", "nmap", "w3af", "havij", "masscan", "zgrab"];

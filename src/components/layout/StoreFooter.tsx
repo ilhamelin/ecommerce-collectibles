@@ -132,6 +132,12 @@ export function StoreFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/aviso-legal" className="hover:text-[#FF6B35] transition flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                  Aviso Legal & Información Societaria
+                </Link>
+              </li>
+              <li>
                 <span className="text-slate-400">Garantía Legal de 6 Meses (SERNAC)</span>
               </li>
               <li>

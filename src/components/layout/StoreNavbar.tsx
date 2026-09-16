@@ -259,7 +259,7 @@ function StoreNavbarContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
             {branding.logoMode === "image" && branding.logoImageUrl ? (
               <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-md flex items-center justify-center bg-white group-hover:scale-105 transition">
                 <img
@@ -305,7 +305,7 @@ function StoreNavbarContent() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center gap-1.5">
+          <div className="hidden lg:flex items-center gap-1 xl:gap-1.5">
             {navLinks.map((link) => {
               const isActive = link.categoryKey
                 ? pathname === "/catalog" && currentCategory === link.categoryKey
@@ -317,7 +317,7 @@ function StoreNavbarContent() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`px-2.5 xl:px-3.5 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                  className={`px-2 xl:px-3 py-1.5 rounded-xl text-[11px] xl:text-xs font-semibold transition whitespace-nowrap ${
                     isActive
                       ? "bg-[#1F3A5F] text-white shadow-sm font-bold"
                       : "text-[#1A1A1A] hover:text-[#FF6B35] hover:bg-[#F7F7F5]"
@@ -433,44 +433,52 @@ function StoreNavbarContent() {
           </div>
 
           {/* Wishlist, Cart & Quick Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Wishlist Quick Action */}
             <Link
               href="/account?tab=wishlist"
-              className="relative p-2.5 rounded-xl bg-[#F7F7F5] hover:bg-white border border-[#E5E5E5] text-[#1F3A5F] transition flex items-center justify-center group shadow-sm"
+              className="relative h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-[#F7F7F5] hover:bg-white border border-[#E5E5E5] text-[#1F3A5F] transition flex items-center justify-center group shadow-sm shrink-0 active:scale-95"
               title="Mis Favoritos"
               aria-label="Ver Mis Favoritos"
             >
               <Heart
-                className={`w-5 h-5 transition-transform group-hover:scale-110 ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110 ${
                   wishlistCount > 0 ? "fill-[#FF6B35] text-[#FF6B35]" : "text-[#1F3A5F]"
                 }`}
               />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#FF6B35] text-white font-mono text-[10px] font-black flex items-center justify-center shadow">
+                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-[#FF6B35] text-white font-mono text-[9px] font-black flex items-center justify-center shadow">
                   {wishlistCount}
                 </span>
               )}
             </Link>
 
+            {/* Cart Button */}
             <button
               onClick={openCart}
-              className="relative px-3.5 py-2 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] border border-[#1F3A5F] text-white transition flex items-center gap-2.5 shadow-md shadow-[#1F3A5F]/15 group"
+              className="relative h-10 sm:h-11 px-2.5 sm:px-3.5 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] border border-[#1F3A5F] text-white transition flex items-center gap-2 sm:gap-2.5 shadow-md shadow-[#1F3A5F]/20 group shrink-0 whitespace-nowrap active:scale-95 cursor-pointer"
               aria-label="Ver Carrito de Compras"
             >
-              <div className="p-1 rounded-lg bg-[#FF6B35] text-white group-hover:scale-105 transition">
-                <ShoppingBag className="w-4 h-4" />
+              <div className="relative p-1.5 rounded-lg bg-[#FF6B35] text-white group-hover:scale-105 transition shrink-0 flex items-center justify-center">
+                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                {mounted && totals.totalItemCount > 0 && (
+                  <span className="sm:hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white font-mono text-[9px] font-black flex items-center justify-center shadow">
+                    {totals.totalItemCount}
+                  </span>
+                )}
               </div>
 
-              <div className="text-left leading-tight hidden sm:block">
-                <span className="text-[10px] text-white/70 block">A pagar hoy:</span>
-                <span className="font-bold text-xs text-white font-mono">
+              <div className="text-left leading-none hidden sm:flex sm:flex-col justify-center shrink-0">
+                <span className="text-[10px] text-white/70 font-medium whitespace-nowrap block">
+                  Total Carrito:
+                </span>
+                <span className="font-extrabold text-xs text-white font-mono whitespace-nowrap mt-0.5 block">
                   {mounted ? formatCLP(totals.totalDueToday) : "$ 0 CLP"}
                 </span>
               </div>
 
               {mounted && totals.totalItemCount > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6B35] text-white font-mono text-[11px] font-extrabold flex items-center justify-center shadow">
+                <span className="hidden sm:flex min-w-[20px] h-5 px-1.5 rounded-full bg-[#FF6B35] text-white font-mono text-[11px] font-black items-center justify-center shadow shrink-0">
                   {totals.totalItemCount}
                 </span>
               )}

@@ -28,14 +28,32 @@ interface AutoFillResponse {
     depositPercent: number;
   };
   gameSpecs?: {
-    platform: string;
-    edition: string;
-    publisher: string;
-    audioLanguages: string;
-    subtitleLanguages: string;
-    players: string;
-    fileSize: string;
-    resolution: string;
+    gameType?: "CONSOLE" | "PC" | string;
+    title?: string;
+    developer?: string;
+    publisher?: string;
+    releaseYear?: string;
+    genre?: string;
+    gameModes?: string;
+    gameEngine?: string;
+    supportedPlatforms?: string;
+    platform?: string;
+    edition?: string;
+    audioLanguages?: string;
+    subtitleLanguages?: string;
+    ageRating?: string;
+    fileSize?: string;
+    displayModes?: string;
+    xboxSeriesSOptimization?: string;
+    hardwareFeatures?: string;
+    pcOs?: string;
+    pcProcessor?: string;
+    pcRam?: string;
+    pcGpu?: string;
+    pcStorage?: string;
+    players?: string;
+    resolution?: string;
+    [key: string]: any;
   };
   collectibleSpecs?: {
     category: string;
@@ -448,6 +466,8 @@ function generateWithSmartEngine(
           subtitleLanguages: "Español Latino, Inglés, Portugués, Francés",
           ageRating: "ESRB Teen (13+) / PEGI 16",
           fileSize: isPcGame ? "85 GB en SSD NVMe" : "65 GB en SSD interno",
+          players: "Un jugador, Cooperativo online",
+          resolution: "Modo Rendimiento (1440p 60fps) / Modo Calidad (4K 30fps Ray Tracing)",
           // Consola: Rendimiento
           displayModes: "Modo Rendimiento (1440p 60fps) / Modo Calidad (4K 30fps Ray Tracing)",
           xboxSeriesSOptimization: "1080p 60fps con resolución dinámica optimizada",
@@ -1251,6 +1271,11 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                   ...(parsed.customSpecifications.gamingAccessory || {}),
                 };
               }
+            }
+
+            if (parsed.type === "VIDEO_GAME") {
+              const fallbackHeuristic = generateWithSmartEngine(productName, "VIDEO_GAME");
+              parsed.gameSpecs = mergeNonEmpty(fallbackHeuristic.gameSpecs || {}, parsed.gameSpecs || {});
             }
 
             // Remove any image auto-generation so "4. Galería de Fotos & Portada" is NOT touched

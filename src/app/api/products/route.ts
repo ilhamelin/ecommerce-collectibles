@@ -3,7 +3,7 @@ import { CreateProductSchema, UpdateProductSchema } from "@/lib/validations/sche
 import { CatalogRepository } from "@/lib/services/CatalogRepository";
 import { DomainError } from "@/lib/errors/DomainErrors";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
-import { BundleItemDefinition, ProductDomainEntity } from "@/lib/types/domain";
+import { BundleItemDefinition, ProductDomainEntity, FigureMetadata, GameMetadata, CollectibleMetadata } from "@/lib/types/domain";
 import {
   getProductsFromFirestore,
   getProductByIdOrSkuFromFirestore,
@@ -252,22 +252,22 @@ export async function POST(request: NextRequest) {
       ageRating: data.ageRating,
       genres: data.genres,
       contentGallery: data.contentGallery,
-      gameMetadata: data.gameMetadata ? {
+      gameMetadata: data.gameMetadata ? ({
         id: `meta-gm-${Date.now()}`,
         productId: "",
         publisher: data.gameMetadata.publisher || "Publisher Oficial",
         ...data.gameMetadata,
-      } : undefined,
-      figureMetadata: data.figureMetadata ? {
+      } as GameMetadata) : undefined,
+      figureMetadata: data.figureMetadata ? ({
         id: `meta-fig-${Date.now()}`,
         productId: "",
         ...data.figureMetadata,
-      } : undefined,
-      collectibleMetadata: data.collectibleMetadata ? {
+      } as FigureMetadata) : undefined,
+      collectibleMetadata: data.collectibleMetadata ? ({
         id: `meta-col-${Date.now()}`,
         productId: "",
         ...data.collectibleMetadata,
-      } : undefined,
+      } as CollectibleMetadata) : undefined,
       bundleComponents,
       images: data.images,
       imageUrl: data.imageUrl || (data.images && data.images[0]),
@@ -386,21 +386,21 @@ export async function PUT(request: NextRequest) {
           productId: data.id,
           publisher: data.gameMetadata.publisher || "Publisher Oficial",
           ...data.gameMetadata,
-        },
+        } as GameMetadata,
       }),
       ...(data.figureMetadata !== undefined && {
         figureMetadata: {
           id: `meta-fig-${Date.now()}`,
           productId: data.id,
           ...data.figureMetadata,
-        },
+        } as FigureMetadata,
       }),
       ...(data.collectibleMetadata !== undefined && {
         collectibleMetadata: {
           id: `meta-col-${Date.now()}`,
           productId: data.id,
           ...data.collectibleMetadata,
-        },
+        } as CollectibleMetadata,
       }),
     });
 

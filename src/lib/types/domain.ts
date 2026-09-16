@@ -90,9 +90,9 @@ export interface GameMetadata {
 export interface FigureMetadata {
   id: string;
   productId: string;
-  scale: FigureScale;
-  manufacturer: FigureManufacturer;
-  estimatedArrivalDate: string; // ISO string
+  scale: FigureScale | string;
+  manufacturer: FigureManufacturer | string;
+  estimatedArrivalDate?: string; // ISO string
   allowsPartialDeposit: boolean;
   minimumDepositPercent: number; // e.g. 0.20 or 0.30
   material?: string;
@@ -132,10 +132,10 @@ export interface FigureMetadata {
 export interface CollectibleMetadata {
   id: string;
   productId: string;
-  category: CollectibleCategory;
-  condition: CollectibleCondition;
+  category: CollectibleCategory | string;
+  condition: CollectibleCondition | string;
   cardLanguage?: string;
-  authenticationBody: Authenticator;
+  authenticationBody?: Authenticator | string;
   serialNumber?: string;
   gradeScore?: string;
   slabType?: string;

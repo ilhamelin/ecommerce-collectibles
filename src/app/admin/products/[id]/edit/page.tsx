@@ -393,8 +393,8 @@ export default function EditProductAdminPage() {
             setGamePcStorage(p.gameMetadata.pcStorage || "");
           }
           if (p.figureMetadata) {
-            setFigureScale(p.figureMetadata.scale);
-            setFigureManufacturer(p.figureMetadata.manufacturer);
+            setFigureScale(p.figureMetadata.scale as any);
+            setFigureManufacturer(p.figureMetadata.manufacturer as any);
             setFigureArrivalDate(p.figureMetadata.estimatedArrivalDate || "Noviembre 2026");
             setFigureDepositPercent(p.figureMetadata.minimumDepositPercent ?? 0.2);
             setFigureMaterial(p.figureMetadata.material || "");
@@ -403,10 +403,10 @@ export default function EditProductAdminPage() {
             setFigureBoxCondition(p.figureMetadata.boxCondition || "");
           }
           if (p.collectibleMetadata) {
-            setCollectibleCategory(p.collectibleMetadata.category);
-            setCollectibleCondition(p.collectibleMetadata.condition);
+            setCollectibleCategory(p.collectibleMetadata.category as any);
+            setCollectibleCondition(p.collectibleMetadata.condition as any);
             setCollectibleLanguage(p.collectibleMetadata.cardLanguage || "English");
-            setCollectibleAuth(p.collectibleMetadata.authenticationBody);
+            setCollectibleAuth(p.collectibleMetadata.authenticationBody as any);
             setCollectibleSerial(p.collectibleMetadata.serialNumber || "");
           }
           if (p.customSpecifications) {

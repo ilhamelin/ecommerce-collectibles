@@ -29,6 +29,7 @@ import {
   Crown,
   Zap,
   Star,
+  Tv,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -62,13 +63,14 @@ function StoreNavbarContent() {
     COLLECTIBLE: 3,
     BUNDLE: 0,
     CONSOLE: 3,
+    HARDWARE: 1,
     GAMING_ACCESSORY: 3,
     APPAREL: 0,
     BOOK: 1,
     MERCH: 0,
     AUDIO: 0,
     OTHER: 0,
-    ALL: 27,
+    ALL: 28,
   });
 
   // Click-outside listener
@@ -99,6 +101,7 @@ function StoreNavbarContent() {
             COLLECTIBLE: 0,
             BUNDLE: 0,
             CONSOLE: 0,
+            HARDWARE: 0,
             GAMING_ACCESSORY: 0,
             APPAREL: 0,
             BOOK: 0,
@@ -112,10 +115,13 @@ function StoreNavbarContent() {
             else if (p.type === "FIGURE") counts.FIGURE++;
             else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
             else if (p.type === "BUNDLE") counts.BUNDLE++;
+            else if (p.type === "CONSOLE") counts.CONSOLE++;
+            else if (p.type === "HARDWARE") counts.HARDWARE++;
             else if (p.type === "OTHER") {
               const spec = (p.customSpecifications?.categoryType || "").toUpperCase();
               const l = (p.customCategoryLabel || "").toLowerCase();
-              if (spec === "CONSOLE" || l.includes("consola") || l.includes("hardware")) counts.CONSOLE++;
+              if (spec === "CONSOLE" || (l.includes("consola") && !l.includes("hardware") && !l.includes("componente"))) counts.CONSOLE++;
+              else if (spec === "HARDWARE" || l.includes("hardware") || l.includes("componente") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu")) counts.HARDWARE++;
               else if (spec === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono") || l.includes("headset")) counts.GAMING_ACCESSORY++;
               else if (spec === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
               else if (spec === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;
@@ -160,7 +166,8 @@ function StoreNavbarContent() {
     { href: "/catalog?category=FIGURE", label: "Figuras", icon: Sparkles, categoryKey: "FIGURE" },
     { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas", icon: Trophy, categoryKey: "COLLECTIBLE" },
     { href: "/catalog?category=BUNDLE", label: "Bundles", icon: Layers, categoryKey: "BUNDLE" },
-    { href: "/catalog?category=CONSOLE", label: "Consolas", icon: Cpu, categoryKey: "CONSOLE" },
+    { href: "/catalog?category=CONSOLE", label: "Consolas", icon: Tv, categoryKey: "CONSOLE" },
+    { href: "/catalog?category=HARDWARE", label: "Hardware", icon: Cpu, categoryKey: "HARDWARE" },
     { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios", icon: Headphones, categoryKey: "GAMING_ACCESSORY" },
   ];
 
@@ -395,7 +402,8 @@ function StoreNavbarContent() {
                     </div>
 
                     {[
-                      { href: "/catalog?category=CONSOLE", label: "Consolas / Hardware", icon: "🖥️", count: categoryCounts.CONSOLE },
+                      { href: "/catalog?category=CONSOLE", label: "Consolas", icon: "🕹️", count: categoryCounts.CONSOLE },
+                      { href: "/catalog?category=HARDWARE", label: "Hardware & Componentes", icon: "🖥️", count: categoryCounts.HARDWARE },
                       { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: "🎧", count: categoryCounts.GAMING_ACCESSORY },
                       { href: "/catalog?category=APPAREL", label: "Ropa & Estilo", icon: "👕", count: categoryCounts.APPAREL },
                       { href: "/catalog?category=BOOK", label: "Manga / Artbooks", icon: "📖", count: categoryCounts.BOOK },

@@ -54,6 +54,7 @@ interface AutoFillResponse {
       controller?: any;
     };
     console?: any;
+    hardware?: any;
     apparel?: any;
     book?: any;
     merch?: any;
@@ -64,9 +65,10 @@ interface AutoFillResponse {
 
 function getCategoryTypeFromLabel(
   label?: string
-): "CONSOLE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" {
+): "CONSOLE" | "HARDWARE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" {
   const l = (label || "").toLowerCase();
-  if (l.includes("consola") || l.includes("hardware")) return "CONSOLE";
+  if (l.includes("consola")) return "CONSOLE";
+  if (l.includes("hardware") || l.includes("componente") || l.includes("ssd") || l.includes("nvme") || l.includes("m.2") || l.includes("ram") || l.includes("gpu") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("placa")) return "HARDWARE";
   if (l.includes("manga") || l.includes("artbook") || l.includes("libro") || l.includes("comic") || l.includes("tomo"))
     return "BOOK";
   if (
@@ -110,7 +112,8 @@ function generateWithSmartEngine(
     type = userSelectedType;
     if (type === "OTHER" && !customCategoryLabel) {
       const cat = getCategoryTypeFromLabel(name);
-      if (cat === "CONSOLE") customCategoryLabel = "Consola / Hardware";
+      if (cat === "CONSOLE") customCategoryLabel = "Consola";
+      else if (cat === "HARDWARE") customCategoryLabel = "Hardware & Componentes";
       else if (cat === "BOOK") customCategoryLabel = "Manga / Artbook";
       else if (cat === "APPAREL") customCategoryLabel = "Ropa & Estilo";
       else if (cat === "MERCH") customCategoryLabel = "Merchandising";
@@ -135,9 +138,12 @@ function generateWithSmartEngine(
     ) {
       type = "OTHER";
       customCategoryLabel = "Accesorio Gaming";
-    } else if (lower.includes("consola") || lower.includes("oled") || lower.includes("hardware")) {
+    } else if (lower.includes("consola") || lower.includes("playstation 5 slim") || lower.includes("switch oled") || lower.includes("xbox series x") || lower.includes("steam deck")) {
       type = "OTHER";
-      customCategoryLabel = "Consola / Hardware";
+      customCategoryLabel = "Consola";
+    } else if (lower.includes("hardware") || lower.includes("componente") || lower.includes("ssd") || lower.includes("nvme") || lower.includes("ram") || lower.includes("gpu") || lower.includes("tarjeta gr") || lower.includes("procesador") || lower.includes("geforce") || lower.includes("ryzen") || lower.includes("rtx")) {
+      type = "OTHER";
+      customCategoryLabel = "Hardware & Componentes";
     } else if (
       lower.includes("psa") ||
       lower.includes("cgc") ||
@@ -197,6 +203,7 @@ function generateWithSmartEngine(
   else if (type === "OTHER") {
     const cat = getCategoryTypeFromLabel(customCategoryLabel);
     if (cat === "CONSOLE") prefix = "CON";
+    else if (cat === "HARDWARE") prefix = "HW";
     else if (cat === "APPAREL") prefix = "APP";
     else if (cat === "BOOK") prefix = "MNG";
     else if (cat === "MERCH") prefix = "MERCH";
@@ -248,6 +255,12 @@ function generateWithSmartEngine(
       costPrice = 350000;
       isPreOrder = false;
       stockAvailable = 4;
+    } else if (cat === "HARDWARE") {
+      price = 149900;
+      originalPrice = 179900;
+      costPrice = 110000;
+      isPreOrder = false;
+      stockAvailable = 8;
     } else if (cat === "BOOK") {
       price = 18900;
       originalPrice = 22900;
@@ -322,9 +335,11 @@ function generateWithSmartEngine(
   } else if (type === "OTHER") {
     ageRating = "ALL";
     if (customCategoryLabel === "Accesorio Gaming") {
-      genres = "Accesorios Gaming, Mandos, Periféricos, Hardware, PlayStation";
-    } else if (customCategoryLabel === "Consola / Hardware") {
-      genres = "Consolas, Hardware, Gaming, Sistemas";
+      genres = "Accesorios Gaming, Mandos, Periféricos, Esports";
+    } else if (customCategoryLabel === "Consola") {
+      genres = "Consolas, Videojuegos, Sistemas, Ediciones Limitadas";
+    } else if (customCategoryLabel === "Hardware & Componentes") {
+      genres = "Hardware, Componentes, Almacenamiento SSD, Tarjetas Gráficas, PC Gaming";
     } else if (customCategoryLabel === "Ropa & Estilo") {
       genres = "Moda Gamer, Ropa Urbana, Accesorios";
     } else if (customCategoryLabel === "Manga / Artbook") {
@@ -558,6 +573,49 @@ function generateWithSmartEngine(
           featuredHighlights: "Audio 3D inmersivo, Ray Tracing por hardware, salida 4K 120Hz / HDR y tiempos de carga instantáneos",
         },
       };
+    } else if (matchedCategory === "HARDWARE") {
+      customSpecifications = {
+        categoryType: "HARDWARE",
+        hardware: {
+          componentType: lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2")
+            ? "Almacenamiento (SSD NVMe M.2)"
+            : lower.includes("ram") || lower.includes("ddr")
+            ? "Memoria RAM"
+            : lower.includes("gpu") || lower.includes("rtx") || lower.includes("geforce") || lower.includes("radeon")
+            ? "Tarjeta Gráfica (GPU)"
+            : lower.includes("procesador") || lower.includes("ryzen") || lower.includes("intel")
+            ? "Procesador (CPU)"
+            : "Componente de Hardware",
+          brand: lower.includes("samsung")
+            ? "Samsung"
+            : lower.includes("kingston")
+            ? "Kingston"
+            : lower.includes("corsair")
+            ? "Corsair"
+            : lower.includes("asus")
+            ? "ASUS ROG"
+            : lower.includes("msi")
+            ? "MSI"
+            : "Fabricante Oficial",
+          model: name,
+          interfaceOrSocket: lower.includes("nvme") || lower.includes("ssd")
+            ? "PCIe 4.0 x4, NVMe 2.0 (M.2 2280)"
+            : lower.includes("ddr5")
+            ? "DDR5 DIMM 288-pin"
+            : "PCIe 4.0 / 5.0",
+          capacityOrSpeed: lower.includes("2tb")
+            ? "2 TB (Lectura hasta 7.450 MB/s)"
+            : lower.includes("1tb")
+            ? "1 TB (Lectura hasta 7.000 MB/s)"
+            : lower.includes("32gb")
+            ? "32 GB (2x16GB) 6000MHz"
+            : "Alta Velocidad",
+          formFactor: lower.includes("m.2") ? "M.2 2280" : "Estándar ATX",
+          powerConsumptionTdp: "Eficiencia energética certificada",
+          warrantyYears: "5 años de garantía oficial directa del fabricante",
+          featuredHighlights: "Disipador térmico de aluminio grafeno, alta durabilidad TBW y optimizado para gaming y consolas PS5 / PC",
+        },
+      };
     } else if (matchedCategory === "BOOK") {
       // Inferred Manga metadata
       let inferredPublisher = "Panini Manga / Norma Editorial";
@@ -714,7 +772,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "serial": "Código serial de certificación"
   },
   "customSpecifications": {
-    "categoryType": "GAMING_ACCESSORY" | "CONSOLE" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO",
+    "categoryType": "GAMING_ACCESSORY" | "CONSOLE" | "HARDWARE" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO",
     "gamingAccessory": {
       "accessoryType": "CONTROLLER" | "MOUSE" | "KEYBOARD" | "HEADSET",
       "controller": { "brand": "", "platformCompatibility": "", "connectionType": "", "feedbackHaptic": "", "weight": "", "color": "", "layout": "", "batteryLife": "", "rechargeableBattery": "", "programmableBackPaddles": "", "triggerStops": "", "audioJack": "", "hallEffectSticks": "", "lighting": "", "softwareCustomization": "" },
@@ -733,6 +791,9 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     },
     "console": {
       "baseModel": "", "capacity": "", "format": "", "controllersIncluded": "", "bundleIncluded": "", "ports": "", "gameCompatibility": "", "featuredHighlights": ""
+    },
+    "hardware": {
+      "componentType": "", "brand": "", "model": "", "interfaceOrSocket": "", "capacityOrSpeed": "", "formFactor": "", "powerConsumptionTdp": "", "warrantyYears": "", "featuredHighlights": ""
     },
     "apparel": {
       "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": ""
@@ -834,6 +895,11 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                 parsed.customSpecifications.console = {
                   ...(fallbackSpecs.console || {}),
                   ...(parsed.customSpecifications.console || {}),
+                };
+              } else if (catType === "HARDWARE") {
+                parsed.customSpecifications.hardware = {
+                  ...(fallbackSpecs.hardware || {}),
+                  ...(parsed.customSpecifications.hardware || {}),
                 };
               } else if (catType === "APPAREL") {
                 parsed.customSpecifications.apparel = {

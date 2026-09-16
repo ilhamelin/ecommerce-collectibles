@@ -171,8 +171,10 @@ export default function AdminProductsListPage() {
           const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
           if (selectedType === "OTHER") {
             // matches any other
-          } else if (selectedType === "CONSOLE" && (specCat === "CONSOLE" || l.includes("consola") || l.includes("hardware"))) {
+          } else if (selectedType === "CONSOLE" && (specCat === "CONSOLE" || (l.includes("consola") && !l.includes("hardware") && !l.includes("componente")))) {
             // matches console
+          } else if (selectedType === "HARDWARE" && (specCat === "HARDWARE" || l.includes("hardware") || l.includes("componente") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu"))) {
+            // matches hardware
           } else if (selectedType === "GAMING_ACCESSORY" && (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono"))) {
             // matches gaming accessory
           } else if (selectedType === "APPAREL" && (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo") || l.includes("poleron") || l.includes("polera"))) {
@@ -252,6 +254,7 @@ export default function AdminProductsListPage() {
       COLLECTIBLE: 0,
       BUNDLE: 0,
       CONSOLE: 0,
+      HARDWARE: 0,
       GAMING_ACCESSORY: 0,
       APPAREL: 0,
       BOOK: 0,
@@ -264,10 +267,13 @@ export default function AdminProductsListPage() {
       else if (p.type === "FIGURE") counts.FIGURE++;
       else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
       else if (p.type === "BUNDLE") counts.BUNDLE++;
+      else if (p.type === "CONSOLE") counts.CONSOLE++;
+      else if (p.type === "HARDWARE") counts.HARDWARE++;
       else if (p.type === "OTHER") {
         const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
         const l = (p.customCategoryLabel || "").toLowerCase();
-        if (specCat === "CONSOLE" || l.includes("consola") || l.includes("hardware")) counts.CONSOLE++;
+        if (specCat === "CONSOLE" || (l.includes("consola") && !l.includes("hardware") && !l.includes("componente"))) counts.CONSOLE++;
+        else if (specCat === "HARDWARE" || l.includes("hardware") || l.includes("componente") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu")) counts.HARDWARE++;
         else if (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono")) counts.GAMING_ACCESSORY++;
         else if (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
         else if (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;
@@ -285,7 +291,8 @@ export default function AdminProductsListPage() {
       case "FIGURE": return "Figuras";
       case "COLLECTIBLE": return "TCG / Rarezas";
       case "BUNDLE": return "Bundles";
-      case "CONSOLE": return "Consolas / Hardware";
+      case "CONSOLE": return "Consolas";
+      case "HARDWARE": return "Hardware & Componentes";
       case "GAMING_ACCESSORY": return "Accesorios Gaming";
       case "APPAREL": return "Ropa & Estilo";
       case "BOOK": return "Manga / Libros";
@@ -575,7 +582,10 @@ export default function AdminProductsListPage() {
                 </optgroup>
                 <optgroup label="── Categorías Especializadas ──" className="bg-[#092634] text-[#FF6E42] font-bold">
                   <option value="CONSOLE" className="bg-[#092634] text-[#F9F9F9]">
-                    🖥️ Consolas / Hardware ({adminCategoryCounts.CONSOLE})
+                    🕹️ Consolas ({adminCategoryCounts.CONSOLE})
+                  </option>
+                  <option value="HARDWARE" className="bg-[#092634] text-[#F9F9F9]">
+                    🖥️ Hardware & Componentes ({adminCategoryCounts.HARDWARE})
                   </option>
                   <option value="GAMING_ACCESSORY" className="bg-[#092634] text-[#F9F9F9]">
                     🎧 Accesorios Gaming ({adminCategoryCounts.GAMING_ACCESSORY})

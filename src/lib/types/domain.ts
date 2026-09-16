@@ -1,4 +1,4 @@
-export type ProductType = "VIDEO_GAME" | "FIGURE" | "COLLECTIBLE" | "BUNDLE" | "OTHER" | (string & {});
+export type ProductType = "VIDEO_GAME" | "FIGURE" | "COLLECTIBLE" | "BUNDLE" | "CONSOLE" | "HARDWARE" | "OTHER" | (string & {});
 
 export type PreOrderState =
   | "ANNOUNCED"
@@ -251,9 +251,22 @@ export interface AudioSpecifications {
   featuredTracks?: string;
 }
 
+export interface HardwareSpecifications {
+  componentType: string;
+  brand: string;
+  model: string;
+  interfaceOrSocket?: string;
+  capacityOrSpeed?: string;
+  formFactor?: string;
+  powerConsumptionTdp?: string;
+  warrantyYears?: string | number;
+  featuredHighlights?: string;
+}
+
 export interface CustomCategorySpecifications {
   categoryType?: string;
   console?: ConsoleSpecifications;
+  hardware?: HardwareSpecifications;
   gamingAccessory?: GamingAccessorySpecifications;
   apparel?: ApparelSpecifications;
   book?: BookSpecifications;

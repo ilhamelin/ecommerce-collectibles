@@ -577,6 +577,73 @@ export const BASE_PRODUCTS = [
     aggregateMarginPercent: 24.8,
     nominalSumOfItems: 264970,
   },
+
+  // ==========================================
+  // 5. CONSOLAS DE VIDEOJUEGOS (CONSOLE)
+  // ==========================================
+  {
+    id: "prod-con-01",
+    sku: "CON-PS5-SLIM-DIG",
+    name: "PlayStation 5 Slim Digital Edition 1TB SSD",
+    description: "Consola oficial PlayStation 5 modelo Slim de 1TB de almacenamiento ultra rápido, diseño compacto y control inalámbrico DualSense con respuesta háptica.",
+    type: "CONSOLE" as const,
+    customCategoryLabel: "Consolas",
+    price: 469990,
+    originalPrice: 499990,
+    costPrice: 380000,
+    stockAvailable: 6,
+    stockReserved: 0,
+    isPreOrder: false,
+    imageUrl: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&auto=format&fit=crop&q=80",
+    images: ["https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&auto=format&fit=crop&q=80"],
+    customSpecifications: {
+      categoryType: "CONSOLE",
+      console: {
+        baseModel: "PlayStation 5 Slim Digital Edition",
+        capacity: "1 TB SSD NVMe Ultrarrápido",
+        format: "Digital Edition (Sin lector óptico)",
+        controllersIncluded: "1x Control Inalámbrico DualSense Blanco",
+        bundleIncluded: "Consola, Mando DualSense, Cable HDMI 2.1, Cable USB-C, Cable de poder, ASTRO's PLAYROOM preinstalado",
+        ports: "1x HDMI 2.1, 2x USB-C frontales, 2x USB-A 3.2 traseros, Gigabit LAN, Wi-Fi 6",
+        gameCompatibility: "Compatible con catálogo digital completo de PS5 y más de 4.000 títulos de PS4",
+        featuredHighlights: "Audio Tempest 3D, Ray Tracing por hardware, salida 4K a 120 fps y tiempos de carga instantáneos",
+      },
+    },
+  },
+
+  // ==========================================
+  // 6. HARDWARE & COMPONENTES (HARDWARE)
+  // ==========================================
+  {
+    id: "prod-hw-01",
+    sku: "HW-SSD-SAMS-990PRO-2TB",
+    name: "SSD Samsung 990 PRO 2TB NVMe M.2 con Disipador Heatsink (PCIe 4.0)",
+    description: "Unidad de almacenamiento de estado sólido de alto rendimiento Samsung 990 PRO 2TB con disipador térmico incorporado, velocidad de lectura de 7.450 MB/s, 100% compatible con expansión de almacenamiento interno de PlayStation 5 y PC Gaming de gama alta.",
+    type: "HARDWARE" as const,
+    customCategoryLabel: "Hardware & Componentes",
+    price: 189990,
+    originalPrice: 219990,
+    costPrice: 135000,
+    stockAvailable: 12,
+    stockReserved: 0,
+    isPreOrder: false,
+    imageUrl: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80",
+    images: ["https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80"],
+    customSpecifications: {
+      categoryType: "HARDWARE",
+      hardware: {
+        componentType: "Almacenamiento SSD NVMe M.2",
+        brand: "Samsung",
+        model: "990 PRO con Heatsink",
+        interfaceOrSocket: "PCIe 4.0 x4, NVMe 2.0 (M.2 2280)",
+        capacityOrSpeed: "2 TB (Lectura: 7.450 MB/s, Escritura: 6.900 MB/s)",
+        formFactor: "M.2 2280 con disipador térmico (80 x 24.3 x 8.2 mm)",
+        powerConsumptionTdp: "8.5W máx / Certificado para PS5 y PC",
+        warrantyYears: "5 años de garantía limitada oficial o 1.200 TBW",
+        featuredHighlights: "Control térmico inteligente de níquel, tecnología V-NAND TLC, optimizado para cargas pesadas de renderizado y tiempos de carga instantáneos en juegos AAA",
+      },
+    },
+  },
 ];
 
 export const PRICE_PRESETS = [

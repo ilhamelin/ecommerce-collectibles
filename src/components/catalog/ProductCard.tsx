@@ -74,6 +74,8 @@ export function ProductCard({ product }: ProductCardProps) {
       ? "https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=800&auto=format&fit=crop&q=80"
       : product.type === "CONSOLE"
       ? "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&auto=format&fit=crop&q=80"
+      : product.type === "HARDWARE"
+      ? "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=800&auto=format&fit=crop&q=80"
       : product.type === "ACCESSORY"
       ? "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80"
       : product.type === "BUNDLE"

@@ -48,7 +48,8 @@ import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
 
 const CUSTOM_CATEGORY_PRESETS = [
-  "Consola / Hardware",
+  "Consolas",
+  "Hardware & Componentes",
   "Ropa & Estilo",
   "Accesorio Gaming",
   "Manga / Artbook",

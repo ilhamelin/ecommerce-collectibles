@@ -26,6 +26,8 @@ import {
   Layers,
   Gamepad2,
   Monitor,
+  Tv,
+  Cpu,
 } from "lucide-react";
 import { SkuPredictiveMetric } from "@/app/api/admin/predictive-stock/route";
 import { formatCLP } from "@/lib/utils/currency";
@@ -50,7 +52,9 @@ function ProductTableThumbnail({
         ) : type === "FIGURE" ? (
           <Sparkles className="w-5 h-5 text-amber-500" />
         ) : type === "CONSOLE" ? (
-          <Monitor className="w-5 h-5 text-indigo-500" />
+          <Tv className="w-5 h-5 text-purple-500" />
+        ) : type === "HARDWARE" ? (
+          <Cpu className="w-5 h-5 text-cyan-500" />
         ) : (
           <Package className="w-5 h-5 text-slate-400" />
         )}

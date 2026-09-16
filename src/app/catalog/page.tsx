@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Tv,
+  Cpu,
   Headphones,
   Shirt,
   BookOpen,
@@ -37,11 +38,18 @@ import { VisualSearchModal } from "@/components/catalog/VisualSearchModal";
 
 const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: any; bannerBadge: string; bannerTitle: string; bannerDesc: string }> = {
   CONSOLE: {
-    label: "Consolas / Hardware",
+    label: "Consolas",
     icon: Tv,
-    bannerBadge: "Catálogo Consolas & Hardware",
-    bannerTitle: "Consolas & Hardware de Colección",
-    bannerDesc: "Sistemas PlayStation 5, Nintendo Switch, Xbox y consolas de edición limitada con garantía oficial y despacho a todo Chile.",
+    bannerBadge: "Catálogo Consolas de Videojuegos",
+    bannerTitle: "Consolas de Videojuegos & Ediciones Limitadas",
+    bannerDesc: "Sistemas PlayStation 5, Nintendo Switch, Xbox Series y consolas retro de edición especial con garantía oficial y despacho a todo Chile.",
+  },
+  HARDWARE: {
+    label: "Hardware & Componentes",
+    icon: Cpu,
+    bannerBadge: "Catálogo Hardware & Componentes",
+    bannerTitle: "Hardware, Componentes & Almacenamiento",
+    bannerDesc: "Unidades SSD NVMe de alta velocidad, memorias, tarjetas gráficas y componentes de alto rendimiento para gaming y estaciones de trabajo.",
   },
   GAMING_ACCESSORY: {
     label: "Accesorios Gaming",
@@ -81,11 +89,14 @@ const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: any; ban
 };
 
 function getProductCustomCategoryKey(p: any): string | null {
+  if (p.type === "CONSOLE") return "CONSOLE";
+  if (p.type === "HARDWARE") return "HARDWARE";
   if (p.type !== "OTHER") return null;
   const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
   const l = (p.customCategoryLabel || "").toLowerCase();
 
-  if (specCat === "CONSOLE" || l.includes("consola") || l.includes("hardware")) return "CONSOLE";
+  if (specCat === "CONSOLE" || (l.includes("consola") && !l.includes("hardware") && !l.includes("componente"))) return "CONSOLE";
+  if (specCat === "HARDWARE" || l.includes("hardware") || l.includes("componente") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu")) return "HARDWARE";
   if (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono") || l.includes("headset")) return "GAMING_ACCESSORY";
   if (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo") || l.includes("poleron") || l.includes("polera")) return "APPAREL";
   if (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro") || l.includes("comic")) return "BOOK";
@@ -116,6 +127,7 @@ function CatalogContent() {
 
   // Specialized Filters for Custom Categories
   const [consoleTypeFilter, setConsoleTypeFilter] = useState<string>("ALL");
+  const [hardwareTypeFilter, setHardwareTypeFilter] = useState<string>("ALL");
   const [accessoryTypeFilter, setAccessoryTypeFilter] = useState<string>("ALL");
   const [bookLangFilter, setBookLangFilter] = useState<string>("ALL");
   const [apparelSizeFilter, setApparelSizeFilter] = useState<string>("ALL");
@@ -174,6 +186,7 @@ function CatalogContent() {
       COLLECTIBLE: 0,
       BUNDLE: 0,
       CONSOLE: 0,
+      HARDWARE: 0,
       GAMING_ACCESSORY: 0,
       APPAREL: 0,
       BOOK: 0,
@@ -187,6 +200,8 @@ function CatalogContent() {
       else if (pType === "FIGURE") counts.FIGURE++;
       else if (pType === "COLLECTIBLE") counts.COLLECTIBLE++;
       else if (pType === "BUNDLE") counts.BUNDLE++;
+      else if (pType === "CONSOLE") counts.CONSOLE++;
+      else if (pType === "HARDWARE") counts.HARDWARE++;
       else if (pType === "OTHER") {
         const catKey = getProductCustomCategoryKey(p);
         if (catKey && counts[catKey] !== undefined) {
@@ -208,6 +223,7 @@ function CatalogContent() {
     if (scaleFilter !== "ALL") count++;
     if (conditionFilter !== "ALL") count++;
     if (consoleTypeFilter !== "ALL") count++;
+    if (hardwareTypeFilter !== "ALL") count++;
     if (accessoryTypeFilter !== "ALL") count++;
     if (bookLangFilter !== "ALL") count++;
     if (apparelSizeFilter !== "ALL") count++;
@@ -224,6 +240,7 @@ function CatalogContent() {
     scaleFilter,
     conditionFilter,
     consoleTypeFilter,
+    hardwareTypeFilter,
     accessoryTypeFilter,
     bookLangFilter,
     apparelSizeFilter,
@@ -241,6 +258,7 @@ function CatalogContent() {
     setScaleFilter("ALL");
     setConditionFilter("ALL");
     setConsoleTypeFilter("ALL");
+    setHardwareTypeFilter("ALL");
     setAccessoryTypeFilter("ALL");
     setBookLangFilter("ALL");
     setApparelSizeFilter("ALL");
@@ -287,7 +305,8 @@ function CatalogContent() {
           product.customCategoryLabel || "",
           customKey || "",
           // Custom category keywords
-          customKey === "CONSOLE" ? "consola hardware playstation ps5 xbox switch nintendo almacenamiento ssd control mando gamepad" : "",
+          customKey === "CONSOLE" ? "consola sistemas playstation ps5 xbox switch nintendo almacenamiento sobremesa portatil edicion especial" : "",
+          customKey === "HARDWARE" ? "hardware componentes pc almacenamiento ssd nvme m.2 memorias ram ddr5 tarjetas graficas gpu procesadores fuente alimentacion gabinete refrigeracion líquida" : "",
           customKey === "GAMING_ACCESSORY" ? "accesorio gaming periferico mouse raton teclado keyboard audifonos headset auriculares gamer dpi switches mecanico" : "",
           customKey === "APPAREL" ? "ropa estilo poleron polera hoodie streetwear moda textil algodon indumentaria" : "",
           customKey === "BOOK" ? "manga artbook libro comic tomo lectura tankobon editorial novela" : "",
@@ -302,6 +321,14 @@ function CatalogContent() {
           product.customSpecifications?.console?.ports || "",
           product.customSpecifications?.console?.gameCompatibility || "",
           product.customSpecifications?.console?.featuredHighlights || "",
+          product.customSpecifications?.hardware?.componentType || "",
+          product.customSpecifications?.hardware?.brand || "",
+          product.customSpecifications?.hardware?.model || "",
+          product.customSpecifications?.hardware?.interfaceOrSocket || "",
+          product.customSpecifications?.hardware?.capacityOrSpeed || "",
+          product.customSpecifications?.hardware?.formFactor || "",
+          product.customSpecifications?.hardware?.powerConsumptionTdp || "",
+          product.customSpecifications?.hardware?.featuredHighlights || "",
           product.customSpecifications?.gamingAccessory?.mouse?.brand || "",
           product.customSpecifications?.gamingAccessory?.mouse?.tracking || "",
           product.customSpecifications?.gamingAccessory?.mouse?.maxDpi || "",
@@ -441,6 +468,16 @@ function CatalogContent() {
         if (consoleTypeFilter === "DESKTOP" && !consoleFmt.includes("SOBREMESA") && !pName.includes("PS5") && !pName.includes("XBOX")) return false;
         if (consoleTypeFilter === "PORTABLE" && !consoleFmt.includes("PORTÁTIL") && !consoleFmt.includes("PORTATIL") && !pName.includes("SWITCH") && !pName.includes("DECK")) return false;
         if (consoleTypeFilter === "LIMITED" && !consoleFmt.includes("ESPECIAL") && !consoleFmt.includes("LIMITED") && !pName.includes("EDICIÓN")) return false;
+      }
+
+      // Hardware Filter
+      if (hardwareTypeFilter !== "ALL") {
+        const comp = (product.customSpecifications?.hardware?.componentType || "").toUpperCase();
+        const pName = (product.name || "").toUpperCase();
+        if (hardwareTypeFilter === "STORAGE" && !comp.includes("ALMACENAMIENTO") && !pName.includes("SSD") && !pName.includes("NVME") && !pName.includes("M.2")) return false;
+        if (hardwareTypeFilter === "GPU" && !comp.includes("GRÁFICA") && !pName.includes("GPU") && !pName.includes("RTX") && !pName.includes("GEFORCE") && !pName.includes("RADEON")) return false;
+        if (hardwareTypeFilter === "CPU_RAM" && !comp.includes("RAM") && !comp.includes("PROCESADOR") && !pName.includes("RAM") && !pName.includes("DDR") && !pName.includes("RYZEN") && !pName.includes("INTEL")) return false;
+        if (hardwareTypeFilter === "COOLING" && !comp.includes("REFRIGERACIÓN") && !comp.includes("FUENTE") && !pName.includes("COOLER") && !pName.includes("POWER") && !pName.includes("WATTS")) return false;
       }
 
       // Accessory Filter
@@ -620,7 +657,8 @@ function CatalogContent() {
             Nuevas Categorías Especializadas
           </label>
           {[
-            { id: "CONSOLE", label: "Consolas / Hardware", icon: Tv, count: categoryCounts.CONSOLE },
+            { id: "CONSOLE", label: "Consolas", icon: Tv, count: categoryCounts.CONSOLE },
+            { id: "HARDWARE", label: "Hardware & Componentes", icon: Cpu, count: categoryCounts.HARDWARE },
             { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones, count: categoryCounts.GAMING_ACCESSORY },
             { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt, count: categoryCounts.APPAREL },
             { id: "BOOK", label: "Manga / Artbook", icon: BookOpen, count: categoryCounts.BOOK },
@@ -849,7 +887,7 @@ function CatalogContent() {
         </div>
       )}
 
-      {/* Filtros Especializados: Consolas / Hardware */}
+      {/* Filtros Especializados: Consolas */}
       {(selectedCategory === "ALL" || selectedCategory === "CONSOLE") && (
         <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
           <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
@@ -867,6 +905,36 @@ function CatalogContent() {
                 onClick={() => setConsoleTypeFilter(item.id)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
                   consoleTypeFilter === item.id
+                    ? "bg-[#FF6B35] text-white font-bold"
+                    : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filtros Especializados: Hardware & Componentes */}
+      {(selectedCategory === "ALL" || selectedCategory === "HARDWARE") && (
+        <div className="space-y-2 pt-3 border-t border-[#E5E5E5]">
+          <label className="text-xs font-bold text-[#666666] uppercase tracking-wider block">
+            Tipo de Hardware & Componente
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "ALL", label: "Todos" },
+              { id: "STORAGE", label: "SSD NVMe / M.2" },
+              { id: "GPU", label: "Tarjetas Gráficas" },
+              { id: "CPU_RAM", label: "CPU & RAM" },
+              { id: "COOLING", label: "Cooling / Fuentes" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setHardwareTypeFilter(item.id)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  hardwareTypeFilter === item.id
                     ? "bg-[#FF6B35] text-white font-bold"
                     : "bg-[#F7F7F5] text-[#666666] hover:text-[#1A1A1A] border border-[#E5E5E5]"
                 }`}

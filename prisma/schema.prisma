@@ -13,6 +13,8 @@ enum ProductType {
   FIGURE
   COLLECTIBLE
   BUNDLE
+  CONSOLE
+  HARDWARE
 }
 
 enum PreOrderState {

@@ -73,14 +73,14 @@ INSTRUCCIONES CLAVE DE RECONOCIMIENTO Y VINCULACIÓN:
      - "summary": "Reconocí este juegazo/artículo, pero actualmente no está en nuestro inventario. ¡Puedes notificar tu deseo de compra para que lo agreguemos pronto a la tienda!"
 
 3. Determina la categoría más probable entre:
-   - "FIGURE" | "VIDEO_GAME" | "CONSOLE" | "GAMING_ACCESSORY" | "BOOK" | "APPAREL" | "COLLECTIBLE" | "MERCH" | "AUDIO"
+   - "FIGURE" | "VIDEO_GAME" | "CONSOLE" | "HARDWARE" | "GAMING_ACCESSORY" | "BOOK" | "APPAREL" | "COLLECTIBLE" | "MERCH" | "AUDIO"
 4. Palabras clave de búsqueda optimizadas (searchKeywords).
 
 Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin markdown, sin bloques \`\`\`json):
 {
   "franchise": "Nombre de la Franquicia o Marca",
   "itemOrCharacter": "Nombre del artículo o personaje",
-  "suggestedCategory": "FIGURE | VIDEO_GAME | CONSOLE | GAMING_ACCESSORY | BOOK | APPAREL | COLLECTIBLE | MERCH | AUDIO",
+  "suggestedCategory": "FIGURE | VIDEO_GAME | CONSOLE | HARDWARE | GAMING_ACCESSORY | BOOK | APPAREL | COLLECTIBLE | MERCH | AUDIO",
   "searchKeywords": "palabras clave para buscar",
   "confidenceScore": 0.98,
   "inStoreInventory": true,

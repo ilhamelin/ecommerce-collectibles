@@ -15,6 +15,7 @@ import {
   Star,
   Gamepad2,
   Tv,
+  Cpu,
   Headphones,
   Flame,
   Tag,
@@ -72,12 +73,22 @@ const CATEGORIES_NAV = [
   {
     id: "CONSOLE",
     title: "Consolas",
-    subtitle: "Ediciones Especiales",
+    subtitle: "Ediciones Especiales & Retro",
     href: "/catalog?category=CONSOLE",
     icon: Tv,
     badge: "Oficiales",
     accent: "hover:border-purple-500/50 hover:bg-purple-50/30",
     iconBg: "bg-purple-50 text-purple-600 border-purple-200/60",
+  },
+  {
+    id: "HARDWARE",
+    title: "Hardware & PC",
+    subtitle: "SSDs, Tarjetas & Mods",
+    href: "/catalog?category=HARDWARE",
+    icon: Cpu,
+    badge: "Alta Gama",
+    accent: "hover:border-cyan-500/50 hover:bg-cyan-50/30",
+    iconBg: "bg-cyan-50 text-cyan-600 border-cyan-200/60",
   },
   {
     id: "ACCESSORY",
@@ -98,7 +109,8 @@ const TABS = [
   { id: "VIDEO_GAME", label: "🎮 Videojuegos Físicos", icon: Gamepad2 },
   { id: "COLLECTIBLE", label: "🃏 TCG & Rarezas PSA", icon: Trophy },
   { id: "BUNDLE", label: "📦 Bundles con Descuento", icon: Layers },
-  { id: "CONSOLE", label: "🕹️ Consolas & Hardware", icon: Tv },
+  { id: "CONSOLE", label: "🕹️ Consolas", icon: Tv },
+  { id: "HARDWARE", label: "🖥️ Hardware & PC", icon: Cpu },
 ];
 
 export default function StorefrontHomePage() {
@@ -131,7 +143,7 @@ export default function StorefrontHomePage() {
     if (activeTab === "ALL") {
       // Pick a balanced curated mix from all categories
       const featured: any[] = [];
-      const types = ["FIGURE", "VIDEO_GAME", "COLLECTIBLE", "BUNDLE", "CONSOLE", "ACCESSORY"];
+      const types = ["FIGURE", "VIDEO_GAME", "COLLECTIBLE", "BUNDLE", "CONSOLE", "HARDWARE", "ACCESSORY"];
       types.forEach((t) => {
         const found = products.filter((p) => p.type === t).slice(0, 2);
         featured.push(...found);
@@ -159,7 +171,7 @@ export default function StorefrontHomePage() {
   }, [products]);
 
   const consolesAndAccessories = useMemo(() => {
-    return products.filter((p) => p.type === "CONSOLE" || p.type === "ACCESSORY").slice(0, 4);
+    return products.filter((p) => p.type === "CONSOLE" || p.type === "HARDWARE" || p.type === "ACCESSORY").slice(0, 4);
   }, [products]);
 
   return (

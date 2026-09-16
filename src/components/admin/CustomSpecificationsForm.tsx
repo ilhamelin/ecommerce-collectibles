@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
   Gamepad2,
   Tv,
+  Cpu,
   Headphones,
   Mouse as MouseIcon,
   Keyboard as KeyboardIcon,
@@ -18,6 +19,7 @@ import {
 import {
   CustomCategorySpecifications,
   ConsoleSpecifications,
+  HardwareSpecifications,
   GamingAccessorySpecifications,
   MouseSpecifications,
   KeyboardSpecifications,
@@ -43,7 +45,8 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
   // Infer active template from customCategoryLabel, or allow manual override
   const getInitialTemplate = (label: string): string => {
     const l = (label || "").toLowerCase();
-    if (l.includes("consola") || l.includes("hardware")) return "CONSOLE";
+    if (l.includes("consola")) return "CONSOLE";
+    if (l.includes("hardware") || l.includes("componente") || l.includes("ssd") || l.includes("ram") || l.includes("gpu") || l.includes("tarjeta gr") || l.includes("procesador")) return "HARDWARE";
     if (
       l.includes("accesorio") ||
       l.includes("gaming") ||
@@ -107,6 +110,27 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
       ...value,
       categoryType: "CONSOLE",
       console: nextConsole,
+    });
+  };
+
+  const updateHardware = (patch: Partial<HardwareSpecifications>) => {
+    const nextHardware: HardwareSpecifications = {
+      componentType: "",
+      brand: "",
+      model: "",
+      interfaceOrSocket: "",
+      capacityOrSpeed: "",
+      formFactor: "",
+      powerConsumptionTdp: "",
+      warrantyYears: "",
+      featuredHighlights: "",
+      ...(value.hardware || {}),
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: nextHardware,
     });
   };
 
@@ -250,6 +274,18 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     featuredHighlights: "",
   };
 
+  const hardwareData = value.hardware || {
+    componentType: "",
+    brand: "",
+    model: "",
+    interfaceOrSocket: "",
+    capacityOrSpeed: "",
+    formFactor: "",
+    powerConsumptionTdp: "",
+    warrantyYears: "",
+    featuredHighlights: "",
+  };
+
   const mouseData = value.gamingAccessory?.mouse || {
     brand: "",
     tracking: "",
@@ -336,6 +372,7 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
         <div className="flex flex-wrap gap-1.5 pt-1 sm:pt-0">
           {[
             { id: "CONSOLE", label: "Consolas", icon: Tv },
+            { id: "HARDWARE", label: "Hardware", icon: Cpu },
             { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones },
             { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt },
             { id: "BOOK", label: "Manga / Libros", icon: BookOpen },
@@ -366,12 +403,12 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
         </div>
       </div>
 
-      {/* TEMPLATE 1: CONSOLAS / HARDWARE */}
+      {/* TEMPLATE 1: CONSOLAS */}
       {activeTemplate === "CONSOLE" && (
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/30 border border-amber-500/30 px-3 py-2 rounded-xl">
             <Tv className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Ficha de Especificaciones para Consolas & Sistemas de Hardware</span>
+            <span>Ficha de Especificaciones Técnicas para Consolas de Videojuegos</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -460,6 +497,117 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
                 onChange={(e) => updateConsole({ featuredHighlights: e.target.value })}
                 placeholder="ej: Audio 3D Tempest envolvente, gatillos adaptativos con respuesta háptica, Ray Tracing acelerado por hardware y tiempos de carga instantáneos"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEMPLATE: HARDWARE & COMPONENTES */}
+      {activeTemplate === "HARDWARE" && (
+        <div className="space-y-4 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 bg-cyan-950/30 border border-cyan-500/30 px-3 py-2 rounded-xl">
+            <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>Ficha de Especificaciones Técnicas para Hardware & Componentes</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Tipo de Componente *</label>
+              <input
+                type="text"
+                value={hardwareData.componentType || ""}
+                onChange={(e) => updateHardware({ componentType: e.target.value })}
+                placeholder="ej: Almacenamiento SSD NVMe M.2 / Memoria RAM / Tarjeta Gráfica GPU"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Marca del Fabricante *</label>
+              <input
+                type="text"
+                value={hardwareData.brand || ""}
+                onChange={(e) => updateHardware({ brand: e.target.value })}
+                placeholder="ej: Samsung / Kingston / Corsair / ASUS ROG / MSI / AMD / NVIDIA"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Modelo Exacto *</label>
+              <input
+                type="text"
+                value={hardwareData.model || ""}
+                onChange={(e) => updateHardware({ model: e.target.value })}
+                placeholder="ej: 990 PRO con Disipador / Fury Beast RGB / RTX 4070 Super"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Interfaz / Conexión / Socket *</label>
+              <input
+                type="text"
+                value={hardwareData.interfaceOrSocket || ""}
+                onChange={(e) => updateHardware({ interfaceOrSocket: e.target.value })}
+                placeholder="ej: PCIe 4.0 x4, NVMe 2.0 / DDR5 DIMM / PCIe 4.0 x16 / Socket AM5"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Capacidad / Velocidad *</label>
+              <input
+                type="text"
+                value={hardwareData.capacityOrSpeed || ""}
+                onChange={(e) => updateHardware({ capacityOrSpeed: e.target.value })}
+                placeholder="ej: 2 TB (Lectura: 7.450 MB/s, Escritura: 6.900 MB/s) / 32 GB (2x16GB) 6000MHz CL30"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Factor de Forma / Dimensiones</label>
+              <input
+                type="text"
+                value={hardwareData.formFactor || ""}
+                onChange={(e) => updateHardware({ formFactor: e.target.value })}
+                placeholder="ej: M.2 2280 con heatsink (80 x 24.3 x 8.2 mm) / Dual Slot 280mm"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-medium text-[#9bb5c2]">Consumo de Energía / TDP / Compatibilidad</label>
+              <input
+                type="text"
+                value={hardwareData.powerConsumptionTdp || ""}
+                onChange={(e) => updateHardware({ powerConsumptionTdp: e.target.value })}
+                placeholder="ej: 8.5W máx / Certificado y 100% compatible para expansión de almacenamiento PS5 y PC"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#9bb5c2]">Garantía Oficial del Fabricante</label>
+              <input
+                type="text"
+                value={hardwareData.warrantyYears || ""}
+                onChange={(e) => updateHardware({ warrantyYears: e.target.value })}
+                placeholder="ej: 5 años de garantía limitada oficial o 1200 TBW"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-medium text-[#9bb5c2]">Características Destacadas *</label>
+              <textarea
+                rows={3}
+                value={hardwareData.featuredHighlights || ""}
+                onChange={(e) => updateHardware({ featuredHighlights: e.target.value })}
+                placeholder="ej: Control térmico inteligente con níquel, tecnología V-NAND TLC, optimización para cargas pesadas de renderizado y tiempos de carga instantáneos en juegos AAA."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42] resize-none"
               />
             </div>
           </div>

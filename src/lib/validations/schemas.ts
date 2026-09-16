@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ProductTypeEnum = z.enum(["VIDEO_GAME", "FIGURE", "COLLECTIBLE", "BUNDLE", "OTHER"]).or(z.string());
+export const ProductTypeEnum = z.enum(["VIDEO_GAME", "FIGURE", "COLLECTIBLE", "BUNDLE", "CONSOLE", "HARDWARE", "OTHER"]).or(z.string());
 export const PreOrderStateEnum = z.enum([
   "ANNOUNCED",
   "PREORDER_OPEN",

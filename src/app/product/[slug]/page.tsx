@@ -50,6 +50,7 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<any>(staticProduct || null);
   const [loading, setLoading] = useState<boolean>(!staticProduct);
+  const [allCatalogProducts, setAllCatalogProducts] = useState<any[]>([]);
 
   const { addItem } = useCartStore();
   const { toggleWishlist, isProductWishlisted } = useAuthStore();
@@ -64,7 +65,7 @@ export default function ProductDetailPage() {
   }, [slug, product?.name]);
 
   useEffect(() => {
-    // Always fetch live product data from database so edits are reflected immediately
+    // 1. Fetch live product data from database so edits and custom fields are reflected immediately
     fetch(`/api/products?sku=${encodeURIComponent(slug)}`)
       .then((res) => res.json())
       .then((data) => {
@@ -80,6 +81,30 @@ export default function ProductDetailPage() {
       })
       .catch((err) => console.error("Error fetching product by slug:", err))
       .finally(() => setLoading(false));
+
+    // 2. Fetch full catalog from database so the Related Products slider displays real database products
+    fetch(`/api/products?fresh=true&t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data?.products)) {
+          setAllCatalogProducts(data.data.products);
+          // If specific SKU lookup hasn't set product yet, search inside full catalog
+          setProduct((prev: any) => {
+            if (prev) return prev;
+            const found = data.data.products.find(
+              (p: any) =>
+                p.sku?.toLowerCase() === slug ||
+                p.id?.toLowerCase() === slug ||
+                p.sku?.toLowerCase().replace(/_/g, "-") === slug
+            );
+            return found || null;
+          });
+        }
+      })
+      .catch((err) => console.error("Error fetching live catalog for related slider:", err));
   }, [slug]);
 
   if (loading) {
@@ -1311,7 +1336,7 @@ export default function ProductDetailPage() {
         )}
 
         {/* Suggested Related Products Slider */}
-        <RelatedProductsSlider currentProduct={product} allProducts={CATALOG_ITEMS as any} />
+        <RelatedProductsSlider currentProduct={product} allProducts={allCatalogProducts} />
 
         {/* Collector Guarantee Footer Banner */}
         <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left shadow-sm">

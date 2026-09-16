@@ -53,6 +53,37 @@ function sanitizeProductData(prod: ProductDomainEntity): ProductDomainEntity {
     }
   }
 
+  // 4. Normalize Consoles and Hardware separation
+  const catLabel = (p.customCategoryLabel || "").toUpperCase();
+  const skuUpper = (p.sku || "").toUpperCase();
+  const isConsole = catLabel.includes("CONSOLA") || 
+                    skuUpper.startsWith("CON-") || 
+                    nameUpper.includes("NINTENDO SWITCH") || 
+                    nameUpper.includes("PLAYSTATION") || 
+                    nameUpper.includes("PS5") || 
+                    nameUpper.includes("XBOX") || 
+                    nameUpper.includes("CONSOLA");
+
+  if (isConsole) {
+    if (catLabel.includes("HARDWARE") || catLabel === "CONSOLA / HARDWARE" || p.type === "OTHER" || !p.customCategoryLabel) {
+      p.customCategoryLabel = "Consolas";
+    }
+    if (p.customSpecifications) {
+      p.customSpecifications = {
+        ...p.customSpecifications,
+        categoryType: "CONSOLE",
+      };
+    }
+  } else if (catLabel.includes("HARDWARE") || catLabel.includes("COMPONENTES") || (p.customSpecifications?.categoryType === "HARDWARE")) {
+    p.customCategoryLabel = "Hardware & Componentes";
+    if (p.customSpecifications) {
+      p.customSpecifications = {
+        ...p.customSpecifications,
+        categoryType: "HARDWARE",
+      };
+    }
+  }
+
   return p;
 }
 

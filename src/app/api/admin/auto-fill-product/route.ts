@@ -574,46 +574,95 @@ function generateWithSmartEngine(
         },
       };
     } else if (matchedCategory === "HARDWARE") {
+      let hwType: any = "TARJETA_DE_VIDEO";
+      if (lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2")) hwType = "SSD";
+      else if (lower.includes("disco duro") || lower.includes("hdd")) hwType = "DISCO_DURO";
+      else if (lower.includes("ram") || lower.includes("ddr")) hwType = "RAM";
+      else if (lower.includes("placa") || lower.includes("motherboard") || lower.includes("chipset")) hwType = "PLACA_MADRE";
+      else if (lower.includes("procesador") || lower.includes("ryzen") || lower.includes("intel") || lower.includes("cpu")) hwType = "PROCESADORES";
+      else if (lower.includes("fuente") || lower.includes("power supply") || lower.includes("psu") || lower.includes("80 plus")) hwType = "FUENTE_DE_PODER";
+      else if (lower.includes("cooler") || lower.includes("refrigeraci") || lower.includes("disipador")) hwType = "COOLER_CPU";
+      else if (lower.includes("gabinete") || lower.includes("case")) hwType = "GABINETE";
+      else if (lower.includes("ventilador") || lower.includes("fan")) hwType = "VENTILADORES";
+
       customSpecifications = {
         categoryType: "HARDWARE",
         hardware: {
-          componentType: lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2")
-            ? "Almacenamiento (SSD NVMe M.2)"
-            : lower.includes("ram") || lower.includes("ddr")
-            ? "Memoria RAM"
-            : lower.includes("gpu") || lower.includes("rtx") || lower.includes("geforce") || lower.includes("radeon")
-            ? "Tarjeta Gráfica (GPU)"
-            : lower.includes("procesador") || lower.includes("ryzen") || lower.includes("intel")
-            ? "Procesador (CPU)"
+          hardwareType: hwType,
+          componentType: hwType === "SSD" ? "Almacenamiento (SSD NVMe M.2)"
+            : hwType === "RAM" ? "Memoria RAM"
+            : hwType === "TARJETA_DE_VIDEO" ? "Tarjeta Gráfica (GPU)"
+            : hwType === "PROCESADORES" ? "Procesador (CPU)"
+            : hwType === "PLACA_MADRE" ? "Placa Madre"
+            : hwType === "FUENTE_DE_PODER" ? "Fuente de Poder"
+            : hwType === "COOLER_CPU" ? "Cooler CPU"
+            : hwType === "GABINETE" ? "Gabinete"
+            : hwType === "VENTILADORES" ? "Ventiladores"
             : "Componente de Hardware",
-          brand: lower.includes("samsung")
-            ? "Samsung"
-            : lower.includes("kingston")
-            ? "Kingston"
-            : lower.includes("corsair")
-            ? "Corsair"
-            : lower.includes("asus")
-            ? "ASUS ROG"
-            : lower.includes("msi")
-            ? "MSI"
+          brand: lower.includes("samsung") ? "Samsung"
+            : lower.includes("kingston") ? "Kingston"
+            : lower.includes("corsair") ? "Corsair"
+            : lower.includes("asus") ? "ASUS ROG"
+            : lower.includes("msi") ? "MSI"
+            : lower.includes("nvidia") || lower.includes("rtx") ? "NVIDIA"
+            : lower.includes("amd") || lower.includes("ryzen") || lower.includes("radeon") ? "AMD"
+            : lower.includes("intel") ? "Intel"
             : "Fabricante Oficial",
           model: name,
           interfaceOrSocket: lower.includes("nvme") || lower.includes("ssd")
             ? "PCIe 4.0 x4, NVMe 2.0 (M.2 2280)"
-            : lower.includes("ddr5")
-            ? "DDR5 DIMM 288-pin"
+            : lower.includes("ddr5") ? "DDR5 DIMM 288-pin"
             : "PCIe 4.0 / 5.0",
-          capacityOrSpeed: lower.includes("2tb")
-            ? "2 TB (Lectura hasta 7.450 MB/s)"
-            : lower.includes("1tb")
-            ? "1 TB (Lectura hasta 7.000 MB/s)"
-            : lower.includes("32gb")
-            ? "32 GB (2x16GB) 6000MHz"
-            : "Alta Velocidad",
+          capacityOrSpeed: lower.includes("2tb") ? "2 TB"
+            : lower.includes("1tb") ? "1 TB"
+            : lower.includes("32gb") ? "32 GB (2x16GB)"
+            : lower.includes("16gb") ? "16 GB (2x8GB)"
+            : "Alto Rendimiento",
           formFactor: lower.includes("m.2") ? "M.2 2280" : "Estándar ATX",
           powerConsumptionTdp: "Eficiencia energética certificada",
-          warrantyYears: "5 años de garantía oficial directa del fabricante",
-          featuredHighlights: "Disipador térmico de aluminio grafeno, alta durabilidad TBW y optimizado para gaming y consolas PS5 / PC",
+          warrantyYears: "3 a 5 años de garantía oficial directa del fabricante",
+          featuredHighlights: "Componente de alta fidelidad, excelente refrigeración y máximo rendimiento para gaming y creación de contenido",
+          gpu: hwType === "TARJETA_DE_VIDEO" ? {
+            manufacturer: lower.includes("msi") ? "MSI" : lower.includes("asus") ? "ASUS" : "NVIDIA / Partner",
+            gpu: name,
+            memory: lower.includes("16gb") ? "16 GB GDDR6X" : lower.includes("12gb") ? "12 GB GDDR6X" : "8 GB GDDR6",
+            bus: "192-bit / 256-bit",
+            coreFrequencies: "Base: 2200 MHz / Boost: 2550 MHz",
+            memoryFrequency: "21.000 MHz (21 Gbps)",
+            cooling: "Ventilación Dual / Triple Fan",
+            slots: "2.5 slots",
+            videoPorts: "3x DisplayPort 1.4a, 1x HDMI 2.1a",
+          } : undefined,
+          cpu: hwType === "PROCESADORES" ? {
+            frequency: "3.8 GHz",
+            turboFrequency: "5.3 GHz Turbo",
+            coresThreads: "8 Núcleos / 16 Hilos",
+            cache: "32 MB L3 Cache",
+            socket: lower.includes("am5") || lower.includes("ryzen") ? "AM5" : "LGA1700 / LGA1851",
+          } : undefined,
+          motherboard: hwType === "PLACA_MADRE" ? {
+            manufacturer: lower.includes("asus") ? "ASUS" : lower.includes("msi") ? "MSI" : "Fabricante Oficial",
+            socket: lower.includes("am5") ? "AM5" : "LGA1700",
+            chipset: lower.includes("b650") ? "AMD B650" : "Intel Z790",
+            memorySlots: "4x DDR5 DIMM",
+            memoryChannels: "Dual Channel",
+            format: "ATX",
+          } : undefined,
+          ram: hwType === "RAM" ? {
+            capacity: lower.includes("32gb") ? "32 GB (2x16GB)" : "16 GB (2x8GB)",
+            type: lower.includes("ddr4") ? "DDR4" : "DDR5",
+            speed: lower.includes("6000") ? "6000 MHz" : "5600 MHz",
+            format: "DIMM",
+          } : undefined,
+          ssd: hwType === "SSD" ? {
+            line: lower.includes("990") ? "990 PRO" : "Gamer NVMe",
+            capacity: lower.includes("2tb") ? "2 TB" : "1 TB",
+            format: "M.2 2280",
+            bus: "PCIe 4.0 x4 NVMe",
+            hasDram: "Sí",
+            sequentialRead: "7.450 MB/s",
+            sequentialWrite: "6.900 MB/s",
+          } : undefined,
         },
       };
     } else if (matchedCategory === "BOOK") {

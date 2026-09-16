@@ -15,11 +15,27 @@ import {
   Sliders,
   Sparkles,
   ChevronRight,
+  HardDrive,
+  CircuitBoard,
+  MemoryStick,
+  Zap,
+  Fan,
+  Box,
+  Wind,
 } from "lucide-react";
 import {
   CustomCategorySpecifications,
   ConsoleSpecifications,
   HardwareSpecifications,
+  HardwareSubtype,
+  GpuSpecifications,
+  CpuSpecifications,
+  MotherboardSpecifications,
+  RamSpecifications,
+  HddSpecifications,
+  SsdSpecifications,
+  PowerSupplySpecifications,
+  CoolerCpuSpecifications,
   GamingAccessorySpecifications,
   MouseSpecifications,
   KeyboardSpecifications,
@@ -85,12 +101,23 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     () => (value?.gamingAccessory?.accessoryType as any) || "MOUSE"
   );
 
-  // Keep local accessoryType state in sync if value changes externally (e.g. via AI auto-fill)
+  // Hardware Subtype: TARJETA_DE_VIDEO | PROCESADORES | PLACA_MADRE | RAM | DISCO_DURO | SSD | GABINETE | FUENTE_DE_PODER | COOLER_CPU | VENTILADORES
+  const [hardwareType, setHardwareType] = useState<HardwareSubtype>(
+    () => (value?.hardware?.hardwareType as any) || "TARJETA_DE_VIDEO"
+  );
+
+  // Keep local accessoryType & hardwareType state in sync if value changes externally (e.g. via AI auto-fill)
   useEffect(() => {
     if (value?.gamingAccessory?.accessoryType) {
       setAccessoryType(value.gamingAccessory.accessoryType as any);
     }
   }, [value?.gamingAccessory?.accessoryType]);
+
+  useEffect(() => {
+    if (value?.hardware?.hardwareType) {
+      setHardwareType(value.hardware.hardwareType as any);
+    }
+  }, [value?.hardware?.hardwareType]);
 
   // Helper to update specific sub-specifications
   const updateConsole = (patch: Partial<ConsoleSpecifications>) => {
@@ -115,6 +142,7 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
 
   const updateHardware = (patch: Partial<HardwareSpecifications>) => {
     const nextHardware: HardwareSpecifications = {
+      hardwareType: hardwareType,
       componentType: "",
       brand: "",
       model: "",
@@ -131,6 +159,232 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
       ...value,
       categoryType: "HARDWARE",
       hardware: nextHardware,
+    });
+  };
+
+  const updateGpu = (patch: Partial<GpuSpecifications>) => {
+    const currentGpu = value.hardware?.gpu || {
+      manufacturer: "",
+      gpu: "",
+      memory: "",
+      bus: "",
+      coreClocks: "",
+      memoryClock: "",
+    };
+    const nextGpu: GpuSpecifications = {
+      ...currentGpu,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "TARJETA_DE_VIDEO",
+        gpu: nextGpu,
+      },
+    });
+  };
+
+  const updateCpu = (patch: Partial<CpuSpecifications>) => {
+    const currentCpu = value.hardware?.cpu || {
+      frequency: "",
+      turboFrequency: "",
+      coresThreads: "",
+      cache: "",
+      socket: "",
+    };
+    const nextCpu: CpuSpecifications = {
+      ...currentCpu,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "PROCESADORES",
+        cpu: nextCpu,
+      },
+    });
+  };
+
+  const updateMotherboard = (patch: Partial<MotherboardSpecifications>) => {
+    const currentMb = value.hardware?.motherboard || {
+      manufacturer: "",
+      socket: "",
+      chipset: "",
+      memorySlots: "",
+      memoryChannels: "",
+      format: "",
+    };
+    const nextMb: MotherboardSpecifications = {
+      ...currentMb,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "PLACA_MADRE",
+        motherboard: nextMb,
+      },
+    });
+  };
+
+  const updateRam = (patch: Partial<RamSpecifications>) => {
+    const currentRam = value.hardware?.ram || {
+      capacity: "",
+      type: "",
+      speed: "",
+      format: "",
+    };
+    const nextRam: RamSpecifications = {
+      ...currentRam,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "RAM",
+        ram: nextRam,
+      },
+    });
+  };
+
+  const updateHdd = (patch: Partial<HddSpecifications>) => {
+    const currentHdd = value.hardware?.hdd || {
+      type: "",
+      line: "",
+      capacity: "",
+      rpm: "",
+      size: "",
+      bus: "",
+      buffer: "",
+    };
+    const nextHdd: HddSpecifications = {
+      ...currentHdd,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "DISCO_DURO",
+        hdd: nextHdd,
+      },
+    });
+  };
+
+  const updateSsd = (patch: Partial<SsdSpecifications>) => {
+    const currentSsd = value.hardware?.ssd || {
+      line: "",
+      capacity: "",
+      format: "",
+      bus: "",
+      hasDram: "",
+      nandType: "",
+      controller: "",
+      sequentialRead: "",
+      sequentialWrite: "",
+    };
+    const nextSsd: SsdSpecifications = {
+      ...currentSsd,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "SSD",
+        ssd: nextSsd,
+      },
+    });
+  };
+
+  const updatePowerSupply = (patch: Partial<PowerSupplySpecifications>) => {
+    const currentPsu = value.hardware?.powerSupply || {
+      power: "",
+      certification: "",
+      size: "",
+      activePfc: "",
+      modular: "",
+    };
+    const nextPsu: PowerSupplySpecifications = {
+      ...currentPsu,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "FUENTE_DE_PODER",
+        powerSupply: nextPsu,
+      },
+    });
+  };
+
+  const updateCoolerCpu = (patch: Partial<CoolerCpuSpecifications>) => {
+    const currentCooler = value.hardware?.coolerCpu || {
+      brand: "",
+      type: "",
+      weight: "",
+      rpm: "",
+      noise: "",
+      airflow: "",
+      height: "",
+      fanSize: "",
+      hasHeatpipes: "",
+      compatibleSockets: "",
+    };
+    const nextCooler: CoolerCpuSpecifications = {
+      ...currentCooler,
+      ...patch,
+    };
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "COOLER_CPU",
+        coolerCpu: nextCooler,
+      },
+    });
+  };
+
+  const updateCabinet = (patch: any) => {
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "GABINETE",
+        cabinet: {
+          ...(value.hardware?.cabinet || {}),
+          ...patch,
+        },
+      },
+    });
+  };
+
+  const updateFan = (patch: any) => {
+    onChange({
+      ...value,
+      categoryType: "HARDWARE",
+      hardware: {
+        ...value.hardware,
+        hardwareType: "VENTILADORES",
+        fan: {
+          ...(value.hardware?.fan || {}),
+          ...patch,
+        },
+      },
     });
   };
 
@@ -284,6 +538,135 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
     powerConsumptionTdp: "",
     warrantyYears: "",
     featuredHighlights: "",
+  };
+
+  const gpuData: GpuSpecifications = value.hardware?.gpu || {
+    manufacturer: "",
+    gpu: "",
+    memory: "",
+    bus: "",
+    coreClocks: "",
+    memoryClock: "",
+    coreName: "",
+    profile: "",
+    cooling: "",
+    slots: "",
+    length: "",
+    lighting: "",
+    hasBackplate: "",
+    powerConnectors: "",
+    videoPorts: "",
+  };
+
+  const cpuData: CpuSpecifications = value.hardware?.cpu || {
+    frequency: "",
+    turboFrequency: "",
+    coresThreads: "",
+    cache: "",
+    socket: "",
+    coreName: "",
+    manufacturingProcess: "",
+    tdp: "",
+    cooler: "",
+    integratedGraphics: "",
+  };
+
+  const motherboardData: MotherboardSpecifications = value.hardware?.motherboard || {
+    manufacturer: "",
+    socket: "",
+    chipset: "",
+    memorySlots: "",
+    memoryChannels: "",
+    format: "",
+    rgbSupport: "",
+    videoPorts: "",
+    powerPorts: "",
+    sliSupport: "",
+    crossfireSupport: "",
+    raidSupport: "",
+    connectors: "",
+    ports: "",
+    expansions: "",
+  };
+
+  const ramData: RamSpecifications = value.hardware?.ram || {
+    capacity: "",
+    type: "",
+    speed: "",
+    format: "",
+    voltage: "",
+    latencyClCas: "",
+    latencyTrcd: "",
+    latencyTrp: "",
+    latencyTras: "",
+    eccSupport: "",
+    fullBufferedSupport: "",
+  };
+
+  const hddData: HddSpecifications = value.hardware?.hdd || {
+    type: "",
+    line: "",
+    capacity: "",
+    rpm: "",
+    size: "",
+    bus: "",
+    buffer: "",
+  };
+
+  const ssdData: SsdSpecifications = value.hardware?.ssd || {
+    line: "",
+    capacity: "",
+    format: "",
+    bus: "",
+    hasDram: "",
+    nandType: "",
+    controller: "",
+    sequentialRead: "",
+    sequentialWrite: "",
+  };
+
+  const psuData: PowerSupplySpecifications = value.hardware?.powerSupply || {
+    power: "",
+    certification: "",
+    size: "",
+    activePfc: "",
+    modular: "",
+    rail12vCurrent: "",
+    rail5vCurrent: "",
+    rail33vCurrent: "",
+    powerConnectors: "",
+  };
+
+  const coolerData: CoolerCpuSpecifications = value.hardware?.coolerCpu || {
+    brand: "",
+    type: "",
+    weight: "",
+    rpm: "",
+    noise: "",
+    airflow: "",
+    height: "",
+    fanSize: "",
+    hasHeatpipes: "",
+    compatibleSockets: "",
+  };
+
+  const cabinetData: any = value.hardware?.cabinet || {
+    format: "",
+    motherboardSupport: "",
+    sidePanel: "",
+    gpuMaxDimensions: "",
+    cpuCoolerMaxHeight: "",
+  };
+
+  const fanData: any = value.hardware?.fan || {
+    brand: "",
+    size: "",
+    rpm: "",
+    noise: "",
+    airflow: "",
+    bearingType: "",
+    lighting: "",
+    connector: "",
   };
 
   const mouseData = value.gamingAccessory?.mouse || {
@@ -504,113 +887,1258 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
       )}
 
       {/* TEMPLATE: HARDWARE & COMPONENTES */}
+      {/* TEMPLATE: HARDWARE & COMPONENTES */}
       {activeTemplate === "HARDWARE" && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 bg-cyan-950/30 border border-cyan-500/30 px-3 py-2 rounded-xl">
-            <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span>Ficha de Especificaciones Técnicas para Hardware & Componentes</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Tipo de Componente *</label>
-              <input
-                type="text"
-                value={hardwareData.componentType || ""}
-                onChange={(e) => updateHardware({ componentType: e.target.value })}
-                placeholder="ej: Almacenamiento SSD NVMe M.2 / Memoria RAM / Tarjeta Gráfica GPU"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Marca del Fabricante *</label>
-              <input
-                type="text"
-                value={hardwareData.brand || ""}
-                onChange={(e) => updateHardware({ brand: e.target.value })}
-                placeholder="ej: Samsung / Kingston / Corsair / ASUS ROG / MSI / AMD / NVIDIA"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Modelo Exacto *</label>
-              <input
-                type="text"
-                value={hardwareData.model || ""}
-                onChange={(e) => updateHardware({ model: e.target.value })}
-                placeholder="ej: 990 PRO con Disipador / Fury Beast RGB / RTX 4070 Super"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Interfaz / Conexión / Socket *</label>
-              <input
-                type="text"
-                value={hardwareData.interfaceOrSocket || ""}
-                onChange={(e) => updateHardware({ interfaceOrSocket: e.target.value })}
-                placeholder="ej: PCIe 4.0 x4, NVMe 2.0 / DDR5 DIMM / PCIe 4.0 x16 / Socket AM5"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Capacidad / Velocidad *</label>
-              <input
-                type="text"
-                value={hardwareData.capacityOrSpeed || ""}
-                onChange={(e) => updateHardware({ capacityOrSpeed: e.target.value })}
-                placeholder="ej: 2 TB (Lectura: 7.450 MB/s, Escritura: 6.900 MB/s) / 32 GB (2x16GB) 6000MHz CL30"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Factor de Forma / Dimensiones</label>
-              <input
-                type="text"
-                value={hardwareData.formFactor || ""}
-                onChange={(e) => updateHardware({ formFactor: e.target.value })}
-                placeholder="ej: M.2 2280 con heatsink (80 x 24.3 x 8.2 mm) / Dual Slot 280mm"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-medium text-[#9bb5c2]">Consumo de Energía / TDP / Compatibilidad</label>
-              <input
-                type="text"
-                value={hardwareData.powerConsumptionTdp || ""}
-                onChange={(e) => updateHardware({ powerConsumptionTdp: e.target.value })}
-                placeholder="ej: 8.5W máx / Certificado y 100% compatible para expansión de almacenamiento PS5 y PC"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#9bb5c2]">Garantía Oficial del Fabricante</label>
-              <input
-                type="text"
-                value={hardwareData.warrantyYears || ""}
-                onChange={(e) => updateHardware({ warrantyYears: e.target.value })}
-                placeholder="ej: 5 años de garantía limitada oficial o 1200 TBW"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-medium text-[#9bb5c2]">Características Destacadas *</label>
-              <textarea
-                rows={3}
-                value={hardwareData.featuredHighlights || ""}
-                onChange={(e) => updateHardware({ featuredHighlights: e.target.value })}
-                placeholder="ej: Control térmico inteligente con níquel, tecnología V-NAND TLC, optimización para cargas pesadas de renderizado y tiempos de carga instantáneos en juegos AAA."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42] resize-none"
-              />
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Sub-selector: Tipo de Hardware */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-[#FF6E42]" />
+              Tipo de Hardware *
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {[
+                { id: "TARJETA_DE_VIDEO", label: "Tarjeta de Video", icon: Cpu },
+                { id: "PROCESADORES", label: "Procesadores", icon: Zap },
+                { id: "PLACA_MADRE", label: "Placa Madre", icon: CircuitBoard },
+                { id: "RAM", label: "Ram", icon: MemoryStick },
+                { id: "DISCO_DURO", label: "Disco Duro", icon: HardDrive },
+                { id: "SSD", label: "SSD", icon: HardDrive },
+                { id: "GABINETE", label: "Gabinete", icon: Box },
+                { id: "FUENTE_DE_PODER", label: "Fuente de Poder", icon: Zap },
+                { id: "COOLER_CPU", label: "Cooler CPU", icon: Wind },
+                { id: "VENTILADORES", label: "Ventiladores", icon: Fan },
+              ].map((hw) => {
+                const Icon = hw.icon;
+                const isSelected = hardwareType === hw.id;
+                return (
+                  <button
+                    key={hw.id}
+                    type="button"
+                    onClick={() => {
+                      setHardwareType(hw.id as any);
+                      onChange({
+                        ...value,
+                        categoryType: "HARDWARE",
+                        hardware: {
+                          ...value.hardware,
+                          hardwareType: hw.id,
+                        },
+                      });
+                    }}
+                    className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition cursor-pointer text-center ${
+                      isSelected
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md ring-1 ring-[#FF6E42]"
+                        : "bg-[#004E72]/15 border-[#004E72]/40 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isSelected ? "text-[#FF6E42]" : "text-[#9bb5c2]"}`} />
+                    <span className="text-[11px] font-bold leading-tight">{hw.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* 1. TARJETA DE VIDEO */}
+          {hardwareType === "TARJETA_DE_VIDEO" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 bg-cyan-950/30 border border-cyan-500/30 px-3 py-2 rounded-xl">
+                <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Especificaciones de Tarjeta de Video (Básicas y Avanzadas)</span>
+              </div>
+
+              {/* Básicas */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Fabricante *</label>
+                    <input
+                      type="text"
+                      value={gpuData.manufacturer || ""}
+                      onChange={(e) => updateGpu({ manufacturer: e.target.value })}
+                      placeholder="ej: ASUS / MSI / Gigabyte / EVGA / Zotac"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">GPU *</label>
+                    <input
+                      type="text"
+                      value={gpuData.gpu || ""}
+                      onChange={(e) => updateGpu({ gpu: e.target.value })}
+                      placeholder="ej: NVIDIA GeForce RTX 5070 / AMD Radeon RX 7800 XT"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Memoria *</label>
+                    <input
+                      type="text"
+                      value={gpuData.memory || ""}
+                      onChange={(e) => updateGpu({ memory: e.target.value })}
+                      placeholder="ej: 12 GB GDDR6 / 16 GB GDDR6X"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Bus *</label>
+                    <input
+                      type="text"
+                      value={gpuData.bus || ""}
+                      onChange={(e) => updateGpu({ bus: e.target.value })}
+                      placeholder="ej: 192-bit / 256-bit"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Frecuencias core (base / boost / OC) *</label>
+                    <input
+                      type="text"
+                      value={gpuData.coreClocks || ""}
+                      onChange={(e) => updateGpu({ coreClocks: e.target.value })}
+                      placeholder="ej: Base: 2160 MHz / Boost: 2550 MHz / OC: 2610 MHz"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Frecuencia memorias *</label>
+                    <input
+                      type="text"
+                      value={gpuData.memoryClock || ""}
+                      onChange={(e) => updateGpu({ memoryClock: e.target.value })}
+                      placeholder="ej: 21 Gbps (2625 MHz)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Avanzadas */}
+              <div className="space-y-3 pt-2 border-t border-[#004E72]/30">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Avanzadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Núcleo</label>
+                    <input
+                      type="text"
+                      value={gpuData.coreName || ""}
+                      onChange={(e) => updateGpu({ coreName: e.target.value })}
+                      placeholder="ej: GB205 / AD104"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Perfil</label>
+                    <input
+                      type="text"
+                      value={gpuData.profile || ""}
+                      onChange={(e) => updateGpu({ profile: e.target.value })}
+                      placeholder="ej: Estándar ATX / Low Profile"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Refrigeración</label>
+                    <input
+                      type="text"
+                      value={gpuData.cooling || ""}
+                      onChange={(e) => updateGpu({ cooling: e.target.value })}
+                      placeholder="ej: Dual Fan / Triple Fan / Torx Fan 5.0"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Slots</label>
+                    <input
+                      type="text"
+                      value={gpuData.slots || ""}
+                      onChange={(e) => updateGpu({ slots: e.target.value })}
+                      placeholder="ej: 2 Slots / 2.5 Slots / 3 Slots"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Largo</label>
+                    <input
+                      type="text"
+                      value={gpuData.length || ""}
+                      onChange={(e) => updateGpu({ length: e.target.value })}
+                      placeholder="ej: 242 mm / 300 mm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Iluminación</label>
+                    <input
+                      type="text"
+                      value={gpuData.lighting || ""}
+                      onChange={(e) => updateGpu({ lighting: e.target.value })}
+                      placeholder="ej: ARGB Mystic Light / Sin LED"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">¿Backplate?</label>
+                    <input
+                      type="text"
+                      value={gpuData.hasBackplate || ""}
+                      onChange={(e) => updateGpu({ hasBackplate: e.target.value })}
+                      placeholder="ej: Sí, metálico reforzado con ventilación de flujo"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Conectores de poder</label>
+                    <input
+                      type="text"
+                      value={gpuData.powerConnectors || ""}
+                      onChange={(e) => updateGpu({ powerConnectors: e.target.value })}
+                      placeholder="ej: 1x 16-pin 12V-2x6 / 2x 8-pin PCIe"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Puertos de video</label>
+                    <input
+                      type="text"
+                      value={gpuData.videoPorts || ""}
+                      onChange={(e) => updateGpu({ videoPorts: e.target.value })}
+                      placeholder="ej: 3x DisplayPort 1.4a, 1x HDMI 2.1a"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. PROCESADORES */}
+          {hardwareType === "PROCESADORES" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/30 border border-amber-500/30 px-3 py-2 rounded-xl">
+                <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Especificaciones de Procesadores (Básicas y Avanzadas)</span>
+              </div>
+
+              {/* Básicas */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Frecuencia *</label>
+                    <input
+                      type="text"
+                      value={cpuData.frequency || ""}
+                      onChange={(e) => updateCpu({ frequency: e.target.value })}
+                      placeholder="ej: 3.8 GHz / 4.2 GHz"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Frecuencia turbo máxima *</label>
+                    <input
+                      type="text"
+                      value={cpuData.turboFrequency || ""}
+                      onChange={(e) => updateCpu({ turboFrequency: e.target.value })}
+                      placeholder="ej: 5.4 GHz / 5.7 GHz"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Núcleos / hilos *</label>
+                    <input
+                      type="text"
+                      value={cpuData.coresThreads || ""}
+                      onChange={(e) => updateCpu({ coresThreads: e.target.value })}
+                      placeholder="ej: 8 núcleos / 16 hilos"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Caché *</label>
+                    <input
+                      type="text"
+                      value={cpuData.cache || ""}
+                      onChange={(e) => updateCpu({ cache: e.target.value })}
+                      placeholder="ej: 32 MB L3 + 8 MB L2 (Total 40 MB)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs text-[#9bb5c2]">Socket *</label>
+                    <input
+                      type="text"
+                      value={cpuData.socket || ""}
+                      onChange={(e) => updateCpu({ socket: e.target.value })}
+                      placeholder="ej: Socket AM5 / LGA1700 / LGA1851"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Avanzadas */}
+              <div className="space-y-3 pt-2 border-t border-[#004E72]/30">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Avanzadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Núcleo</label>
+                    <input
+                      type="text"
+                      value={cpuData.coreName || ""}
+                      onChange={(e) => updateCpu({ coreName: e.target.value })}
+                      placeholder="ej: Zen 4 / Raptor Lake Refresh"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Proceso de manufactura</label>
+                    <input
+                      type="text"
+                      value={cpuData.manufacturingProcess || ""}
+                      onChange={(e) => updateCpu({ manufacturingProcess: e.target.value })}
+                      placeholder="ej: 5 nm TSMC FinFET / Intel 7"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">TDP</label>
+                    <input
+                      type="text"
+                      value={cpuData.tdp || ""}
+                      onChange={(e) => updateCpu({ tdp: e.target.value })}
+                      placeholder="ej: 65 W / 105 W / 125 W"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Cooler</label>
+                    <input
+                      type="text"
+                      value={cpuData.cooler || ""}
+                      onChange={(e) => updateCpu({ cooler: e.target.value })}
+                      placeholder="ej: Incluido Wraith Stealth / No incluido"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs text-[#9bb5c2]">Gráficos integrados</label>
+                    <input
+                      type="text"
+                      value={cpuData.integratedGraphics || ""}
+                      onChange={(e) => updateCpu({ integratedGraphics: e.target.value })}
+                      placeholder="ej: AMD Radeon Graphics (2 CUs) / Intel UHD Graphics 770 / No posee"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3. PLACA MADRE */}
+          {hardwareType === "PLACA_MADRE" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 bg-indigo-950/30 border border-indigo-500/30 px-3 py-2 rounded-xl">
+                <CircuitBoard className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>Especificaciones de Placa Madre (Básicas y Avanzadas)</span>
+              </div>
+
+              {/* Básicas */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Fabricante *</label>
+                    <input
+                      type="text"
+                      value={motherboardData.manufacturer || ""}
+                      onChange={(e) => updateMotherboard({ manufacturer: e.target.value })}
+                      placeholder="ej: ASUS ROG / MSI / Gigabyte AORUS / ASRock"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Socket *</label>
+                    <input
+                      type="text"
+                      value={motherboardData.socket || ""}
+                      onChange={(e) => updateMotherboard({ socket: e.target.value })}
+                      placeholder="ej: Socket AM5 / LGA1700 / LGA1851"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Chipset *</label>
+                    <input
+                      type="text"
+                      value={motherboardData.chipset || ""}
+                      onChange={(e) => updateMotherboard({ chipset: e.target.value })}
+                      placeholder="ej: AMD B650 / AMD X670E / Intel Z790 / B760"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Slots memorias *</label>
+                    <input
+                      type="text"
+                      value={motherboardData.memorySlots || ""}
+                      onChange={(e) => updateMotherboard({ memorySlots: e.target.value })}
+                      placeholder="ej: 4x DDR5 DIMM (hasta 192 GB)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Canales memoria *</label>
+                    <input
+                      type="text"
+                      value={motherboardData.memoryChannels || ""}
+                      onChange={(e) => updateMotherboard({ memoryChannels: e.target.value })}
+                      placeholder="ej: Dual Channel"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Formato *</label>
+                    <input
+                      type="text"
+                      value={motherboardData.format || ""}
+                      onChange={(e) => updateMotherboard({ format: e.target.value })}
+                      placeholder="ej: ATX (30.5 x 24.4 cm) / Micro-ATX / Mini-ITX"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Soporte RGB</label>
+                    <input
+                      type="text"
+                      value={motherboardData.rgbSupport || ""}
+                      onChange={(e) => updateMotherboard({ rgbSupport: e.target.value })}
+                      placeholder="ej: 3x 3-pin ARGB Gen 2 + 1x 4-pin RGB"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Puertos de video</label>
+                    <input
+                      type="text"
+                      value={motherboardData.videoPorts || ""}
+                      onChange={(e) => updateMotherboard({ videoPorts: e.target.value })}
+                      placeholder="ej: 1x HDMI 2.1 (4K 60Hz), 1x DisplayPort 1.4"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Puertos de energía</label>
+                    <input
+                      type="text"
+                      value={motherboardData.powerPorts || ""}
+                      onChange={(e) => updateMotherboard({ powerPorts: e.target.value })}
+                      placeholder="ej: 1x 24-pin ATX, 2x 8-pin EPS 12V"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Avanzadas */}
+              <div className="space-y-3 pt-2 border-t border-[#004E72]/30">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Avanzadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Soporte SLI</label>
+                    <input
+                      type="text"
+                      value={motherboardData.sliSupport || ""}
+                      onChange={(e) => updateMotherboard({ sliSupport: e.target.value })}
+                      placeholder="ej: No compatible"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Soporte CrossFire</label>
+                    <input
+                      type="text"
+                      value={motherboardData.crossfireSupport || ""}
+                      onChange={(e) => updateMotherboard({ crossfireSupport: e.target.value })}
+                      placeholder="ej: Compatible con AMD 2-Way CrossFireX"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Soporte RAID</label>
+                    <input
+                      type="text"
+                      value={motherboardData.raidSupport || ""}
+                      onChange={(e) => updateMotherboard({ raidSupport: e.target.value })}
+                      placeholder="ej: RAID 0, 1, 10 para unidades SATA y M.2 NVMe"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Conectores</label>
+                    <input
+                      type="text"
+                      value={motherboardData.connectors || ""}
+                      onChange={(e) => updateMotherboard({ connectors: e.target.value })}
+                      placeholder="ej: 4x SATA 6Gb/s, 3x M.2 (1x PCIe 5.0 x4 + 2x PCIe 4.0 x4), 1x Header USB-C frontal"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Puertos</label>
+                    <input
+                      type="text"
+                      value={motherboardData.ports || ""}
+                      onChange={(e) => updateMotherboard({ ports: e.target.value })}
+                      placeholder="ej: 1x USB 3.2 Gen 2x2 Type-C (20Gbps), 3x USB 3.2 Gen 2, 4x USB 2.0, 2.5G LAN, Wi-Fi 6E"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Expansiones</label>
+                    <input
+                      type="text"
+                      value={motherboardData.expansions || ""}
+                      onChange={(e) => updateMotherboard({ expansions: e.target.value })}
+                      placeholder="ej: 1x PCIe 5.0 x16 (SafeSlot), 1x PCIe 4.0 x16 (soporta x4), 2x PCIe 4.0 x1"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. RAM */}
+          {hardwareType === "RAM" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 px-3 py-2 rounded-xl">
+                <MemoryStick className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Especificaciones de Memoria RAM (Básicas y Avanzadas)</span>
+              </div>
+
+              {/* Básicas */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Capacidad *</label>
+                    <input
+                      type="text"
+                      value={ramData.capacity || ""}
+                      onChange={(e) => updateRam({ capacity: e.target.value })}
+                      placeholder="ej: 32 GB (2x 16 GB Kit)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tipo *</label>
+                    <input
+                      type="text"
+                      value={ramData.type || ""}
+                      onChange={(e) => updateRam({ type: e.target.value })}
+                      placeholder="ej: DDR5 / DDR4"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Velocidad *</label>
+                    <input
+                      type="text"
+                      value={ramData.speed || ""}
+                      onChange={(e) => updateRam({ speed: e.target.value })}
+                      placeholder="ej: 6000 MT/s (PC5-48000) / 3600 MHz"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Formato *</label>
+                    <input
+                      type="text"
+                      value={ramData.format || ""}
+                      onChange={(e) => updateRam({ format: e.target.value })}
+                      placeholder="ej: UDIMM de 288 contactos / SO-DIMM"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Avanzadas */}
+              <div className="space-y-3 pt-2 border-t border-[#004E72]/30">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Avanzadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Voltaje</label>
+                    <input
+                      type="text"
+                      value={ramData.voltage || ""}
+                      onChange={(e) => updateRam({ voltage: e.target.value })}
+                      placeholder="ej: 1.35 V / 1.40 V"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Latencia Cl (CAS)</label>
+                    <input
+                      type="text"
+                      value={ramData.latencyClCas || ""}
+                      onChange={(e) => updateRam({ latencyClCas: e.target.value })}
+                      placeholder="ej: CL30 / CL36"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Latencia Trcd</label>
+                    <input
+                      type="text"
+                      value={ramData.latencyTrcd || ""}
+                      onChange={(e) => updateRam({ latencyTrcd: e.target.value })}
+                      placeholder="ej: 36"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Latencia Trp</label>
+                    <input
+                      type="text"
+                      value={ramData.latencyTrp || ""}
+                      onChange={(e) => updateRam({ latencyTrp: e.target.value })}
+                      placeholder="ej: 36"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Latencia Tras</label>
+                    <input
+                      type="text"
+                      value={ramData.latencyTras || ""}
+                      onChange={(e) => updateRam({ latencyTras: e.target.value })}
+                      placeholder="ej: 76"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Soporte ECC</label>
+                    <input
+                      type="text"
+                      value={ramData.eccSupport || ""}
+                      onChange={(e) => updateRam({ eccSupport: e.target.value })}
+                      placeholder="ej: On-Die ECC (No ECC registrado)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Soporte full buffered</label>
+                    <input
+                      type="text"
+                      value={ramData.fullBufferedSupport || ""}
+                      onChange={(e) => updateRam({ fullBufferedSupport: e.target.value })}
+                      placeholder="ej: Unbuffered (No registrado)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 5. DISCO DURO */}
+          {hardwareType === "DISCO_DURO" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-teal-400 bg-teal-950/30 border border-teal-500/30 px-3 py-2 rounded-xl">
+                <HardDrive className="w-4 h-4 text-teal-400 shrink-0" />
+                <span>Especificaciones de Disco Duro (HDD)</span>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tipo *</label>
+                    <input
+                      type="text"
+                      value={hddData.type || ""}
+                      onChange={(e) => updateHdd({ type: e.target.value })}
+                      placeholder="ej: HDD Interno / Externo portátil"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Línea *</label>
+                    <input
+                      type="text"
+                      value={hddData.line || ""}
+                      onChange={(e) => updateHdd({ line: e.target.value })}
+                      placeholder="ej: Seagate Barracuda / Western Digital Blue / IronWolf"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Capacidad *</label>
+                    <input
+                      type="text"
+                      value={hddData.capacity || ""}
+                      onChange={(e) => updateHdd({ capacity: e.target.value })}
+                      placeholder="ej: 2 TB / 4 TB / 8 TB"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">RPM *</label>
+                    <input
+                      type="text"
+                      value={hddData.rpm || ""}
+                      onChange={(e) => updateHdd({ rpm: e.target.value })}
+                      placeholder="ej: 7200 RPM / 5400 RPM"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tamaño *</label>
+                    <input
+                      type="text"
+                      value={hddData.size || ""}
+                      onChange={(e) => updateHdd({ size: e.target.value })}
+                      placeholder="ej: 3.5 pulgadas / 2.5 pulgadas"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Bus *</label>
+                    <input
+                      type="text"
+                      value={hddData.bus || ""}
+                      onChange={(e) => updateHdd({ bus: e.target.value })}
+                      placeholder="ej: SATA III (6.0 Gb/s) / USB 3.2"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Búfer *</label>
+                    <input
+                      type="text"
+                      value={hddData.buffer || ""}
+                      onChange={(e) => updateHdd({ buffer: e.target.value })}
+                      placeholder="ej: 256 MB Caché / 64 MB"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. SSD */}
+          {hardwareType === "SSD" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-sky-400 bg-sky-950/30 border border-sky-500/30 px-3 py-2 rounded-xl">
+                <HardDrive className="w-4 h-4 text-sky-400 shrink-0" />
+                <span>Especificaciones de Unidad de Estado Sólido (SSD)</span>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Línea *</label>
+                    <input
+                      type="text"
+                      value={ssdData.line || ""}
+                      onChange={(e) => updateSsd({ line: e.target.value })}
+                      placeholder="ej: Samsung 990 PRO / Kingston KC3000 / Crucial T500"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Capacidad *</label>
+                    <input
+                      type="text"
+                      value={ssdData.capacity || ""}
+                      onChange={(e) => updateSsd({ capacity: e.target.value })}
+                      placeholder="ej: 1 TB / 2 TB / 4 TB"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Formato *</label>
+                    <input
+                      type="text"
+                      value={ssdData.format || ""}
+                      onChange={(e) => updateSsd({ format: e.target.value })}
+                      placeholder="ej: M.2 2280 con heatsink / 2.5 pulgadas SATA"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Bus *</label>
+                    <input
+                      type="text"
+                      value={ssdData.bus || ""}
+                      onChange={(e) => updateSsd({ bus: e.target.value })}
+                      placeholder="ej: PCIe 4.0 x4, NVMe 2.0 / PCIe 5.0 x4"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">¿Posee DRAM? *</label>
+                    <input
+                      type="text"
+                      value={ssdData.hasDram || ""}
+                      onChange={(e) => updateSsd({ hasDram: e.target.value })}
+                      placeholder="ej: Sí, 2 GB LPDDR4 / DRAM-less con HMB"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tipo memoria NAND *</label>
+                    <input
+                      type="text"
+                      value={ssdData.nandType || ""}
+                      onChange={(e) => updateSsd({ nandType: e.target.value })}
+                      placeholder="ej: 3D TLC V-NAND / QLC 176 capas"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Controladora *</label>
+                    <input
+                      type="text"
+                      value={ssdData.controller || ""}
+                      onChange={(e) => updateSsd({ controller: e.target.value })}
+                      placeholder="ej: Samsung Pascal / Phison PS5018-E18 / InnoGrit"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Lectura secuencial (según fabricante) *</label>
+                    <input
+                      type="text"
+                      value={ssdData.sequentialRead || ""}
+                      onChange={(e) => updateSsd({ sequentialRead: e.target.value })}
+                      placeholder="ej: Hasta 7.450 MB/s"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Escritura secuencial (según fabricante) *</label>
+                    <input
+                      type="text"
+                      value={ssdData.sequentialWrite || ""}
+                      onChange={(e) => updateSsd({ sequentialWrite: e.target.value })}
+                      placeholder="ej: Hasta 6.900 MB/s"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 7. GABINETE */}
+          {hardwareType === "GABINETE" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-violet-400 bg-violet-950/30 border border-violet-500/30 px-3 py-2 rounded-xl">
+                <Box className="w-4 h-4 text-violet-400 shrink-0" />
+                <span>Especificaciones de Gabinete Gamer</span>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Formato / Tamaño *</label>
+                    <input
+                      type="text"
+                      value={cabinetData.format || ""}
+                      onChange={(e) => updateCabinet({ format: e.target.value })}
+                      placeholder="ej: Mid Tower / Full Tower / Mini-ITX"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Soporte Placas Madre *</label>
+                    <input
+                      type="text"
+                      value={cabinetData.motherboardSupport || ""}
+                      onChange={(e) => updateCabinet({ motherboardSupport: e.target.value })}
+                      placeholder="ej: E-ATX, ATX, Micro-ATX, Mini-ITX"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Panel Lateral</label>
+                    <input
+                      type="text"
+                      value={cabinetData.sidePanel || ""}
+                      onChange={(e) => updateCabinet({ sidePanel: e.target.value })}
+                      placeholder="ej: Vidrio Templado 4mm / Mesh Meshificado"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Largo Máximo GPU</label>
+                    <input
+                      type="text"
+                      value={cabinetData.gpuMaxDimensions || ""}
+                      onChange={(e) => updateCabinet({ gpuMaxDimensions: e.target.value })}
+                      placeholder="ej: Hasta 410 mm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs text-[#9bb5c2]">Altura Máxima Cooler CPU</label>
+                    <input
+                      type="text"
+                      value={cabinetData.cpuCoolerMaxHeight || ""}
+                      onChange={(e) => updateCabinet({ cpuCoolerMaxHeight: e.target.value })}
+                      placeholder="ej: Hasta 180 mm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 8. FUENTE DE PODER */}
+          {hardwareType === "FUENTE_DE_PODER" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-yellow-400 bg-yellow-950/30 border border-yellow-500/30 px-3 py-2 rounded-xl">
+                <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
+                <span>Especificaciones de Fuente de Poder (Básicas y Avanzadas)</span>
+              </div>
+
+              {/* Básicas */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Potencia *</label>
+                    <input
+                      type="text"
+                      value={psuData.power || ""}
+                      onChange={(e) => updatePowerSupply({ power: e.target.value })}
+                      placeholder="ej: 850 W / 1000 W"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Certificación *</label>
+                    <input
+                      type="text"
+                      value={psuData.certification || ""}
+                      onChange={(e) => updatePowerSupply({ certification: e.target.value })}
+                      placeholder="ej: 80 Plus Gold / Cybenetics Platinum"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tamaño *</label>
+                    <input
+                      type="text"
+                      value={psuData.size || ""}
+                      onChange={(e) => updatePowerSupply({ size: e.target.value })}
+                      placeholder="ej: ATX (150 x 86 x 140 mm) / SFX"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">PFC activo *</label>
+                    <input
+                      type="text"
+                      value={psuData.activePfc || ""}
+                      onChange={(e) => updatePowerSupply({ activePfc: e.target.value })}
+                      placeholder="ej: Sí, PFC Activo (>0.99 a carga plena)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-xs text-[#9bb5c2]">Modular *</label>
+                    <input
+                      type="text"
+                      value={psuData.modular || ""}
+                      onChange={(e) => updatePowerSupply({ modular: e.target.value })}
+                      placeholder="ej: Totalmente Modular (Full Modular) / Semi-modular"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Avanzadas */}
+              <div className="space-y-3 pt-2 border-t border-[#004E72]/30">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Avanzadas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Corriente en la línea de 12 V</label>
+                    <input
+                      type="text"
+                      value={psuData.rail12vCurrent || ""}
+                      onChange={(e) => updatePowerSupply({ rail12vCurrent: e.target.value })}
+                      placeholder="ej: 70.8 A (849.6 W)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Corriente en la línea de 5 V</label>
+                    <input
+                      type="text"
+                      value={psuData.rail5vCurrent || ""}
+                      onChange={(e) => updatePowerSupply({ rail5vCurrent: e.target.value })}
+                      placeholder="ej: 20 A"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Corriente en la línea de 3.3 V</label>
+                    <input
+                      type="text"
+                      value={psuData.rail33vCurrent || ""}
+                      onChange={(e) => updatePowerSupply({ rail33vCurrent: e.target.value })}
+                      placeholder="ej: 20 A"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Conectores de energía</label>
+                    <input
+                      type="text"
+                      value={psuData.powerConnectors || ""}
+                      onChange={(e) => updatePowerSupply({ powerConnectors: e.target.value })}
+                      placeholder="ej: 1x 12V-2x6 (PCIe 5.1 600W), 4x PCIe 6+2 pin, 2x EPS 8-pin, 8x SATA"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 9. COOLER CPU */}
+          {hardwareType === "COOLER_CPU" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 bg-cyan-950/30 border border-cyan-500/30 px-3 py-2 rounded-xl">
+                <Wind className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Especificaciones de Cooler CPU</span>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Marca *</label>
+                    <input
+                      type="text"
+                      value={coolerData.brand || ""}
+                      onChange={(e) => updateCoolerCpu({ brand: e.target.value })}
+                      placeholder="ej: DeepCool / Thermalright / Noctua / Corsair"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tipo *</label>
+                    <input
+                      type="text"
+                      value={coolerData.type || ""}
+                      onChange={(e) => updateCoolerCpu({ type: e.target.value })}
+                      placeholder="ej: Refrigeración Líquida AIO 360mm / Torre de Aire Dual"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Peso *</label>
+                    <input
+                      type="text"
+                      value={coolerData.weight || ""}
+                      onChange={(e) => updateCoolerCpu({ weight: e.target.value })}
+                      placeholder="ej: 1.250 g / 850 g"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">RPM *</label>
+                    <input
+                      type="text"
+                      value={coolerData.rpm || ""}
+                      onChange={(e) => updateCoolerCpu({ rpm: e.target.value })}
+                      placeholder="ej: 500 - 2.100 RPM ±10%"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Ruido *</label>
+                    <input
+                      type="text"
+                      value={coolerData.noise || ""}
+                      onChange={(e) => updateCoolerCpu({ noise: e.target.value })}
+                      placeholder="ej: 19 - 31.6 dBA"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Flujo de aire *</label>
+                    <input
+                      type="text"
+                      value={coolerData.airflow || ""}
+                      onChange={(e) => updateCoolerCpu({ airflow: e.target.value })}
+                      placeholder="ej: 72.8 CFM"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Altura *</label>
+                    <input
+                      type="text"
+                      value={coolerData.height || ""}
+                      onChange={(e) => updateCoolerCpu({ height: e.target.value })}
+                      placeholder="ej: 157 mm (Torre) / 27 mm (Radiador)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tamaño ventilador *</label>
+                    <input
+                      type="text"
+                      value={coolerData.fanSize || ""}
+                      onChange={(e) => updateCoolerCpu({ fanSize: e.target.value })}
+                      placeholder="ej: 3x 120 mm / 2x 140 mm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">¿Heatpipes? *</label>
+                    <input
+                      type="text"
+                      value={coolerData.hasHeatpipes || ""}
+                      onChange={(e) => updateCoolerCpu({ hasHeatpipes: e.target.value })}
+                      placeholder="ej: 6x 6mm de cobre sinterizado / No aplica (AIO)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-3">
+                    <label className="text-xs text-[#9bb5c2]">Sockets compatibles *</label>
+                    <input
+                      type="text"
+                      value={coolerData.compatibleSockets || ""}
+                      onChange={(e) => updateCoolerCpu({ compatibleSockets: e.target.value })}
+                      placeholder="ej: Intel LGA1700/1851/1200/115X, AMD AM5/AM4"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 10. VENTILADORES */}
+          {hardwareType === "VENTILADORES" && (
+            <div className="space-y-4 pt-2 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-xs font-bold text-teal-400 bg-teal-950/30 border border-teal-500/30 px-3 py-2 rounded-xl">
+                <Fan className="w-4 h-4 text-teal-400 shrink-0" />
+                <span>Especificaciones de Ventiladores (Fans)</span>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-[#FF6E42] uppercase tracking-wider">
+                  Especificaciones Básicas
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Marca</label>
+                    <input
+                      type="text"
+                      value={fanData.brand || ""}
+                      onChange={(e) => updateFan({ brand: e.target.value })}
+                      placeholder="ej: Lian Li / Corsair / Noctua / be quiet!"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Tamaño</label>
+                    <input
+                      type="text"
+                      value={fanData.size || ""}
+                      onChange={(e) => updateFan({ size: e.target.value })}
+                      placeholder="ej: 120 mm / 140 mm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">RPM</label>
+                    <input
+                      type="text"
+                      value={fanData.rpm || ""}
+                      onChange={(e) => updateFan({ rpm: e.target.value })}
+                      placeholder="ej: 800 - 2000 RPM (PWM)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Ruido</label>
+                    <input
+                      type="text"
+                      value={fanData.noise || ""}
+                      onChange={(e) => updateFan({ noise: e.target.value })}
+                      placeholder="ej: 28 dBA"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Flujo de aire</label>
+                    <input
+                      type="text"
+                      value={fanData.airflow || ""}
+                      onChange={(e) => updateFan({ airflow: e.target.value })}
+                      placeholder="ej: 64.5 CFM"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-[#9bb5c2]">Iluminación</label>
+                    <input
+                      type="text"
+                      value={fanData.lighting || ""}
+                      onChange={(e) => updateFan({ lighting: e.target.value })}
+                      placeholder="ej: ARGB direccionable / Espejo infinito"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:border-[#FF6E42] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

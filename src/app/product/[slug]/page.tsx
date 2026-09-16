@@ -236,6 +236,359 @@ export default function ProductDetailPage() {
     ...(product.customSpecifications?.console?.featuredHighlights
       ? [{ label: "Características Destacadas", value: product.customSpecifications.console.featuredHighlights }]
       : []),
+    // Hardware & Componentes
+    ...(product.customSpecifications?.hardware?.componentType
+      ? [{ label: "Tipo de Componente", value: product.customSpecifications.hardware.componentType }]
+      : []),
+    ...(product.customSpecifications?.hardware?.brand
+      ? [{ label: "Marca del Fabricante", value: product.customSpecifications.hardware.brand }]
+      : []),
+    ...(product.customSpecifications?.hardware?.model
+      ? [{ label: "Modelo Exacto", value: product.customSpecifications.hardware.model }]
+      : []),
+    ...(product.customSpecifications?.hardware?.interfaceOrSocket
+      ? [{ label: "Interfaz / Socket", value: product.customSpecifications.hardware.interfaceOrSocket }]
+      : []),
+    ...(product.customSpecifications?.hardware?.capacityOrSpeed
+      ? [{ label: "Capacidad / Velocidad", value: product.customSpecifications.hardware.capacityOrSpeed }]
+      : []),
+    ...(product.customSpecifications?.hardware?.formFactor
+      ? [{ label: "Factor de Forma", value: product.customSpecifications.hardware.formFactor }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerConsumptionTdp
+      ? [{ label: "Consumo / TDP", value: product.customSpecifications.hardware.powerConsumptionTdp }]
+      : []),
+    ...(product.customSpecifications?.hardware?.warrantyYears
+      ? [{ label: "Garantía Oficial", value: product.customSpecifications.hardware.warrantyYears }]
+      : []),
+    ...(product.customSpecifications?.hardware?.featuredHighlights
+      ? [{ label: "Características Destacadas", value: product.customSpecifications.hardware.featuredHighlights }]
+      : []),
+    // Tarjeta de Video (GPU)
+    ...(product.customSpecifications?.hardware?.gpu?.manufacturer
+      ? [{ label: "Fabricante GPU", value: product.customSpecifications.hardware.gpu.manufacturer }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.gpu
+      ? [{ label: "GPU", value: product.customSpecifications.hardware.gpu.gpu }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.memory
+      ? [{ label: "Memoria VRAM", value: product.customSpecifications.hardware.gpu.memory }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.bus
+      ? [{ label: "Bus de Memoria", value: product.customSpecifications.hardware.gpu.bus }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.coreFrequencies
+      ? [{ label: "Frecuencias Core", value: product.customSpecifications.hardware.gpu.coreFrequencies }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.memoryFrequency
+      ? [{ label: "Frecuencia Memorias", value: product.customSpecifications.hardware.gpu.memoryFrequency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.core
+      ? [{ label: "Núcleo", value: product.customSpecifications.hardware.gpu.core }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.profile
+      ? [{ label: "Perfil", value: product.customSpecifications.hardware.gpu.profile }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.cooling
+      ? [{ label: "Refrigeración", value: product.customSpecifications.hardware.gpu.cooling }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.slots
+      ? [{ label: "Slots Ocupados", value: product.customSpecifications.hardware.gpu.slots }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.length
+      ? [{ label: "Largo de Tarjeta", value: product.customSpecifications.hardware.gpu.length }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.lighting
+      ? [{ label: "Iluminación", value: product.customSpecifications.hardware.gpu.lighting }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.backplate
+      ? [{ label: "¿Posee Backplate?", value: product.customSpecifications.hardware.gpu.backplate }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.powerConnectors
+      ? [{ label: "Conectores de Poder", value: product.customSpecifications.hardware.gpu.powerConnectors }]
+      : []),
+    ...(product.customSpecifications?.hardware?.gpu?.videoPorts
+      ? [{ label: "Puertos de Video", value: product.customSpecifications.hardware.gpu.videoPorts }]
+      : []),
+    // Procesadores (CPU)
+    ...(product.customSpecifications?.hardware?.cpu?.frequency
+      ? [{ label: "Frecuencia Base", value: product.customSpecifications.hardware.cpu.frequency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.turboFrequency
+      ? [{ label: "Frecuencia Turbo Máx.", value: product.customSpecifications.hardware.cpu.turboFrequency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.coresThreads
+      ? [{ label: "Núcleos / Hilos", value: product.customSpecifications.hardware.cpu.coresThreads }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.cache
+      ? [{ label: "Memoria Caché", value: product.customSpecifications.hardware.cpu.cache }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.socket
+      ? [{ label: "Socket CPU", value: product.customSpecifications.hardware.cpu.socket }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.core
+      ? [{ label: "Núcleo / Arquitectura", value: product.customSpecifications.hardware.cpu.core }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.manufacturingProcess
+      ? [{ label: "Proceso de Manufactura", value: product.customSpecifications.hardware.cpu.manufacturingProcess }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.tdp
+      ? [{ label: "TDP", value: product.customSpecifications.hardware.cpu.tdp }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.cooler
+      ? [{ label: "Cooler Incluido", value: product.customSpecifications.hardware.cpu.cooler }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cpu?.integratedGraphics
+      ? [{ label: "Gráficos Integrados", value: product.customSpecifications.hardware.cpu.integratedGraphics }]
+      : []),
+    // Placa Madre
+    ...(product.customSpecifications?.hardware?.motherboard?.manufacturer
+      ? [{ label: "Fabricante Placa", value: product.customSpecifications.hardware.motherboard.manufacturer }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.socket
+      ? [{ label: "Socket", value: product.customSpecifications.hardware.motherboard.socket }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.chipset
+      ? [{ label: "Chipset", value: product.customSpecifications.hardware.motherboard.chipset }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.memorySlots
+      ? [{ label: "Slots Memorias", value: product.customSpecifications.hardware.motherboard.memorySlots }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.memoryChannels
+      ? [{ label: "Canales Memoria", value: product.customSpecifications.hardware.motherboard.memoryChannels }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.format
+      ? [{ label: "Formato Placa", value: product.customSpecifications.hardware.motherboard.format }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.rgbSupport
+      ? [{ label: "Soporte RGB", value: product.customSpecifications.hardware.motherboard.rgbSupport }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.videoPorts
+      ? [{ label: "Puertos de Video", value: product.customSpecifications.hardware.motherboard.videoPorts }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.powerPorts
+      ? [{ label: "Puertos de Energía", value: product.customSpecifications.hardware.motherboard.powerPorts }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.sliSupport
+      ? [{ label: "Soporte SLI", value: product.customSpecifications.hardware.motherboard.sliSupport }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.crossfireSupport
+      ? [{ label: "Soporte CrossFire", value: product.customSpecifications.hardware.motherboard.crossfireSupport }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.raidSupport
+      ? [{ label: "Soporte RAID", value: product.customSpecifications.hardware.motherboard.raidSupport }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.connectors
+      ? [{ label: "Conectores", value: product.customSpecifications.hardware.motherboard.connectors }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.ports
+      ? [{ label: "Puertos Posteriores", value: product.customSpecifications.hardware.motherboard.ports }]
+      : []),
+    ...(product.customSpecifications?.hardware?.motherboard?.expansions
+      ? [{ label: "Ranuras de Expansión", value: product.customSpecifications.hardware.motherboard.expansions }]
+      : []),
+    // Memoria RAM
+    ...(product.customSpecifications?.hardware?.ram?.capacity
+      ? [{ label: "Capacidad RAM", value: product.customSpecifications.hardware.ram.capacity }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.type
+      ? [{ label: "Tipo de Memoria", value: product.customSpecifications.hardware.ram.type }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.speed
+      ? [{ label: "Velocidad RAM", value: product.customSpecifications.hardware.ram.speed }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.format
+      ? [{ label: "Formato RAM", value: product.customSpecifications.hardware.ram.format }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.voltage
+      ? [{ label: "Voltaje", value: product.customSpecifications.hardware.ram.voltage }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.casLatency
+      ? [{ label: "Latencia CL (CAS)", value: product.customSpecifications.hardware.ram.casLatency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.trcdLatency
+      ? [{ label: "Latencia Trcd", value: product.customSpecifications.hardware.ram.trcdLatency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.trpLatency
+      ? [{ label: "Latencia Trp", value: product.customSpecifications.hardware.ram.trpLatency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.trasLatency
+      ? [{ label: "Latencia Tras", value: product.customSpecifications.hardware.ram.trasLatency }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.eccSupport
+      ? [{ label: "Soporte ECC", value: product.customSpecifications.hardware.ram.eccSupport }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ram?.fullBufferedSupport
+      ? [{ label: "Soporte Full Buffered", value: product.customSpecifications.hardware.ram.fullBufferedSupport }]
+      : []),
+    // Disco Duro (HDD)
+    ...(product.customSpecifications?.hardware?.hdd?.type
+      ? [{ label: "Tipo Disco Duro", value: product.customSpecifications.hardware.hdd.type }]
+      : []),
+    ...(product.customSpecifications?.hardware?.hdd?.line
+      ? [{ label: "Línea", value: product.customSpecifications.hardware.hdd.line }]
+      : []),
+    ...(product.customSpecifications?.hardware?.hdd?.capacity
+      ? [{ label: "Capacidad", value: product.customSpecifications.hardware.hdd.capacity }]
+      : []),
+    ...(product.customSpecifications?.hardware?.hdd?.rpm
+      ? [{ label: "RPM", value: product.customSpecifications.hardware.hdd.rpm }]
+      : []),
+    ...(product.customSpecifications?.hardware?.hdd?.size
+      ? [{ label: "Tamaño Disco", value: product.customSpecifications.hardware.hdd.size }]
+      : []),
+    ...(product.customSpecifications?.hardware?.hdd?.bus
+      ? [{ label: "Bus / Interfaz", value: product.customSpecifications.hardware.hdd.bus }]
+      : []),
+    ...(product.customSpecifications?.hardware?.hdd?.buffer
+      ? [{ label: "Búfer", value: product.customSpecifications.hardware.hdd.buffer }]
+      : []),
+    // SSD
+    ...(product.customSpecifications?.hardware?.ssd?.line
+      ? [{ label: "Línea SSD", value: product.customSpecifications.hardware.ssd.line }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.capacity
+      ? [{ label: "Capacidad SSD", value: product.customSpecifications.hardware.ssd.capacity }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.format
+      ? [{ label: "Formato SSD", value: product.customSpecifications.hardware.ssd.format }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.bus
+      ? [{ label: "Bus / Interfaz", value: product.customSpecifications.hardware.ssd.bus }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.hasDram
+      ? [{ label: "¿Posee DRAM?", value: product.customSpecifications.hardware.ssd.hasDram }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.nandType
+      ? [{ label: "Tipo Memoria NAND", value: product.customSpecifications.hardware.ssd.nandType }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.controller
+      ? [{ label: "Controladora", value: product.customSpecifications.hardware.ssd.controller }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.sequentialRead
+      ? [{ label: "Lectura Secuencial", value: product.customSpecifications.hardware.ssd.sequentialRead }]
+      : []),
+    ...(product.customSpecifications?.hardware?.ssd?.sequentialWrite
+      ? [{ label: "Escritura Secuencial", value: product.customSpecifications.hardware.ssd.sequentialWrite }]
+      : []),
+    // Fuente de Poder
+    ...(product.customSpecifications?.hardware?.powerSupply?.power
+      ? [{ label: "Potencia", value: product.customSpecifications.hardware.powerSupply.power }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.certification
+      ? [{ label: "Certificación", value: product.customSpecifications.hardware.powerSupply.certification }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.size
+      ? [{ label: "Tamaño", value: product.customSpecifications.hardware.powerSupply.size }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.activePfc
+      ? [{ label: "PFC Activo", value: product.customSpecifications.hardware.powerSupply.activePfc }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.modular
+      ? [{ label: "Modular", value: product.customSpecifications.hardware.powerSupply.modular }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.current12v
+      ? [{ label: "Corriente Línea 12V", value: product.customSpecifications.hardware.powerSupply.current12v }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.current5v
+      ? [{ label: "Corriente Línea 5V", value: product.customSpecifications.hardware.powerSupply.current5v }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.current3v
+      ? [{ label: "Corriente Línea 3.3V", value: product.customSpecifications.hardware.powerSupply.current3v }]
+      : []),
+    ...(product.customSpecifications?.hardware?.powerSupply?.powerConnectors
+      ? [{ label: "Conectores de Energía", value: product.customSpecifications.hardware.powerSupply.powerConnectors }]
+      : []),
+    // Cooler CPU
+    ...(product.customSpecifications?.hardware?.coolerCpu?.brand
+      ? [{ label: "Marca Cooler", value: product.customSpecifications.hardware.coolerCpu.brand }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.type
+      ? [{ label: "Tipo de Cooler", value: product.customSpecifications.hardware.coolerCpu.type }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.weight
+      ? [{ label: "Peso", value: product.customSpecifications.hardware.coolerCpu.weight }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.rpm
+      ? [{ label: "RPM", value: product.customSpecifications.hardware.coolerCpu.rpm }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.noise
+      ? [{ label: "Nivel de Ruido", value: product.customSpecifications.hardware.coolerCpu.noise }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.airflow
+      ? [{ label: "Flujo de Aire", value: product.customSpecifications.hardware.coolerCpu.airflow }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.height
+      ? [{ label: "Altura Cooler", value: product.customSpecifications.hardware.coolerCpu.height }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.fanSize
+      ? [{ label: "Tamaño Ventilador", value: product.customSpecifications.hardware.coolerCpu.fanSize }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.hasHeatpipes
+      ? [{ label: "¿Heatpipes?", value: product.customSpecifications.hardware.coolerCpu.hasHeatpipes }]
+      : []),
+    ...(product.customSpecifications?.hardware?.coolerCpu?.compatibleSockets
+      ? [{ label: "Sockets Compatibles", value: product.customSpecifications.hardware.coolerCpu.compatibleSockets }]
+      : []),
+    // Gabinete
+    ...(product.customSpecifications?.hardware?.cabinet?.brand
+      ? [{ label: "Marca Gabinete", value: product.customSpecifications.hardware.cabinet.brand }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.model
+      ? [{ label: "Modelo Gabinete", value: product.customSpecifications.hardware.cabinet.model }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.format
+      ? [{ label: "Formato Gabinete", value: product.customSpecifications.hardware.cabinet.format }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.sidePanel
+      ? [{ label: "Panel Lateral", value: product.customSpecifications.hardware.cabinet.sidePanel }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.bays
+      ? [{ label: "Bahías", value: product.customSpecifications.hardware.cabinet.bays }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.expansionSlots
+      ? [{ label: "Ranuras Expansión", value: product.customSpecifications.hardware.cabinet.expansionSlots }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.maxGpuLength
+      ? [{ label: "Largo Máx. GPU", value: product.customSpecifications.hardware.cabinet.maxGpuLength }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.maxCoolerHeight
+      ? [{ label: "Altura Máx. Cooler", value: product.customSpecifications.hardware.cabinet.maxCoolerHeight }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.radiatorSupport
+      ? [{ label: "Soporte Radiador", value: product.customSpecifications.hardware.cabinet.radiatorSupport }]
+      : []),
+    ...(product.customSpecifications?.hardware?.cabinet?.frontConnectors
+      ? [{ label: "Conectores Frontales", value: product.customSpecifications.hardware.cabinet.frontConnectors }]
+      : []),
+    // Ventiladores
+    ...(product.customSpecifications?.hardware?.fan?.brand
+      ? [{ label: "Marca Ventilador", value: product.customSpecifications.hardware.fan.brand }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.size
+      ? [{ label: "Tamaño Ventilador", value: product.customSpecifications.hardware.fan.size }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.rpm
+      ? [{ label: "RPM Ventilador", value: product.customSpecifications.hardware.fan.rpm }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.airflow
+      ? [{ label: "Flujo de Aire", value: product.customSpecifications.hardware.fan.airflow }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.noiseLevel
+      ? [{ label: "Nivel de Ruido", value: product.customSpecifications.hardware.fan.noiseLevel }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.connectorPins
+      ? [{ label: "Conector / Pines", value: product.customSpecifications.hardware.fan.connectorPins }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.lighting
+      ? [{ label: "Iluminación", value: product.customSpecifications.hardware.fan.lighting }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.staticPressure
+      ? [{ label: "Presión Estática", value: product.customSpecifications.hardware.fan.staticPressure }]
+      : []),
+    ...(product.customSpecifications?.hardware?.fan?.bearing
+      ? [{ label: "Rodamiento (Bearing)", value: product.customSpecifications.hardware.fan.bearing }]
+      : []),
     // Mouse Gaming
     ...(product.customSpecifications?.gamingAccessory?.mouse?.brand
       ? [{ label: "Marca del Mouse", value: product.customSpecifications.gamingAccessory.mouse.brand }]

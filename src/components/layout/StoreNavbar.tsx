@@ -120,8 +120,20 @@ function StoreNavbarContent() {
             else if (p.type === "OTHER") {
               const spec = (p.customSpecifications?.categoryType || "").toUpperCase();
               const l = (p.customCategoryLabel || "").toLowerCase();
-              if (spec === "CONSOLE" || (l.includes("consola") && !l.includes("hardware") && !l.includes("componente"))) counts.CONSOLE++;
-              else if (spec === "HARDWARE" || l.includes("hardware") || l.includes("componente") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu")) counts.HARDWARE++;
+              const nameLower = (p.name || "").toLowerCase();
+              const skuLower = (p.sku || "").toLowerCase();
+              const isConsole = spec === "CONSOLE" || 
+                                l === "consolas" || 
+                                l === "consola" || 
+                                skuLower.startsWith("con-") || 
+                                nameLower.includes("switch") || 
+                                nameLower.includes("ps5") || 
+                                nameLower.includes("playstation") || 
+                                nameLower.includes("xbox") || 
+                                (l.includes("consola") && !l.includes("accesorio"));
+
+              if (isConsole) counts.CONSOLE++;
+              else if (spec === "HARDWARE" || (!isConsole && (l.includes("hardware") || l.includes("componente") || l.includes("tarjeta") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu") || l.includes("placa") || l.includes("fuente") || l.includes("cooler") || l.includes("gabinete") || l.includes("ventilador")))) counts.HARDWARE++;
               else if (spec === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono") || l.includes("headset")) counts.GAMING_ACCESSORY++;
               else if (spec === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
               else if (spec === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;

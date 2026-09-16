@@ -36,6 +36,332 @@ import { ProductAlertSubscription } from "@/components/product/ProductAlertSubsc
 
 const CATALOG_ITEMS = BASE_PRODUCTS;
 
+export function getProductCategoryInfo(product: any) {
+  if (!product) {
+    return {
+      key: "ALL",
+      label: "Catálogo",
+      href: "/catalog",
+      defaultTags: ["Coleccionable", "Oficial"],
+      formatLabel: "Producto Oficial",
+      brand: "Fabricante Oficial",
+      bracketTag: "Producto Oficial",
+    };
+  }
+
+  const type = product?.type || "OTHER";
+  const specCat = (product?.customSpecifications?.categoryType || "").toUpperCase();
+  const catLabel = (product?.customCategoryLabel || "").toLowerCase();
+  const sku = (product?.sku || "").toLowerCase();
+  const name = (product?.name || "").toLowerCase();
+
+  const isConsole =
+    type === "CONSOLE" ||
+    specCat === "CONSOLE" ||
+    catLabel === "consolas" ||
+    catLabel === "consola" ||
+    sku.startsWith("con-") ||
+    name.includes("switch") ||
+    name.includes("ps5") ||
+    name.includes("playstation") ||
+    name.includes("xbox") ||
+    (catLabel.includes("consola") && !catLabel.includes("accesorio"));
+
+  if (isConsole) {
+    const brand = name.includes("sony") || name.includes("playstation") || name.includes("ps5")
+      ? "Sony PlayStation"
+      : name.includes("nintendo") || name.includes("switch")
+      ? "Nintendo"
+      : name.includes("xbox") || name.includes("microsoft")
+      ? "Microsoft Xbox"
+      : "Fabricante Oficial";
+
+    return {
+      key: "CONSOLE",
+      label: "Consolas",
+      href: "/catalog?category=CONSOLE",
+      defaultTags: ["Consolas", "Gaming", "Sistemas"],
+      formatLabel: product?.customSpecifications?.console?.format || "Consola Oficial Sellada",
+      brand,
+      bracketTag: "Consola Oficial",
+    };
+  }
+
+  const isHardware =
+    type === "HARDWARE" ||
+    specCat === "HARDWARE" ||
+    catLabel.includes("hardware") ||
+    catLabel.includes("componente") ||
+    catLabel.includes("tarjeta") ||
+    catLabel.includes("procesador") ||
+    catLabel.includes("ssd") ||
+    catLabel.includes("ram") ||
+    catLabel.includes("gpu") ||
+    catLabel.includes("placa") ||
+    catLabel.includes("fuente") ||
+    catLabel.includes("cooler") ||
+    catLabel.includes("gabinete") ||
+    catLabel.includes("ventilador") ||
+    sku.startsWith("hw-");
+
+  if (isHardware) {
+    const hwType = product?.customSpecifications?.hardware?.hardwareType;
+    const hwTypeName =
+      hwType === "TARJETA_DE_VIDEO"
+        ? "Tarjeta Gráfica"
+        : hwType === "PROCESADORES"
+        ? "Procesador"
+        : hwType === "PLACA_MADRE"
+        ? "Placa Madre"
+        : hwType === "RAM"
+        ? "Memoria RAM"
+        : hwType === "SSD"
+        ? "Almacenamiento SSD"
+        : hwType === "DISCO_DURO"
+        ? "Disco Duro"
+        : hwType === "FUENTE_DE_PODER"
+        ? "Fuente de Poder"
+        : hwType === "COOLER_CPU"
+        ? "Cooler CPU"
+        : hwType === "GABINETE"
+        ? "Gabinete"
+        : hwType === "VENTILADORES"
+        ? "Ventilador"
+        : product?.customSpecifications?.hardware?.componentType || "Componente Hardware";
+
+    const brand =
+      product?.customSpecifications?.hardware?.brand ||
+      product?.customSpecifications?.hardware?.gpu?.manufacturer ||
+      product?.customSpecifications?.hardware?.motherboard?.manufacturer ||
+      (name.includes("msi")
+        ? "MSI"
+        : name.includes("asus")
+        ? "ASUS"
+        : name.includes("gigabyte")
+        ? "Gigabyte"
+        : name.includes("corsair")
+        ? "Corsair"
+        : name.includes("kingston")
+        ? "Kingston"
+        : name.includes("samsung")
+        ? "Samsung"
+        : name.includes("nvidia")
+        ? "NVIDIA"
+        : name.includes("amd")
+        ? "AMD"
+        : "Fabricante Oficial");
+
+    return {
+      key: "HARDWARE",
+      label: "Hardware",
+      href: "/catalog?category=HARDWARE",
+      defaultTags: [hwTypeName, brand, "Hardware PC"],
+      formatLabel: product?.customSpecifications?.hardware?.componentType || "Componente Hardware Oficial",
+      brand,
+      bracketTag: hwTypeName,
+    };
+  }
+
+  const isAccessory =
+    specCat === "GAMING_ACCESSORY" ||
+    catLabel.includes("accesorio") ||
+    catLabel.includes("gaming") ||
+    catLabel.includes("periferico") ||
+    sku.startsWith("acc-") ||
+    name.includes("mouse") ||
+    name.includes("teclado") ||
+    name.includes("audifono") ||
+    name.includes("headset") ||
+    name.includes("mando") ||
+    name.includes("control");
+
+  if (isAccessory) {
+    const accType = product?.customSpecifications?.gamingAccessory?.accessoryType;
+    const accTypeName =
+      accType === "MOUSE"
+        ? "Mouse Gamer"
+        : accType === "KEYBOARD"
+        ? "Teclado Mecánico"
+        : accType === "HEADSET"
+        ? "Audífonos Gamer"
+        : accType === "CONTROLLER"
+        ? "Mando / Control"
+        : (name.includes("headset") || name.includes("audifono"))
+        ? "Audífonos Gamer"
+        : (name.includes("mouse") || name.includes("raton"))
+        ? "Mouse Gamer"
+        : (name.includes("teclado") || name.includes("keyboard"))
+        ? "Teclado Gamer"
+        : "Accesorio Gamer";
+
+    const brand =
+      product?.customSpecifications?.gamingAccessory?.mouse?.brand ||
+      product?.customSpecifications?.gamingAccessory?.keyboard?.brand ||
+      product?.customSpecifications?.gamingAccessory?.headset?.brand ||
+      product?.customSpecifications?.gamingAccessory?.controller?.brand ||
+      (name.includes("razer")
+        ? "Razer"
+        : name.includes("logitech")
+        ? "Logitech G"
+        : name.includes("hyperx")
+        ? "HyperX"
+        : name.includes("corsair")
+        ? "Corsair"
+        : name.includes("steelseries")
+        ? "SteelSeries"
+        : name.includes("redragon")
+        ? "Redragon"
+        : "Fabricante Oficial");
+
+    return {
+      key: "GAMING_ACCESSORY",
+      label: "Accesorios",
+      href: "/catalog?category=GAMING_ACCESSORY",
+      defaultTags: [accTypeName, brand, "Periféricos"],
+      formatLabel: product?.customCategoryLabel || "Accesorio Gaming Oficial",
+      brand,
+      bracketTag: accTypeName,
+    };
+  }
+
+  const isApparel =
+    specCat === "APPAREL" ||
+    catLabel.includes("ropa") ||
+    catLabel.includes("estilo") ||
+    catLabel.includes("poleron") ||
+    catLabel.includes("polera") ||
+    catLabel.includes("hoodie");
+
+  if (isApparel) {
+    return {
+      key: "APPAREL",
+      label: "Ropa & Estilo",
+      href: "/catalog?category=APPAREL",
+      defaultTags: ["Moda Gamer", "Ropa Urbana", "Streetwear"],
+      formatLabel: "Indumentaria Oficial Sellada",
+      brand: product?.customSpecifications?.apparel?.brand || "OmniCollector Estilo",
+      bracketTag: "Ropa & Estilo",
+    };
+  }
+
+  const isBook =
+    specCat === "BOOK" ||
+    catLabel.includes("manga") ||
+    catLabel.includes("artbook") ||
+    catLabel.includes("libro") ||
+    catLabel.includes("comic") ||
+    catLabel.includes("tomo");
+
+  if (isBook) {
+    return {
+      key: "BOOK",
+      label: "Manga & Artbooks",
+      href: "/catalog?category=BOOK",
+      defaultTags: ["Manga", "Artbook", "Lectura"],
+      formatLabel: product?.customSpecifications?.book?.binding || "Tomo Manga / Libro Oficial",
+      brand: product?.customSpecifications?.book?.publisher || "Editorial Oficial",
+      bracketTag: "Manga / Artbook",
+    };
+  }
+
+  const isMerch =
+    specCat === "MERCH" ||
+    catLabel.includes("merch") ||
+    catLabel.includes("peluche") ||
+    catLabel.includes("llavero") ||
+    catLabel.includes("taza") ||
+    catLabel.includes("decoraci");
+
+  if (isMerch) {
+    return {
+      key: "MERCH",
+      label: "Merchandising",
+      href: "/catalog?category=MERCH",
+      defaultTags: ["Merchandising", "Coleccionables", "Oficial"],
+      formatLabel: "Artículo Coleccionable Oficial",
+      brand: product?.customSpecifications?.merch?.brand || "Licencia Oficial",
+      bracketTag: "Merchandising",
+    };
+  }
+
+  const isAudio =
+    specCat === "AUDIO" ||
+    catLabel.includes("audio") ||
+    catLabel.includes("ost") ||
+    catLabel.includes("soundtrack") ||
+    catLabel.includes("vinilo");
+
+  if (isAudio) {
+    return {
+      key: "AUDIO",
+      label: "Audio / OST",
+      href: "/catalog?category=AUDIO",
+      defaultTags: ["Audio", "Banda Sonora", "Vinilo / CD"],
+      formatLabel: "Álbum / Edición Musical Oficial",
+      brand: product?.customSpecifications?.audio?.label || "Sello Musical Oficial",
+      bracketTag: "Audio / OST",
+    };
+  }
+
+  if (type === "VIDEO_GAME") {
+    return {
+      key: "VIDEO_GAME",
+      label: "Videojuegos",
+      href: "/catalog?category=VIDEO_GAME",
+      defaultTags: ["Acción", "Aventuras", "Videojuegos"],
+      formatLabel: product?.gameMetadata?.isDigital ? "Digital (Código Oficial)" : "Físico (Disco / Cartucho Sellado)",
+      brand: product?.gameMetadata?.publisher || "Publisher Oficial",
+      bracketTag: `Juego ${product?.gameMetadata?.platform || "PS5"}`,
+    };
+  }
+
+  if (type === "FIGURE") {
+    return {
+      key: "FIGURE",
+      label: "Figuras",
+      href: "/catalog?category=FIGURE",
+      defaultTags: ["Colección", "Anime", "Escala"],
+      formatLabel: `Figura Coleccionable ${product?.figureMetadata?.scale?.replace("SCALE_", "Escala ") || "1/7"}`,
+      brand: product?.figureMetadata?.manufacturer?.replace(/_/g, " ") || "Fabricante Oficial",
+      bracketTag: `Figura ${product?.figureMetadata?.scale?.replace("SCALE_", "1/") || "1/7"}`,
+    };
+  }
+
+  if (type === "COLLECTIBLE") {
+    return {
+      key: "COLLECTIBLE",
+      label: "TCG & Rarezas",
+      href: "/catalog?category=COLLECTIBLE",
+      defaultTags: ["TCG", "Graduada", "Coleccionable"],
+      formatLabel: `Carta Certificada ${product?.collectibleMetadata?.authenticationBody || "PSA"}`,
+      brand: product?.collectibleMetadata?.authenticationBody || "Certificación Oficial",
+      bracketTag: `Carta ${product?.collectibleMetadata?.authenticationBody || "PSA"}`,
+    };
+  }
+
+  if (type === "BUNDLE") {
+    return {
+      key: "BUNDLE",
+      label: "Bundles",
+      href: "/catalog?category=BUNDLE",
+      defaultTags: ["Bundle", "Pack Especial", "Ahorro"],
+      formatLabel: "Bundle Especial Compuesto",
+      brand: "OmniCollector",
+      bracketTag: "Bundle Especial",
+    };
+  }
+
+  return {
+    key: "ALL",
+    label: "Catálogo",
+    href: "/catalog",
+    defaultTags: ["Coleccionable", "Oficial"],
+    formatLabel: product?.customCategoryLabel || "Producto Oficial",
+    brand: "Fabricante Oficial",
+    bracketTag: product?.customCategoryLabel || "Producto Oficial",
+  };
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const rawSlug = (params?.slug as string) || "";
@@ -171,37 +497,49 @@ export default function ProductDetailPage() {
   const ratingMain = ratingParts[0] || "14+";
   const ratingSub = ratingParts.slice(1).join(" ") || "AÑOS O MÁS";
 
-  // Genres list
-  const genresList: string[] =
-    product.genres && product.genres.length > 0
-      ? product.genres
-      : product.type === "VIDEO_GAME"
-      ? ["Acción", "Aventuras"]
-      : product.type === "FIGURE"
-      ? ["Colección", "Anime"]
-      : ["TCG", "Graduada"];
+  // Category Classification Info
+  const categoryInfo = useMemo(() => getProductCategoryInfo(product), [product]);
+
+  // Clean Genres List (Strictly eliminates erroneous TCG/Graduada tags on non-TCG items)
+  const genresList: string[] = useMemo(() => {
+    let rawList: string[] = [];
+    if (Array.isArray(product.genres)) {
+      rawList = product.genres;
+    } else if (typeof product.genres === "string" && product.genres.trim()) {
+      rawList = product.genres.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    // Filter out erroneous TCG / Graduada tags if this product is NOT a TCG/COLLECTIBLE
+    if (categoryInfo.key !== "COLLECTIBLE") {
+      rawList = rawList.filter((g: string) => {
+        const lower = g.toLowerCase();
+        return (
+          !lower.includes("tcg") &&
+          !lower.includes("graduada") &&
+          !lower.includes("gem mint") &&
+          !lower.includes("psa") &&
+          !lower.includes("bgs") &&
+          !lower.includes("cgc")
+        );
+      });
+    }
+
+    if (rawList.length > 0) {
+      return rawList;
+    }
+
+    return categoryInfo.defaultTags;
+  }, [product.genres, categoryInfo]);
 
   // Technical Specifications List
   const technicalSpecs = [
     {
       label: "Formato Producto",
-      value:
-        product.type === "VIDEO_GAME"
-          ? product.gameMetadata?.isDigital
-            ? "Digital (Código Oficial)"
-            : "Físico (Disco / Cartucho Sellado)"
-          : product.type === "FIGURE"
-          ? `Figura Coleccionable ${product.figureMetadata?.scale?.replace("SCALE_", "Escala ") || "1/7"}`
-          : product.type === "COLLECTIBLE"
-          ? `Carta Certificada ${product.collectibleMetadata?.authenticationBody || "PSA"}`
-          : "Bundle Especial Compuesto",
+      value: categoryInfo.formatLabel,
     },
     {
-      label: "Fabricante/Publisher",
-      value:
-        product.gameMetadata?.publisher ||
-        product.figureMetadata?.manufacturer?.replace(/_/g, " ") ||
-        (product.type === "COLLECTIBLE" ? product.collectibleMetadata?.authenticationBody : "OmniCollector"),
+      label: "Fabricante / Marca",
+      value: categoryInfo.brand,
     },
     ...(product.gameMetadata?.audioLanguages
       ? [{ label: "Idioma Audio", value: product.gameMetadata.audioLanguages }]
@@ -881,19 +1219,19 @@ export default function ProductDetailPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Top Header & Breadcrumbs & Admin Actions */}
       <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-[#E5E5E5]">
-        <div className="flex items-center gap-2 text-xs text-[#666666]">
-          <Link href="/" className="hover:text-[#1A1A1A] transition">
+        <nav aria-label="Ruta jerárquica" className="flex items-center gap-2 text-xs text-[#666666] flex-wrap">
+          <Link href="/" className="hover:text-[#1A1A1A] transition font-medium">
             Inicio
           </Link>
-          <span>/</span>
-          <Link href="/catalog" className="hover:text-[#1A1A1A] transition">
-            Catálogo
+          <span className="text-gray-300">/</span>
+          <Link href={categoryInfo.href} className="hover:text-[#FF6B35] transition font-medium">
+            {categoryInfo.label}
           </Link>
-          <span>/</span>
-          <span className="text-[#FF6B35] font-semibold font-mono">{product.sku}</span>
-        </div>
-
-
+          <span className="text-gray-300">/</span>
+          <span className="text-[#FF6B35] font-semibold truncate max-w-[280px] sm:max-w-[450px]" title={product.name}>
+            {product.name}
+          </span>
+        </nav>
       </div>
 
       {/* Product SKU Top Pill & H1 Title */}
@@ -905,15 +1243,7 @@ export default function ProductDetailPage() {
           {product.name}
           {!product.name.includes("[") && (
             <span className="text-[#FF6B35] font-normal ml-2 text-xl sm:text-2xl">
-              [
-              {product.type === "VIDEO_GAME"
-                ? `Juego ${product.gameMetadata?.platform || "PS5"}`
-                : product.type === "FIGURE"
-                ? `Figura ${product.figureMetadata?.scale?.replace("SCALE_", "1/") || "1/7"}`
-                : product.type === "COLLECTIBLE"
-                ? `Carta ${product.collectibleMetadata?.authenticationBody || "PSA"}`
-                : "Bundle Especial"}
-              ]
+              [{categoryInfo.bracketTag}]
             </span>
           )}
         </h1>

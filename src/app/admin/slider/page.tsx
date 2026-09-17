@@ -32,7 +32,6 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { DEFAULT_PROMO_SLIDES, PromoSlideData } from "@/lib/constants/sliderDefaults";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 
@@ -58,7 +57,7 @@ export default function AdminSliderPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
-  const [catalogProducts, setCatalogProducts] = useState<any[]>(BASE_PRODUCTS);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [productSearch, setProductSearch] = useState<string>("");
   const [showAdvancedOverrides, setShowAdvancedOverrides] = useState<boolean>(false);
 

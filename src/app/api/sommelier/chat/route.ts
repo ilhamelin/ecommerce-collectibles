@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { adminDb } from "@/lib/firebase/admin";
 import { db, isFirebaseConfigured } from "@/lib/firebase/config";
@@ -54,11 +53,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Retrieve active catalog products from Firestore and base catalog
+    // Retrieve active catalog products from Firestore
     const firestoreProducts = await getProductsFromFirestore(false);
-    const allProducts = (
-      firestoreProducts && firestoreProducts.length > 0 ? firestoreProducts : BASE_PRODUCTS
-    ) as any[];
+    const allProducts = (firestoreProducts || []) as any[];
 
     // Build structured inventory index with SKU, name, price CLP, category, platform, and stock
     const inventoryListText = allProducts

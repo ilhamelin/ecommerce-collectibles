@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { getProductsFromFirestore, getAllOrdersFromFirestore } from "@/lib/firebase/firestore";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { alertService } from "@/lib/services/alertService";
@@ -73,9 +72,7 @@ export interface SkuPredictiveMetric {
 async function computeInventoryMetrics() {
   // 1. Fetch products
   const firestoreProducts = await getProductsFromFirestore(false);
-  const allProducts = (
-    firestoreProducts && firestoreProducts.length > 0 ? firestoreProducts : BASE_PRODUCTS
-  ) as ProductDomainEntity[];
+  const allProducts = (firestoreProducts || []) as ProductDomainEntity[];
 
   // 2. Fetch orders
   let orders: ConfirmedOrderEntity[] = await getAllOrdersFromFirestore();

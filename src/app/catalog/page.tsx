@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { formatCLP } from "@/lib/utils/currency";
-import { BASE_PRODUCTS, PRICE_PRESETS } from "@/lib/constants/catalog";
+import { PRICE_PRESETS } from "@/lib/constants/catalog";
 import { ProductDomainEntity } from "@/lib/types/domain";
 import { VisualSearchModal } from "@/components/catalog/VisualSearchModal";
 
@@ -124,7 +124,8 @@ function CatalogContent() {
   const qParam = searchParams.get("q") || searchParams.get("search") || searchParams.get("tag") || "";
   const platformParam = searchParams.get("platform") || "ALL";
 
-  const [products, setProducts] = useState<ProductDomainEntity[]>(BASE_PRODUCTS as any);
+  const [products, setProducts] = useState<ProductDomainEntity[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
   const [searchQuery, setSearchQuery] = useState<string>(qParam);
   const [sortBy, setSortBy] = useState<"FEATURED" | "PRICE_ASC" | "PRICE_DESC" | "PREORDER_FIRST">("FEATURED");
@@ -164,9 +165,10 @@ function CatalogContent() {
     if (platformParam !== "ALL") setPlatformFilter(platformParam);
   }, [categoryParam, qParam, platformParam]);
 
-  // Fetch updated catalog from backend
+  // Fetch updated catalog strictly from backend database
   useEffect(() => {
-    fetch(`/api/products?t=${Date.now()}`, {
+    setLoading(true);
+    fetch(`/api/products?fresh=true&t=${Date.now()}`, {
       cache: "no-store",
       headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
     })
@@ -176,7 +178,8 @@ function CatalogContent() {
           setProducts(data.data.products);
         }
       })
-      .catch((err) => console.error("Could not fetch latest products", err));
+      .catch((err) => console.error("Could not fetch latest products", err))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleCategoryChange = (categoryKey: string) => {
@@ -1196,7 +1199,7 @@ function CatalogContent() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
               <input
                 type="text"
-                placeholder="Buscar por nombre, SKU (ej. FIG-MAKIMA-17), escala o saga..."
+                placeholder="Buscar por nombre, SKU (ej. VG-FORZAH6-PS5), categoría o saga..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-[#1A1A1A] placeholder-[#666666]/60 text-xs focus:outline-none focus:border-[#FF6B35] transition shadow-sm"
@@ -1350,11 +1353,17 @@ function CatalogContent() {
 
           {/* Product Grid */}
           <div ref={catalogGridRef} className="scroll-mt-6">
-            {paginatedProducts.length > 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="h-96 bg-stone-100 animate-pulse rounded-2xl border border-stone-200" />
+                ))}
+              </div>
+            ) : paginatedProducts.length > 0 ? (
               <div className="space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6">
                   {paginatedProducts.map((product) => (
-                    <ProductCard key={product.sku} product={product} />
+                    <ProductCard key={product.sku || product.id} product={product} />
                   ))}
                 </div>
 

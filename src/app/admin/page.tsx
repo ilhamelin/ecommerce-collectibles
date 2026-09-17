@@ -36,7 +36,6 @@ import {
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { ConfirmedOrderEntity, ProductDomainEntity } from "@/lib/types/domain";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 
 type PeriodFilter = "ALL" | "MONTH" | "WEEK" | "TODAY";
 
@@ -146,7 +145,7 @@ export default function AdminDashboardPage() {
       if (productsData.success && Array.isArray(productsData.data?.products)) {
         setProducts(productsData.data.products);
       } else {
-        setProducts(BASE_PRODUCTS as any);
+        setProducts([]);
       }
 
       // 3. Load DB backups & snapshots

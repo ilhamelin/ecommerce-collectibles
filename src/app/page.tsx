@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { formatCLP } from "@/lib/utils/currency";
 
 // Quick-nav categories with vibrant icons and badges
@@ -174,68 +173,28 @@ const TABS = [
 ];
 
 export default function StorefrontHomePage() {
-  const [products, setProducts] = useState<any[]>(BASE_PRODUCTS);
+  const [products, setProducts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<string>("ALL");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch updated products from API, falling back safely to rich BASE_PRODUCTS
+  // Fetch real products from database API
   useEffect(() => {
-    fetch("/api/products")
+    setIsLoading(true);
+    fetch(`/api/products?fresh=true&t=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && Array.isArray(data.data?.products) && data.data.products.length > 0) {
-          // Merge API products with BASE_PRODUCTS to preserve full high-res images and metadata
-          const apiProducts = data.data.products;
-          const merged = [...apiProducts];
-          BASE_PRODUCTS.forEach((bp) => {
-            if (!merged.some((p) => p.sku === bp.sku || p.id === bp.id)) {
-              merged.push(bp);
-            }
-          });
-          setProducts(merged);
+        if (data.success && Array.isArray(data.data?.products)) {
+          setProducts(data.data.products);
         }
       })
-      .catch((err) => console.error("Error cargando productos:", err));
+      .catch((err) => console.error("Error cargando productos de la base de datos:", err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   // Products filtered by selected tab
   const tabFilteredProducts = useMemo(() => {
     if (activeTab === "ALL") {
-      // Pick a balanced curated mix from all categories
-      const featured: any[] = [];
-      const types = [
-        "FIGURE",
-        "VIDEO_GAME",
-        "COLLECTIBLE",
-        "BUNDLE",
-        "CONSOLE",
-        "HARDWARE",
-        "GAMING_ACCESSORY",
-        "APPAREL",
-        "BOOK",
-        "MERCH",
-        "AUDIO",
-      ];
-      types.forEach((t) => {
-        const found = products.filter((p) => {
-          if (p.type === t) return true;
-          if (p.type === "OTHER") {
-            const cat = (p.customSpecifications?.categoryType || "").toUpperCase();
-            if (cat === t) return true;
-            const lbl = (p.customCategoryLabel || "").toLowerCase();
-            if (t === "GAMING_ACCESSORY" && (lbl.includes("accesorio") || p.type === "ACCESSORY")) return true;
-            if (t === "CONSOLE" && lbl.includes("consola")) return true;
-            if (t === "HARDWARE" && lbl.includes("hardware")) return true;
-            if (t === "APPAREL" && (lbl.includes("ropa") || lbl.includes("estilo"))) return true;
-            if (t === "BOOK" && (lbl.includes("manga") || lbl.includes("artbook"))) return true;
-            if (t === "MERCH" && lbl.includes("merch")) return true;
-            if (t === "AUDIO" && (lbl.includes("audio") || lbl.includes("ost"))) return true;
-          }
-          return false;
-        }).slice(0, 2);
-        featured.push(...found);
-      });
-      return featured.slice(0, 8);
+      return products;
     }
     return products.filter((p) => {
       if (p.type === activeTab) return true;
@@ -252,7 +211,7 @@ export default function StorefrontHomePage() {
         if (activeTab === "AUDIO" && (lbl.includes("audio") || lbl.includes("ost"))) return true;
       }
       return false;
-    }).slice(0, 8);
+    });
   }, [products, activeTab]);
 
   // Dedicated sections
@@ -373,42 +332,58 @@ export default function StorefrontHomePage() {
         </div>
 
         {/* Responsive 4-Column Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {tabFilteredProducts.map((prod) => (
-            <ProductCard key={prod.id || prod.sku} product={prod} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="h-80 bg-stone-100 animate-pulse rounded-2xl border border-stone-200" />
+            ))}
+          </div>
+        ) : tabFilteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {tabFilteredProducts.map((prod) => (
+              <ProductCard key={prod.id || prod.sku} product={prod} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-stone-300">
+            <Package className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-stone-600">No hay productos disponibles en esta categoría por el momento.</p>
+            <p className="text-xs text-stone-400 mt-1">Los productos creados desde el panel de administración aparecerán aquí automáticamente.</p>
+          </div>
+        )}
       </section>
 
       {/* 4. SECTION: JAPANESE FIGURES & NENDOROIDS (PREVENTAS) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Clock className="w-3.5 h-3.5" /> Importación Japón • Preventas
+      {preOrderFigures.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
+                <Clock className="w-3.5 h-3.5" /> Importación Japón • Preventas
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
+                Figuras de Escala & Nendoroids Oficiales
+              </h2>
+              <p className="text-xs text-[#666666] mt-0.5">
+                Asegura tu cupo con solo el 20% o 30% inicial en CLP. Saldo diferido cuando el lote arribe a Chile.
+              </p>
             </div>
-            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Figuras de Escala & Nendoroids Oficiales
-            </h2>
-            <p className="text-xs text-[#666666] mt-0.5">
-              Asegura tu cupo con solo el 20% o 30% inicial en CLP. Saldo diferido cuando el lote arribe a Chile.
-            </p>
+
+            <Link
+              href="/catalog?category=FIGURE"
+              className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            >
+              Ver Todas las Figuras <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <Link
-            href="/catalog?category=FIGURE"
-            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
-          >
-            Ver Todas las Figuras <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {preOrderFigures.map((fig) => (
-            <ProductCard key={fig.id || fig.sku} product={fig} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {preOrderFigures.map((fig) => (
+              <ProductCard key={fig.id || fig.sku} product={fig} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 5. DUAL PROMOTIONAL CALLOUT BANNER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -466,94 +441,100 @@ export default function StorefrontHomePage() {
       </section>
 
       {/* 6. SECTION: VIDEO GAMES (PHYSICAL EDITIONS) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Gamepad2 className="w-3.5 h-3.5" /> Videojuegos Físicos
+      {videoGames.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
+                <Gamepad2 className="w-3.5 h-3.5" /> Videojuegos Físicos
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
+                Ediciones Físicas Selladas para PlayStation, Switch & Xbox
+              </h2>
+              <p className="text-xs text-[#666666] mt-0.5">
+                Juegos originales nuevos de fábrica, ediciones estándar y de coleccionista listas para despacho en 24h.
+              </p>
             </div>
-            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Ediciones Físicas Selladas para PlayStation, Switch & Xbox
-            </h2>
-            <p className="text-xs text-[#666666] mt-0.5">
-              Juegos originales nuevos de fábrica, ediciones estándar y de coleccionista listas para despacho en 24h.
-            </p>
+
+            <Link
+              href="/catalog?category=VIDEO_GAME"
+              className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            >
+              Ver Todos los Juegos <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <Link
-            href="/catalog?category=VIDEO_GAME"
-            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
-          >
-            Ver Todos los Juegos <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {videoGames.map((game) => (
-            <ProductCard key={game.id || game.sku} product={game} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {videoGames.map((game) => (
+              <ProductCard key={game.id || game.sku} product={game} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 7. SECTION: TCG & PSA GRADED CARDS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Trophy className="w-3.5 h-3.5" /> Coleccionismo Certificado
+      {tcgCollectibles.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
+                <Trophy className="w-3.5 h-3.5" /> Coleccionismo Certificado
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
+                Cartas PSA Mint & Sellados de Inversión
+              </h2>
+              <p className="text-xs text-[#666666] mt-0.5">
+                Piezas de colección de alta gama: Pokémon Base Set, Magic The Gathering y rarezas con autenticación garantizada.
+              </p>
             </div>
-            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Cartas PSA Mint & Sellados de Inversión
-            </h2>
-            <p className="text-xs text-[#666666] mt-0.5">
-              Piezas de colección de alta gama: Pokémon Base Set, Magic The Gathering y rarezas con autenticación garantizada.
-            </p>
+
+            <Link
+              href="/catalog?category=COLLECTIBLE"
+              className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            >
+              Ver Coleccionables <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <Link
-            href="/catalog?category=COLLECTIBLE"
-            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
-          >
-            Ver Coleccionables <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {tcgCollectibles.map((col) => (
-            <ProductCard key={col.id || col.sku} product={col} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {tcgCollectibles.map((col) => (
+              <ProductCard key={col.id || col.sku} product={col} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 8. SECTION: BUNDLES & CONSOLES / ACCESSORIES */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
-              <Layers className="w-3.5 h-3.5" /> Bundles & Hardware
+      {(bundles.length > 0 || consolesAndAccessories.length > 0) && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#E5E5E5] pb-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-[#FF6B35] font-bold text-xs uppercase tracking-wider">
+                <Layers className="w-3.5 h-3.5" /> Bundles & Hardware
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
+                Packs con Ahorro, Consolas & Accesorios Pro
+              </h2>
+              <p className="text-xs text-[#666666] mt-0.5">
+                Ahorra hasta $25.000 CLP en paquetes unificados o equipa tu setup con periféricos y consolas originales.
+              </p>
             </div>
-            <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight mt-1">
-              Packs con Ahorro, Consolas & Accesorios Pro
-            </h2>
-            <p className="text-xs text-[#666666] mt-0.5">
-              Ahorra hasta $25.000 CLP en paquetes unificados o equipa tu setup con periféricos y consolas originales.
-            </p>
+
+            <Link
+              href="/catalog?category=BUNDLE"
+              className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
+            >
+              Ver Todos los Bundles <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <Link
-            href="/catalog?category=BUNDLE"
-            className="text-xs font-bold text-[#FF6B35] hover:text-[#E85A24] flex items-center gap-1 transition"
-          >
-            Ver Todos los Bundles <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {bundles.concat(consolesAndAccessories).slice(0, 4).map((item) => (
-            <ProductCard key={item.id || item.sku} product={item} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {bundles.concat(consolesAndAccessories).slice(0, 4).map((item) => (
+              <ProductCard key={item.id || item.sku} product={item} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 9. THE OMNICOLLECTOR STANDARD (VALUE PROPOSITION) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -748,7 +729,7 @@ export default function StorefrontHomePage() {
               ))}
             </div>
             <p className="text-xs text-[#666666] leading-relaxed italic">
-              &quot;Compré la carta de Charizard certificada PSA y llegó en menos de 24 horas por Starken express a Viña. La autenticidad se pudo comprobar en la web de PSA de inmediato.&quot;
+              &quot;Compré mi juego físico sellado y llegó en menos de 24 horas por Starken express a Viña. El embalaje de protección es impecable y la boleta venía al día.&quot;
             </p>
             <div className="pt-2 border-t border-[#E5E5E5] flex items-center justify-between">
               <div>

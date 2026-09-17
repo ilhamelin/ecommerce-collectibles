@@ -25,7 +25,6 @@ import {
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { RelatedProductsSlider } from "@/components/catalog/RelatedProductsSlider";
 import { analytics } from "@/lib/services/AnalyticsTracker";
 import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
@@ -33,8 +32,6 @@ import { HolographicCard } from "@/components/catalog/HolographicCard";
 import { InspectionZoom } from "@/components/product/InspectionZoom";
 import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
 import { ProductAlertSubscription } from "@/components/product/ProductAlertSubscription";
-
-const CATALOG_ITEMS = BASE_PRODUCTS;
 
 function getProductCategoryInfo(product: any) {
   if (!product) {
@@ -369,15 +366,8 @@ export default function ProductDetailPage() {
   const rawSlug = (params?.slug as string) || "";
   const slug = rawSlug.toLowerCase();
 
-  const staticProduct = CATALOG_ITEMS.find(
-    (item) =>
-      item.sku.toLowerCase() === slug ||
-      item.id === slug ||
-      item.sku.toLowerCase().replace(/_/g, "-") === slug
-  );
-
-  const [product, setProduct] = useState<any>(staticProduct || null);
-  const [loading, setLoading] = useState<boolean>(!staticProduct);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [allCatalogProducts, setAllCatalogProducts] = useState<any[]>([]);
 
   const { addItem } = useCartStore();

@@ -63,9 +63,13 @@ export async function getProductsFromFirestore(bypassCache = false): Promise<Pro
       }
     }
 
-    if (result && result.length > 0) {
+    if (result) {
       productsCache = { data: result, cachedAt: Date.now() };
       return result;
+    }
+
+    if ((typeof window === "undefined" && adminDb) || (db && isFirebaseConfigured())) {
+      return [];
     }
 
     return null;

@@ -42,7 +42,6 @@ import {
 } from "lucide-react";
 import { useAuthStore, UserAddress, SavedPaymentMethod } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { formatCLP } from "@/lib/utils/currency";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 
@@ -82,7 +81,7 @@ function AccountContent() {
   const { addItem } = useCartStore();
 
   const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS">("ORDERS");
-  const [catalogProducts, setCatalogProducts] = useState<any[]>(BASE_PRODUCTS);
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   const [addedWishlistId, setAddedWishlistId] = useState<string | null>(null);
 
   // Live Alerts State (Stock & Price Drops subscribed by user)

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BASE_PRODUCTS } from "@/lib/constants/catalog";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +35,9 @@ export async function POST(req: NextRequest) {
       ? imageBase64.split(",")[1]
       : imageBase64;
 
-    // Retrieve active catalog products from Firestore and base catalog
+    // Retrieve active catalog products from Firestore
     const firestoreProducts = await getProductsFromFirestore(false);
-    const allProducts = (firestoreProducts && firestoreProducts.length > 0 ? firestoreProducts : BASE_PRODUCTS) as any[];
+    const allProducts = (firestoreProducts || []) as any[];
 
     // Build a clean, structured inventory index to ground Gemini Vision with real store products
     const inventoryListText = allProducts

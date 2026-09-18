@@ -33,6 +33,10 @@ import { InspectionZoom } from "@/components/product/InspectionZoom";
 import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
 import { ProductAlertSubscription } from "@/components/product/ProductAlertSubscription";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { DigitalPassportCard } from "@/components/trust/DigitalPassportCard";
+import { TcgMarketPriceTracker } from "@/components/product/TcgMarketPriceTracker";
+import { generateDigitalPassport } from "@/lib/utils/passport";
+import { generateTcgMarketPriceGuide } from "@/lib/utils/priceTracker";
 
 
 export default function ProductDetailPage() {
@@ -165,6 +169,22 @@ export default function ProductDetailPage() {
 
   // Category Classification Info
   const categoryInfo = getProductCategoryInfo(product);
+
+  // Digital Authenticity Passport (Anti-Bootleg Guarantee)
+  const passport = useMemo(() => {
+    if (!product) return null;
+    return product.authenticityPassport || generateDigitalPassport(product);
+  }, [product]);
+
+  // Real-Time TCG Market Price Guide Tracker
+  const marketPriceGuide = useMemo(() => {
+    if (!product) return null;
+    const isTcgOrCollectible =
+      categoryInfo.key === "COLLECTIBLE" ||
+      Boolean(product.collectibleMetadata);
+    if (!isTcgOrCollectible) return null;
+    return product.marketPriceGuide || generateTcgMarketPriceGuide(product);
+  }, [product, categoryInfo.key]);
 
   // Clean Genres List (Strictly eliminates erroneous TCG/Graduada tags on non-TCG items)
   let rawList: string[] = [];
@@ -1229,6 +1249,15 @@ export default function ProductDetailPage() {
               ))}
             </div>
           </div>
+
+          {/* Digital Authenticity Passport (Anti-Bootleg Guarantee) */}
+          {passport && (
+            <DigitalPassportCard
+              passport={passport}
+              productName={product.name}
+              sku={product.sku}
+            />
+          )}
         </div>
       </div>
 
@@ -1245,6 +1274,14 @@ export default function ProductDetailPage() {
             {product.description}
           </div>
         </div>
+
+        {/* Real-Time TCG Market Price Tracker & Valuation Guide */}
+        {marketPriceGuide && (
+          <TcgMarketPriceTracker
+            guide={marketPriceGuide}
+            productName={product.name}
+          />
+        )}
 
         {/* In-Game Screenshots / Content Gallery with Interactive Viewer */}
         {contentGallery.length > 0 && (

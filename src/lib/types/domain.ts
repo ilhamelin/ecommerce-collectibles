@@ -181,6 +181,70 @@ export interface ProductDomainEntity {
   createdAt?: string;
   customCategoryLabel?: string;
   customSpecifications?: CustomCategorySpecifications;
+  authenticityPassport?: DigitalAuthenticityPassport;
+  marketPriceGuide?: TcgMarketPriceGuide;
+}
+
+export interface ProvenanceMilestone {
+  stepNumber: number;
+  title: string;
+  timestamp: string;
+  actor: string;
+  location: string;
+  description: string;
+  status: "VERIFIED" | "PENDING";
+  verificationProofHash: string;
+}
+
+export interface DigitalAuthenticityPassport {
+  passportId: string;
+  verificationHash: string;
+  issuedAt: string;
+  issuer: string;
+  antiBootlegScore: number;
+  batchSerialNumber: string;
+  originCountry: string;
+  manufacturerOrPublisher: string;
+  provenanceMilestones: ProvenanceMilestone[];
+  tamperProofQrUrl: string;
+  nfcTagUid?: string;
+  mintBoxWarranty: string;
+}
+
+export interface TcgPriceHistoryPoint {
+  date: string;
+  label: string;
+  priceClp: number;
+  volume: number;
+}
+
+export interface TcgGradeComparison {
+  grade: string;
+  label: string;
+  estimatedPriceClp: number;
+  isCurrentItem: boolean;
+  multiplierVsRaw: number;
+}
+
+export interface TcgBenchmarkSale {
+  date: string;
+  platform: string;
+  grade: string;
+  priceClp: number;
+  verified: boolean;
+}
+
+export interface TcgMarketPriceGuide {
+  estimatedFmvClp: number;
+  estimatedFmvUsd: number;
+  change30dPercent: number;
+  change90dPercent: number;
+  change1yPercent: number;
+  liquidityRating: "ALTA" | "MEDIA" | "EXTREMA";
+  priceHistory: TcgPriceHistoryPoint[];
+  gradesComparison: TcgGradeComparison[];
+  recentBenchmarkSales: TcgBenchmarkSale[];
+  lastUpdated: string;
 }
 
 export interface ConsoleSpecifications {

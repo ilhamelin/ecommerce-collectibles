@@ -80,7 +80,8 @@ export async function initiatePaymentGateway(
   }
 
   // 4. Realistic Interactive Sandbox Simulator
-    // (Used when Mercado Pago credentials are not yet pasted in .env.local)
+  // (Used when Mercado Pago credentials are not yet pasted in .env.local)
+  if (method === "MERCADO_PAGO" || method === "WEBPAY") {
     const simulatedUrl = `/checkout/sandbox-payment?orderId=${encodeURIComponent(order.id)}&amount=${Math.round(order.totalChargedNow)}`;
     return {
       requiresRedirect: true,

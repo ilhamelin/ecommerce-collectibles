@@ -56,11 +56,19 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Handle Real Mercado Pago IPN Webhook
-    // Mercado Pago can send either query params (topic=payment&id=123) or json body (type=payment, data.id=123)
-    const topic = body.type || body.topic || searchParams.get("topic") || searchParams.get("type");
-    const paymentId = body.data?.id || body.id || searchParams.get("id") || searchParams.get("data.id");
+    // Mercado Pago can send query params (topic=payment&id=123), json body (type=payment, data.id=123), or action (payment.created)
+    const action = body.action;
+    const topic = body.type || body.topic || searchParams.get("topic") || searchParams.get("type") || (action?.startsWith("payment") ? "payment" : undefined);
+    let paymentId = body.data?.id || body.id || searchParams.get("id") || searchParams.get("data.id");
 
-    if (topic === "payment" && paymentId) {
+    if (!paymentId && body.resource && typeof body.resource === "string") {
+      const match = body.resource.match(/payments\/(\d+)/);
+      if (match) {
+        paymentId = match[1];
+      }
+    }
+
+    if ((topic === "payment" || action?.startsWith("payment")) && paymentId) {
       const payment = await getMercadoPagoPayment(paymentId);
       if (!payment) {
         return NextResponse.json({ error: "No se pudo consultar el pago" }, { status: 404 });

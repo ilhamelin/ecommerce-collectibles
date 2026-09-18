@@ -13,13 +13,16 @@ export function isMercadoPagoConfigured(): boolean {
  * Singleton instance of Mercado Pago Client
  */
 let mpClientInstance: MercadoPagoConfig | null = null;
+let cachedToken: string | null = null;
 
 export function getMercadoPagoClient(): MercadoPagoConfig | null {
   if (!isMercadoPagoConfigured()) return null;
 
-  if (!mpClientInstance) {
+  const currentToken = process.env.MERCADOPAGO_ACCESS_TOKEN!.trim();
+  if (!mpClientInstance || cachedToken !== currentToken) {
+    cachedToken = currentToken;
     mpClientInstance = new MercadoPagoConfig({
-      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!.trim(),
+      accessToken: currentToken,
       options: {
         timeout: 10000,
         idempotencyKey: `mp-client-${Date.now()}`,

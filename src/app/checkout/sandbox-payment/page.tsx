@@ -73,7 +73,10 @@ function SandboxPaymentContent() {
       // Simulate normal checkout payment confirmation via webhook/update endpoint
       const response = await fetch("/api/checkout/mercadopago/webhook", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-simulation-key": "omnicollector-sandbox-key",
+        },
         body: JSON.stringify({
           type: "payment",
           action: "payment.created",

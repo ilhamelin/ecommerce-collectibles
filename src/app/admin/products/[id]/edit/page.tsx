@@ -51,6 +51,7 @@ import { CustomSpecificationsForm } from "@/components/admin/CustomSpecification
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
+import { catalogClient } from "@/lib/services/catalogClient";
 import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
 
 const CUSTOM_CATEGORY_PRESETS = [
@@ -799,6 +800,7 @@ export default function EditProductAdminPage() {
         );
       }
 
+      catalogClient.invalidateCache();
       setSuccessMsg(`¡Producto ${sku} actualizado con éxito! Los cambios ya están disponibles en el catálogo.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error inesperado al actualizar el producto.";

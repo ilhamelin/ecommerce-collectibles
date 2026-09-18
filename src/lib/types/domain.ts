@@ -400,15 +400,19 @@ export interface GpuSpecifications {
   memory: string; // Memoria (ej. 12 GB GDDR6 / 16 GB GDDR6X)
   bus: string; // Bus (ej. 192-bit / 256-bit)
   coreClocks: string; // Frecuencias core (base / boost / OC) (ej. Base 2160 MHz / Boost 2550 MHz)
+  coreFrequencies?: string; // Alias de compatibilidad
   memoryClock: string; // Frecuencia memorias (ej. 21 Gbps / 2000 MHz)
+  memoryFrequency?: string; // Alias de compatibilidad
   // Avanzadas
   coreName?: string; // Núcleo (ej. GB205 / AD104)
+  core?: string; // Alias de compatibilidad
   profile?: string; // Perfil (ej. Estándar / Low Profile)
   cooling?: string; // Refrigeración (ej. Dual Fan / Triple Fan / Waterblock)
   slots?: string; // Slots (ej. 2 Slots / 2.5 Slots / 3 Slots)
   length?: string; // Largo (ej. 242 mm / 300 mm)
   lighting?: string; // Iluminación (ej. ARGB Aura Sync / Mystic Light / Sin RGB)
   hasBackplate?: string; // ¿Backplate? (ej. Sí, de aluminio reforzado)
+  backplate?: string; // Alias de compatibilidad
   powerConnectors?: string; // Conectores de poder (ej. 1x 16-pin 12V-2x6 / 2x 8-pin)
   videoPorts?: string; // Puertos de video (ej. 3x DisplayPort 1.4a, 1x HDMI 2.1a)
 }
@@ -422,6 +426,7 @@ export interface CpuSpecifications {
   socket: string; // Socket (ej. AM5 / LGA1700 / LGA1851)
   // Avanzadas
   coreName?: string; // Núcleo (ej. Zen 4 / Raptor Lake Refresh)
+  core?: string; // Alias de compatibilidad
   manufacturingProcess?: string; // Proceso de manufactura (ej. 5 nm TSMC / Intel 7)
   tdp?: string; // TDP (ej. 65W / 125W / 170W)
   cooler?: string; // Cooler (ej. Incluido Wraith Stealth / No incluido)
@@ -457,6 +462,7 @@ export interface RamSpecifications {
   // Avanzadas
   voltage?: string; // Voltaje (ej. 1.35 V)
   latencyClCas?: string; // Latencia Cl (CAS) (ej. CL30 / CL36)
+  casLatency?: string; // Alias de compatibilidad
   latencyTrcd?: string; // Latencia Trcd (ej. 36)
   latencyTrp?: string; // Latencia Trp (ej. 36)
   latencyTras?: string; // Latencia Tras (ej. 76)
@@ -517,11 +523,16 @@ export interface CoolerCpuSpecifications {
 }
 
 export interface CabinetSpecifications {
+  brand?: string;
+  model?: string;
   format?: string;
   motherboardSupport?: string;
   sidePanel?: string;
+  maxGpuLength?: string;
   gpuMaxDimensions?: string;
+  maxCoolerHeight?: string;
   cpuCoolerMaxHeight?: string;
+  radiatorSupport?: string;
 }
 
 export interface FanSpecifications {

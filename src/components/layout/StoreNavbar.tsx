@@ -33,9 +33,12 @@ import {
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
-import { formatCLP } from "@/lib/utils/currency";
 import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { catalogClient } from "@/lib/services/catalogClient";
+import { formatCLP } from "@/lib/utils/currency";
+
+let cachedBranding: StoreBrandingData | null = null;
 
 export function StoreNavbar() {
   const pathname = usePathname();
@@ -95,45 +98,55 @@ export function StoreNavbar() {
     };
   }, [isDropdownOpen]);
 
-  // Fetch dynamic product counts per category
+  // Fetch dynamic product counts per category with in-flight deduplication & micro-cache
   useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data?.products)) {
-          const prods = data.data.products;
-          const counts: Record<string, number> = {
-            VIDEO_GAME: 0,
-            FIGURE: 0,
-            COLLECTIBLE: 0,
-            BUNDLE: 0,
-            CONSOLE: 0,
-            HARDWARE: 0,
-            GAMING_ACCESSORY: 0,
-            APPAREL: 0,
-            BOOK: 0,
-            MERCH: 0,
-            AUDIO: 0,
-            OTHER: 0,
-            ALL: prods.length,
-          };
-          for (const p of prods) {
-            const catKey = getProductCategoryInfo(p).key;
-            if (counts[catKey] !== undefined) {
-              counts[catKey]++;
-            } else {
-              counts.OTHER++;
-            }
+    let isCancelled = false;
+
+    catalogClient.getCatalog()
+      .then((prods) => {
+        if (isCancelled || !Array.isArray(prods)) return;
+        const counts: Record<string, number> = {
+          VIDEO_GAME: 0,
+          FIGURE: 0,
+          COLLECTIBLE: 0,
+          BUNDLE: 0,
+          CONSOLE: 0,
+          HARDWARE: 0,
+          GAMING_ACCESSORY: 0,
+          APPAREL: 0,
+          BOOK: 0,
+          MERCH: 0,
+          AUDIO: 0,
+          OTHER: 0,
+          ALL: prods.length,
+        };
+        for (const p of prods) {
+          const catKey = getProductCategoryInfo(p).key;
+          if (counts[catKey] !== undefined) {
+            counts[catKey]++;
+          } else {
+            counts.OTHER++;
           }
-          setCategoryCounts(counts);
         }
+        setCategoryCounts(counts);
       })
       .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     setMounted(true);
-    // Fetch live branding settings
+
+    // Reuse in-memory branding if already retrieved
+    if (cachedBranding) {
+      setBranding(cachedBranding);
+      return;
+    }
+
+    // Fetch live branding settings once
     fetch("/api/admin/branding")
       .then((res) => {
         if (!res.ok) throw new Error("Branding fetch failed");
@@ -142,6 +155,7 @@ export function StoreNavbar() {
       .then((data) => {
         const brand = data?.data?.branding || data?.branding;
         if (brand) {
+          cachedBranding = brand;
           setBranding(brand);
         }
       })

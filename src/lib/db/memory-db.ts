@@ -4,6 +4,7 @@ import {
   PreOrderDepositEntity,
   ConfirmedOrderEntity,
 } from "../types/domain";
+import { TEST_MOCK_PRODUCTS } from "../constants/testProducts";
 
 export interface StoredIdempotencyRecord {
   key: string;
@@ -167,7 +168,13 @@ export class MemoryTransactionalStore {
   }
 
   public seedDefaultProducts(): void {
-    // Inicia limpio: el catálogo se nutre exclusivamente de Firestore
     this.products.clear();
+    // In production and development, catalog is populated live from Cloud Firestore.
+    // In unit test environment (NODE_ENV === 'test'), seed isolated test mocks.
+    if (process.env.NODE_ENV === "test") {
+      for (const item of TEST_MOCK_PRODUCTS) {
+        this.products.set(item.id, JSON.parse(JSON.stringify(item)));
+      }
+    }
   }
 }

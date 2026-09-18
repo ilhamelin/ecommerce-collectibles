@@ -53,6 +53,7 @@ import { CustomSpecificationsForm } from "@/components/admin/CustomSpecification
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
+import { catalogClient } from "@/lib/services/catalogClient";
 import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
 
 const CUSTOM_CATEGORY_PRESETS = [
@@ -970,6 +971,9 @@ export default function NewProductAdminPage() {
         setErrorMsg(data.error || "Ocurrió un error al registrar el producto");
       } else {
         const prod = data.data.product;
+        // Invalidate client catalog cache so new product appears immediately across site
+        catalogClient.invalidateCache();
+
         // Background client sync to Firestore if not confirmed by server
         if (!data.data?.syncedToFirestore) {
           saveProductToFirestoreClient(prod).catch((e) =>

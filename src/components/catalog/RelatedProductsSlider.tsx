@@ -6,13 +6,14 @@ import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
 import { ProductDomainEntity } from "@/lib/types/domain";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { catalogClient } from "@/lib/services/catalogClient";
 
 interface RelatedProductsSliderProps {
   currentProduct: ProductDomainEntity;
   allProducts?: ProductDomainEntity[];
 }
 
-function getProductCategoryKey(p: any): string {
+function getProductCategoryKey(p: Partial<ProductDomainEntity>): string {
   return getProductCategoryInfo(p).key;
 }
 
@@ -28,18 +29,18 @@ export function RelatedProductsSlider({ currentProduct, allProducts }: RelatedPr
     if (allProducts && allProducts.length > 0) {
       setLiveProducts(allProducts);
     } else {
-      // Fetch live catalog from database to guarantee real products
-      fetch(`/api/products?fresh=true&t=${Date.now()}`, {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && Array.isArray(data.data?.products)) {
-            setLiveProducts(data.data.products);
+      let isCancelled = false;
+      catalogClient.getCatalog()
+        .then((products) => {
+          if (!isCancelled && Array.isArray(products) && products.length > 0) {
+            setLiveProducts(products);
           }
         })
-        .catch((err) => console.error("Could not fetch products for related slider:", err));
+        .catch((err: unknown) => console.error("Could not fetch products for related slider:", err));
+
+      return () => {
+        isCancelled = true;
+      };
     }
   }, [allProducts]);
 

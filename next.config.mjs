@@ -5,6 +5,11 @@ const nextConfig = {
   poweredByHeader: false,
 
   swcMinify: true,
+  compress: true,
+
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
 
   // Modern compressed image formats & CDN patterns
   images: {
@@ -21,6 +26,18 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "**.firebasestorage.googleapis.com",
+      },
+      {
+        protocol: "https",
+        hostname: "tcgplayer-cdn.tcgplayer.com",
+      },
+      {
+        protocol: "https",
+        hostname: "kingdigitales.cl",
+      },
+      {
+        protocol: "https",
+        hostname: "media.solotodo.com",
       },
     ],
   },

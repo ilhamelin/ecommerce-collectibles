@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import type { ProductDomainEntity } from "@/lib/types/domain";
+import { catalogClient } from "@/lib/services/catalogClient";
 
 // Interactive filter tabs
 const TABS = [
@@ -46,16 +47,20 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
   const [products, setProducts] = useState<ProductDomainEntity[]>(initialProducts);
   const [activeTab, setActiveTab] = useState<string>("ALL");
 
-  // Refresco silencioso en segundo plano para sincronizar inventario fresco sin parpadeos
+  // Refresco silencioso en segundo plano con deduplicación de red
   useEffect(() => {
-    fetch(`/api/products?fresh=true&t=${Date.now()}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data?.products) && data.data.products.length > 0) {
-          setProducts(data.data.products);
+    let isCancelled = false;
+    catalogClient.getCatalog()
+      .then((prods) => {
+        if (!isCancelled && Array.isArray(prods) && prods.length > 0) {
+          setProducts(prods);
         }
       })
       .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // Filtrado de productos por tab activo

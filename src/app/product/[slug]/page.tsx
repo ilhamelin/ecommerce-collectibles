@@ -37,16 +37,17 @@ import { DigitalPassportCard } from "@/components/trust/DigitalPassportCard";
 import { TcgMarketPriceTracker } from "@/components/product/TcgMarketPriceTracker";
 import { generateDigitalPassport } from "@/lib/utils/passport";
 import { generateTcgMarketPriceGuide } from "@/lib/utils/priceTracker";
-
+import type { ProductDomainEntity } from "@/lib/types/domain";
+import { catalogClient } from "@/lib/services/catalogClient";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const rawSlug = (params?.slug as string) || "";
   const slug = rawSlug.toLowerCase();
 
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<ProductDomainEntity | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [allCatalogProducts, setAllCatalogProducts] = useState<any[]>([]);
+  const [allCatalogProducts, setAllCatalogProducts] = useState<ProductDomainEntity[]>([]);
 
   const { addItem } = useCartStore();
   const { toggleWishlist, isProductWishlisted } = useAuthStore();
@@ -61,46 +62,37 @@ export default function ProductDetailPage() {
   }, [slug, product?.name]);
 
   useEffect(() => {
-    // 1. Fetch live product data from database so edits and custom fields are reflected immediately
-    fetch(`/api/products?sku=${encodeURIComponent(slug)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data?.product) {
-          setProduct(data.data.product);
-          analytics.trackProductView({
-            sku: data.data.product.sku,
-            name: data.data.product.name,
-            category: data.data.product.type,
-            price: data.data.product.price,
-          });
-        }
-      })
-      .catch((err) => console.error("Error fetching product by slug:", err))
-      .finally(() => setLoading(false));
+    let isCancelled = false;
+    setLoading(true);
 
-    // 2. Fetch full catalog from database so the Related Products slider displays real database products
-    fetch(`/api/products?fresh=true&t=${Date.now()}`, {
-      cache: "no-store",
-      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data?.products)) {
-          setAllCatalogProducts(data.data.products);
-          // If specific SKU lookup hasn't set product yet, search inside full catalog
-          setProduct((prev: any) => {
-            if (prev) return prev;
-            const found = data.data.products.find(
-              (p: any) =>
-                p.sku?.toLowerCase() === slug ||
-                p.id?.toLowerCase() === slug ||
-                p.sku?.toLowerCase().replace(/_/g, "-") === slug
-            );
-            return found || null;
+    // Retrieve catalog and target product with in-flight deduplication & micro-cache
+    catalogClient.getCatalog()
+      .then(async (allProducts) => {
+        if (isCancelled) return;
+        setAllCatalogProducts(allProducts);
+
+        // Find target product from cache or direct query
+        const matched = await catalogClient.getProductByIdentifier(slug);
+        if (!isCancelled && matched) {
+          setProduct(matched);
+          analytics.trackProductView({
+            sku: matched.sku,
+            name: matched.name,
+            category: matched.type,
+            price: matched.price,
           });
         }
       })
-      .catch((err) => console.error("Error fetching live catalog for related slider:", err));
+      .catch((err: unknown) => {
+        console.error("Error loading product detail:", err);
+      })
+      .finally(() => {
+        if (!isCancelled) setLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [slug]);
 
   if (loading) {
@@ -185,8 +177,11 @@ export default function ProductDetailPage() {
   let rawList: string[] = [];
   if (Array.isArray(product.genres)) {
     rawList = product.genres;
-  } else if (typeof product.genres === "string" && product.genres.trim()) {
-    rawList = product.genres.split(",").map((s: string) => s.trim()).filter(Boolean);
+  } else if (typeof (product.genres as unknown) === "string") {
+    const str = product.genres as unknown as string;
+    if (str.trim()) {
+      rawList = str.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
   }
 
   // Filter out erroneous TCG / Graduada tags if this product is NOT a TCG/COLLECTIBLE
@@ -428,14 +423,14 @@ export default function ProductDetailPage() {
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && hw?.gpu?.bus
       ? [{ label: "Bus de Memoria", value: hw.gpu.bus }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && ((hw?.gpu as any)?.coreClocks || hw?.gpu?.coreFrequencies)
-      ? [{ label: "Frecuencias Core", value: (hw?.gpu as any)?.coreClocks || hw?.gpu?.coreFrequencies }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && (hw?.gpu?.coreClocks || hw?.gpu?.coreFrequencies)
+      ? [{ label: "Frecuencias Core", value: hw?.gpu?.coreClocks || hw?.gpu?.coreFrequencies || "" }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && ((hw?.gpu as any)?.memoryClock || hw?.gpu?.memoryFrequency)
-      ? [{ label: "Frecuencia Memorias", value: (hw?.gpu as any)?.memoryClock || hw?.gpu?.memoryFrequency }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && (hw?.gpu?.memoryClock || hw?.gpu?.memoryFrequency)
+      ? [{ label: "Frecuencia Memorias", value: hw?.gpu?.memoryClock || hw?.gpu?.memoryFrequency || "" }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && ((hw?.gpu as any)?.coreName || hw?.gpu?.core)
-      ? [{ label: "Núcleo", value: (hw?.gpu as any)?.coreName || hw?.gpu?.core }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && (hw?.gpu?.coreName || hw?.gpu?.core)
+      ? [{ label: "Núcleo", value: hw?.gpu?.coreName || hw?.gpu?.core || "" }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && hw?.gpu?.profile
       ? [{ label: "Perfil", value: hw.gpu.profile }]
@@ -452,8 +447,8 @@ export default function ProductDetailPage() {
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && hw?.gpu?.lighting
       ? [{ label: "Iluminación", value: hw.gpu.lighting }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && ((hw?.gpu as any)?.hasBackplate || hw?.gpu?.backplate)
-      ? [{ label: "¿Posee Backplate?", value: (hw?.gpu as any)?.hasBackplate || hw?.gpu?.backplate }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && (hw?.gpu?.hasBackplate || hw?.gpu?.backplate)
+      ? [{ label: "¿Posee Backplate?", value: hw?.gpu?.hasBackplate || hw?.gpu?.backplate }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "TARJETA_DE_VIDEO") && hw?.gpu?.powerConnectors
       ? [{ label: "Conectores de Poder", value: hw.gpu.powerConnectors }]
@@ -478,8 +473,8 @@ export default function ProductDetailPage() {
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "PROCESADORES") && hw?.cpu?.socket
       ? [{ label: "Socket CPU", value: hw.cpu.socket }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "PROCESADORES") && ((hw?.cpu as any)?.coreName || hw?.cpu?.core)
-      ? [{ label: "Núcleo / Arquitectura", value: (hw?.cpu as any)?.coreName || hw?.cpu?.core }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "PROCESADORES") && (hw?.cpu?.coreName || hw?.cpu?.core)
+      ? [{ label: "Núcleo / Arquitectura", value: hw?.cpu?.coreName || hw?.cpu?.core }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "PROCESADORES") && hw?.cpu?.manufacturingProcess
       ? [{ label: "Proceso de Manufactura", value: hw.cpu.manufacturingProcess }]
@@ -557,8 +552,8 @@ export default function ProductDetailPage() {
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.voltage
       ? [{ label: "Voltaje RAM", value: hw.ram.voltage }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && ((hw?.ram as any)?.casLatency || (hw?.ram as any)?.latencyClCas)
-      ? [{ label: "Latencia CAS (CL)", value: (hw?.ram as any)?.casLatency || (hw?.ram as any)?.latencyClCas }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && (hw?.ram?.casLatency || hw?.ram?.latencyClCas)
+      ? [{ label: "Latencia CAS (CL)", value: hw?.ram?.casLatency || hw?.ram?.latencyClCas }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.eccSupport
       ? [{ label: "Soporte ECC", value: hw.ram.eccSupport }]

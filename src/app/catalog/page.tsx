@@ -36,8 +36,9 @@ import { PRICE_PRESETS } from "@/lib/constants/catalog";
 import { ProductDomainEntity } from "@/lib/types/domain";
 import { VisualSearchModal } from "@/components/catalog/VisualSearchModal";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { catalogClient } from "@/lib/services/catalogClient";
 
-const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: any; bannerBadge: string; bannerTitle: string; bannerDesc: string }> = {
+const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; bannerBadge: string; bannerTitle: string; bannerDesc: string }> = {
   CONSOLE: {
     label: "Consolas",
     icon: Tv,
@@ -149,21 +150,25 @@ function CatalogContent() {
     if (platformParam !== "ALL") setPlatformFilter(platformParam);
   }, [categoryParam, qParam, platformParam]);
 
-  // Fetch updated catalog strictly from backend database
+  // Fetch updated catalog with client micro-cache & deduplication
   useEffect(() => {
+    let isCancelled = false;
     setLoading(true);
-    fetch(`/api/products?fresh=true&t=${Date.now()}`, {
-      cache: "no-store",
-      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data?.products)) {
-          setProducts(data.data.products);
+
+    catalogClient.getCatalog()
+      .then((prods) => {
+        if (!isCancelled && Array.isArray(prods)) {
+          setProducts(prods);
         }
       })
-      .catch((err) => console.error("Could not fetch latest products", err))
-      .finally(() => setLoading(false));
+      .catch((err: unknown) => console.error("Could not fetch latest products", err))
+      .finally(() => {
+        if (!isCancelled) setLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   const handleCategoryChange = (categoryKey: string) => {

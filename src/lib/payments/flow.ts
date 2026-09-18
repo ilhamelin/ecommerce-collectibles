@@ -81,3 +81,62 @@ export async function createFlowPaymentOrder(
     return null;
   }
 }
+
+export interface FlowPaymentStatusResponse {
+  flowOrder: number;
+  commerceOrder: string;
+  requestDate: string;
+  status: number; // 1: pendiente, 2: pagada, 3: rechazada, 4: anulada
+  subject: string;
+  currency: string;
+  amount: number;
+  payer: string;
+  paymentData?: {
+    date: string;
+    media: string;
+    conversionDate?: string;
+    conversionRate?: number;
+    amount?: number;
+    currency?: string;
+    fee?: number;
+    balance?: number;
+    transferDate?: string;
+  };
+}
+
+/**
+ * Gets payment status from Flow.cl by token
+ */
+export async function getFlowPaymentStatus(token: string): Promise<FlowPaymentStatusResponse | null> {
+  if (!isFlowConfigured() || !token) return null;
+
+  const apiKey = process.env.FLOW_API_KEY!.trim();
+  const secretKey = process.env.FLOW_SECRET_KEY!.trim();
+  const flowUrl = getFlowApiUrl();
+
+  const params: Record<string, string> = {
+    apiKey,
+    token,
+  };
+
+  const s = signFlowParams(params, secretKey);
+  params.s = s;
+
+  try {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${flowUrl}/payment/getStatus?${query}`, {
+      method: "GET",
+    });
+
+    if (!res.ok) {
+      console.error(`[Flow] Error getStatus: HTTP ${res.status}`);
+      return null;
+    }
+
+    const data: FlowPaymentStatusResponse = await res.json();
+    return data;
+  } catch (err) {
+    console.error("[Flow] Error fetching payment status:", err);
+    return null;
+  }
+}

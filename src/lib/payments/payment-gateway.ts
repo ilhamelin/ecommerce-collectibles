@@ -34,7 +34,25 @@ export async function initiatePaymentGateway(
     };
   }
 
-  // 2. Mercado Pago / Webpay
+  // 2. Flow.cl (Prioridad para Débito / Transbank Webpay Plus)
+  if (method === "WEBPAY" && isFlowConfigured()) {
+    try {
+      const flowResult = await createFlowPaymentOrder(order, baseUrl);
+      if (flowResult) {
+        return {
+          requiresRedirect: true,
+          redirectUrl: flowResult.url,
+          gatewayName: "FLOW",
+          mode: process.env.FLOW_SANDBOX_MODE !== "false" ? "SANDBOX" : "LIVE",
+          message: "Orden de pago Webpay Plus generada con Flow Chile.",
+        };
+      }
+    } catch (err) {
+      console.error("[PaymentGateway] Error initiating Flow:", err);
+    }
+  }
+
+  // 3. Mercado Pago (Checkout Pro / Tarjetas de crédito / Cuenta MP)
   if (method === "MERCADO_PAGO" || method === "WEBPAY") {
     if (isMercadoPagoConfigured()) {
       try {
@@ -59,26 +77,9 @@ export async function initiatePaymentGateway(
         console.error("[PaymentGateway] Error generating Mercado Pago preference:", err);
       }
     }
+  }
 
-    // Fallback: If Flow is configured for WEBPAY
-    if (method === "WEBPAY" && isFlowConfigured()) {
-      try {
-        const flowResult = await createFlowPaymentOrder(order, baseUrl);
-        if (flowResult) {
-          return {
-            requiresRedirect: true,
-            redirectUrl: flowResult.url,
-            gatewayName: "FLOW",
-            mode: process.env.FLOW_SANDBOX_MODE !== "false" ? "SANDBOX" : "LIVE",
-            message: "Orden de pago Webpay generada con Flow.",
-          };
-        }
-      } catch (err) {
-        console.error("[PaymentGateway] Error initiating Flow:", err);
-      }
-    }
-
-    // 3. Realistic Interactive Sandbox Simulator
+  // 4. Realistic Interactive Sandbox Simulator
     // (Used when Mercado Pago credentials are not yet pasted in .env.local)
     const simulatedUrl = `/checkout/sandbox-payment?orderId=${encodeURIComponent(order.id)}&amount=${Math.round(order.totalChargedNow)}`;
     return {

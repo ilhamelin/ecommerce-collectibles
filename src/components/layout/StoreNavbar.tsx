@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ShoppingBag,
   Sparkles,
@@ -36,10 +36,16 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP } from "@/lib/utils/currency";
 import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
 
-function StoreNavbarContent() {
+export function StoreNavbar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const currentCategory = searchParams?.get("category");
+  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setCurrentCategory(params.get("category"));
+    }
+  }, [pathname]);
 
   const { openCart, getTotals } = useCartStore();
   const { currentUser, isAuthenticated, isAdmin, logout, guestWishlist } = useAuthStore();
@@ -618,14 +624,4 @@ function StoreNavbarContent() {
   );
 }
 
-export function StoreNavbar() {
-  return (
-    <React.Suspense
-      fallback={
-        <nav className="sticky top-0 z-40 w-full bg-white border-b border-[#E5E5E5] h-24" />
-      }
-    >
-      <StoreNavbarContent />
-    </React.Suspense>
-  );
-}
+

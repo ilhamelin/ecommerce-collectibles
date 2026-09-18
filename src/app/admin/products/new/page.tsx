@@ -259,6 +259,25 @@ export default function NewProductAdminPage() {
   const [aiEngineUsed, setAiEngineUsed] = useState<string | null>(null);
   const [aiEngineErrorDetail, setAiEngineErrorDetail] = useState<string | null>(null);
 
+  const mapToCanonicalCollectibleCondition = (val?: string): CollectibleCondition => {
+    if (!val) return "GEM_MINT_10";
+    const upper = String(val).toUpperCase().replace(/[\s-]+/g, "_");
+    if (upper.includes("10") || upper.includes("GEM")) return "GEM_MINT_10";
+    if (upper.includes("9") || upper === "MINT") return "MINT_9";
+    if (upper.includes("8") || upper.includes("NEAR_MINT") || upper.includes("RAW")) return "NEAR_MINT_8";
+    if (upper.includes("7") || upper.includes("EXCELLENT") || upper.includes("PLAYED")) return "EXCELLENT_7";
+    return "GEM_MINT_10";
+  };
+
+  const mapToCanonicalAuthenticator = (val?: string): Authenticator => {
+    if (!val) return "NONE";
+    const upper = String(val).toUpperCase().trim();
+    if (upper.includes("PSA")) return "PSA";
+    if (upper.includes("BGS") || upper.includes("BECKETT")) return "BGS";
+    if (upper.includes("CGC")) return "CGC";
+    return "NONE";
+  };
+
   const handleAutoFillWithAI = async () => {
     if (!name.trim()) {
       setErrorMsg("Por favor ingresa primero el Nombre del Producto para autocompletar la ficha.");
@@ -386,8 +405,8 @@ export default function NewProductAdminPage() {
         if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
       } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
         if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
-        if (d.collectibleSpecs.condition) setTcgGradingCondition(d.collectibleSpecs.condition);
-        if (d.collectibleSpecs.authBody) setTcgCertification(d.collectibleSpecs.authBody);
+        if (d.collectibleSpecs.condition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.condition));
+        if (d.collectibleSpecs.authBody) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.authBody));
         if (d.collectibleSpecs.language) setTcgLanguage(d.collectibleSpecs.language);
         if (d.collectibleSpecs.serial) setTcgSerial(d.collectibleSpecs.serial);
 
@@ -404,9 +423,9 @@ export default function NewProductAdminPage() {
         if (d.collectibleSpecs.finishVariant) setTcgFinishVariant(d.collectibleSpecs.finishVariant);
 
         // 3. Estado de Conservación (Condición)
-        if (d.collectibleSpecs.gradingCondition) setTcgGradingCondition(d.collectibleSpecs.gradingCondition);
+        if (d.collectibleSpecs.gradingCondition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.gradingCondition));
         if (d.collectibleSpecs.wearDetails) setTcgWearDetails(d.collectibleSpecs.wearDetails);
-        if (d.collectibleSpecs.certification) setTcgCertification(d.collectibleSpecs.certification);
+        if (d.collectibleSpecs.certification) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.certification));
 
         // 4. Presentación y Empaque
         if (d.collectibleSpecs.productType) setTcgProductType(d.collectibleSpecs.productType);
@@ -893,13 +912,16 @@ export default function NewProductAdminPage() {
         shippingWeight: figureShippingWeight || undefined,
       };
     } else if (type === "COLLECTIBLE") {
+      const canonicalCondition = mapToCanonicalCollectibleCondition(tcgGradingCondition);
+      const canonicalAuth = mapToCanonicalAuthenticator(tcgCertification);
+
       payload.collectibleMetadata = {
-        category: collectibleCategory,
-        condition: (tcgGradingCondition as CollectibleCondition) || "GEM_MINT_10",
-        authenticationBody: (tcgCertification as Authenticator) || "PSA",
+        category: collectibleCategory || "TCG",
+        condition: canonicalCondition,
+        authenticationBody: canonicalAuth,
         cardLanguage: tcgLanguage || undefined,
         serialNumber: tcgSerial || undefined,
-        gradeScore: tcgGradingCondition === "GEM_MINT_10" ? "10" : tcgGradingCondition === "MINT_9" ? "9" : undefined,
+        gradeScore: canonicalCondition === "GEM_MINT_10" ? "10" : canonicalCondition === "MINT_9" ? "9" : "8",
         slabType: tcgProductType || undefined,
 
         // 1. Información General del Producto

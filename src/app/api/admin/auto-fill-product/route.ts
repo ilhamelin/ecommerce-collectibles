@@ -1291,9 +1291,9 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "pcStorage": "85 GB SSD NVMe"
   },
   "collectibleSpecs": {
-    "category": "TCG" | "MEMORABILIA" | "COMIC",
-    "condition": "GEM_MINT_10" | "MINT_9" | "NEAR_MINT_8",
-    "authBody": "PSA" | "CGC" | "BGS",
+    "category": "TCG",
+    "condition": "GEM_MINT_10" | "MINT_9" | "NEAR_MINT_8" | "EXCELLENT_7",
+    "authBody": "PSA" | "CGC" | "BGS" | "NONE",
     "language": "Japonés" | "Inglés" | "Español",
     "serial": "Código serial de certificación ej. PSA-99201482",
     "productName": "Nombre exacto de la carta o coleccionable",
@@ -1304,10 +1304,10 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "cardNumber": "Número de carta o código ej. 4/102 o OP05-119",
     "rarity": "Rareza ej. Holo Rare, Secret Rare (SAR), Ultra Rare",
     "finishVariant": "Acabado o variante ej. Holográfica Foil Cosmos, 1st Edition, Textured",
-    "gradingCondition": "Graduación o estado ej. GEM MINT 10 o Near Mint",
+    "gradingCondition": "GEM_MINT_10" | "MINT_9" | "NEAR_MINT_8" | "EXCELLENT_7",
     "wearDetails": "Detalles del desgaste ej. Esquinas nítidas 10/10, centrado 55/45, sin imperfecciones",
-    "certification": "PSA | BGS | CGC | Sin Certificación",
-    "productType": "Carta Individual Graduada (Slab) | Booster Box | Pack Sellado",
+    "certification": "PSA" | "BGS" | "CGC" | "NONE",
+    "productType": "Carta Individual Graduada (Slab Acrílico) | Booster Box | Pack Sellado",
     "itemQuantity": "1 Carta en Slab Certificado | 36 Sobres",
     "includesProtection": "Sí - Slab Acrílico Hermético con Filtro UV 99% + Funda Sleeve"
   },
@@ -1496,6 +1496,22 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             if (parsed.type === "COLLECTIBLE") {
               const fallbackHeuristic: any = generateWithSmartEngine(productName, "COLLECTIBLE");
               parsed.collectibleSpecs = mergeNonEmpty(fallbackHeuristic.collectibleSpecs || {}, parsed.collectibleSpecs || {});
+
+              // Normalize enums for condition and authBody
+              const c = parsed.collectibleSpecs.condition || parsed.collectibleSpecs.gradingCondition || "GEM_MINT_10";
+              const cUpper = String(c).toUpperCase().replace(/[\s-]+/g, "_");
+              if (cUpper.includes("10") || cUpper.includes("GEM")) parsed.collectibleSpecs.condition = "GEM_MINT_10";
+              else if (cUpper.includes("9") || cUpper === "MINT") parsed.collectibleSpecs.condition = "MINT_9";
+              else if (cUpper.includes("8") || cUpper.includes("NEAR_MINT") || cUpper.includes("RAW")) parsed.collectibleSpecs.condition = "NEAR_MINT_8";
+              else if (cUpper.includes("7") || cUpper.includes("EXCELLENT") || cUpper.includes("PLAYED")) parsed.collectibleSpecs.condition = "EXCELLENT_7";
+              else parsed.collectibleSpecs.condition = "GEM_MINT_10";
+
+              const a = parsed.collectibleSpecs.authBody || parsed.collectibleSpecs.certification || "NONE";
+              const aUpper = String(a).toUpperCase().trim();
+              if (aUpper.includes("PSA")) parsed.collectibleSpecs.authBody = "PSA";
+              else if (aUpper.includes("BGS") || aUpper.includes("BECKETT")) parsed.collectibleSpecs.authBody = "BGS";
+              else if (aUpper.includes("CGC")) parsed.collectibleSpecs.authBody = "CGC";
+              else parsed.collectibleSpecs.authBody = "NONE";
             }
 
             // Cross-category cleanup: strictly delete specifications not belonging to the chosen type

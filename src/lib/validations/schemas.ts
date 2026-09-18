@@ -40,9 +40,25 @@ export const FigureManufacturerEnum = z.enum([
   "OTHER",
 ]);
 
-export const CollectibleCategoryEnum = z.enum(["TCG", "REPLICA", "STATUE", "MEMORABILIA"]);
-export const CollectibleConditionEnum = z.enum(["GEM_MINT_10", "MINT_9", "NEAR_MINT_8", "EXCELLENT_7"]);
-export const AuthenticatorEnum = z.enum(["PSA", "BGS", "CGC", "NONE"]);
+export const CollectibleCategoryEnum = z.enum(["TCG", "REPLICA", "STATUE", "MEMORABILIA"]).or(z.string());
+export const CollectibleConditionEnum = z.preprocess((val) => {
+  if (typeof val !== "string") return val;
+  const upper = val.toUpperCase().replace(/[\s-]+/g, "_");
+  if (upper.includes("10") || upper.includes("GEM")) return "GEM_MINT_10";
+  if (upper.includes("9") || upper === "MINT") return "MINT_9";
+  if (upper.includes("8") || upper.includes("NEAR_MINT") || upper.includes("RAW")) return "NEAR_MINT_8";
+  if (upper.includes("7") || upper.includes("EXCELLENT") || upper.includes("PLAYED")) return "EXCELLENT_7";
+  return val;
+}, z.enum(["GEM_MINT_10", "MINT_9", "NEAR_MINT_8", "EXCELLENT_7"]).or(z.string()));
+export const AuthenticatorEnum = z.preprocess((val) => {
+  if (typeof val !== "string") return val;
+  const upper = val.toUpperCase().trim();
+  if (upper.includes("PSA")) return "PSA";
+  if (upper.includes("BGS") || upper.includes("BECKETT")) return "BGS";
+  if (upper.includes("CGC")) return "CGC";
+  if (upper.includes("SIN") || upper.includes("NONE") || upper.includes("NO") || upper.includes("RAW")) return "NONE";
+  return val;
+}, z.enum(["PSA", "BGS", "CGC", "NONE"]).or(z.string()));
 
 // Bundle Component Schema
 export const BundleComponentSchema = z.object({

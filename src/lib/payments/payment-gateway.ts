@@ -41,9 +41,8 @@ export async function initiatePaymentGateway(
         const preference = await createMercadoPagoPreference({ order, baseUrl });
         if (preference) {
           const token = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() || "";
-          const isTestToken = token.startsWith("TEST-");
-          const isSandbox = isTestToken || process.env.MERCADOPAGO_SANDBOX_MODE === "true";
-          const redirectUrl = isTestToken
+          const isSandbox = process.env.MERCADOPAGO_SANDBOX_MODE !== "false" || token.startsWith("TEST-");
+          const redirectUrl = isSandbox
             ? (preference.sandboxInitPoint || preference.initPoint)
             : (preference.initPoint || preference.sandboxInitPoint);
 

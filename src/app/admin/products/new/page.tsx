@@ -212,12 +212,37 @@ export default function NewProductAdminPage() {
   // Preventa / Reserva
   const [figureDepositPercent, setFigureDepositPercent] = useState<number>(0.2);
 
-  // Dynamic: Collectible
+  // Dynamic: Collectible / TCG (14 Especificaciones de Rareza & Coleccionismo)
+  // 1. Información General del Producto
+  const [tcgProductName, setTcgProductName] = useState("");
+  const [tcgFranchise, setTcgFranchise] = useState("Pokémon");
+  const [tcgGameSystem, setTcgGameSystem] = useState("Pokémon TCG");
+  const [tcgLanguage, setTcgLanguage] = useState("Japonés");
+
+  // 2. Detalles de Edición y Rareza
+  const [tcgSetExpansion, setTcgSetExpansion] = useState("Base Set (1st Edition)");
+  const [tcgReleaseYear, setTcgReleaseYear] = useState("1996");
+  const [tcgCardNumber, setTcgCardNumber] = useState("4/102");
+  const [tcgRarity, setTcgRarity] = useState("Holo Rare (1st Edition)");
+  const [tcgFinishVariant, setTcgFinishVariant] = useState("Holográfica (Foil Cosmos)");
+
+  // 3. Estado de Conservación (Condición)
+  const [tcgGradingCondition, setTcgGradingCondition] = useState<CollectibleCondition | string>("GEM_MINT_10");
+  const [tcgWearDetails, setTcgWearDetails] = useState("Sin blanqueamiento en bordes, esquinas 10/10, centrado 55/45, superficie limpia sin arañazos ni microrayas UV");
+  const [tcgCertification, setTcgCertification] = useState<Authenticator | string>("PSA");
+  const [tcgSerial, setTcgSerial] = useState("PSA-99201482");
+
+  // 4. Presentación y Empaque
+  const [tcgProductType, setTcgProductType] = useState("Carta Individual Graduada (Slab Acrílico)");
+  const [tcgItemQuantity, setTcgItemQuantity] = useState("1 Carta en Slab Certificado");
+  const [tcgIncludesProtection, setTcgIncludesProtection] = useState("Sí - Slab Acrílico Hermético con Filtro UV 99% & Funda Protectora Sleeve");
+
+  // Legacy compat aliases
   const [collectibleCategory, setCollectibleCategory] = useState<CollectibleCategory>("TCG");
-  const [collectibleCondition, setCollectibleCondition] = useState<CollectibleCondition>("GEM_MINT_10");
-  const [collectibleAuth, setCollectibleAuth] = useState<Authenticator>("PSA");
-  const [collectibleLang, setCollectibleLang] = useState("Japonés");
-  const [collectibleSerial, setCollectibleSerial] = useState("PSA-99201482");
+  const collectibleCondition = (tcgGradingCondition as CollectibleCondition) || "GEM_MINT_10";
+  const collectibleAuth = (tcgCertification as Authenticator) || "PSA";
+  const collectibleLang = tcgLanguage;
+  const collectibleSerial = tcgSerial;
 
   // Dynamic: Bundle components
   const [selectedBundleItems, setSelectedBundleItems] = useState<{ productId: string; quantity: number }[]>([]);
@@ -361,10 +386,32 @@ export default function NewProductAdminPage() {
         if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
       } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
         if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
-        if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
-        if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
-        if (d.collectibleSpecs.language) setCollectibleLang(d.collectibleSpecs.language);
-        if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
+        if (d.collectibleSpecs.condition) setTcgGradingCondition(d.collectibleSpecs.condition);
+        if (d.collectibleSpecs.authBody) setTcgCertification(d.collectibleSpecs.authBody);
+        if (d.collectibleSpecs.language) setTcgLanguage(d.collectibleSpecs.language);
+        if (d.collectibleSpecs.serial) setTcgSerial(d.collectibleSpecs.serial);
+
+        // 1. Información General del Producto
+        if (d.collectibleSpecs.productName) setTcgProductName(d.collectibleSpecs.productName);
+        if (d.collectibleSpecs.franchise) setTcgFranchise(d.collectibleSpecs.franchise);
+        if (d.collectibleSpecs.gameSystem) setTcgGameSystem(d.collectibleSpecs.gameSystem);
+
+        // 2. Detalles de Edición y Rareza
+        if (d.collectibleSpecs.setExpansion) setTcgSetExpansion(d.collectibleSpecs.setExpansion);
+        if (d.collectibleSpecs.releaseYear) setTcgReleaseYear(d.collectibleSpecs.releaseYear);
+        if (d.collectibleSpecs.cardNumber) setTcgCardNumber(d.collectibleSpecs.cardNumber);
+        if (d.collectibleSpecs.rarity) setTcgRarity(d.collectibleSpecs.rarity);
+        if (d.collectibleSpecs.finishVariant) setTcgFinishVariant(d.collectibleSpecs.finishVariant);
+
+        // 3. Estado de Conservación (Condición)
+        if (d.collectibleSpecs.gradingCondition) setTcgGradingCondition(d.collectibleSpecs.gradingCondition);
+        if (d.collectibleSpecs.wearDetails) setTcgWearDetails(d.collectibleSpecs.wearDetails);
+        if (d.collectibleSpecs.certification) setTcgCertification(d.collectibleSpecs.certification);
+
+        // 4. Presentación y Empaque
+        if (d.collectibleSpecs.productType) setTcgProductType(d.collectibleSpecs.productType);
+        if (d.collectibleSpecs.itemQuantity) setTcgItemQuantity(d.collectibleSpecs.itemQuantity);
+        if (d.collectibleSpecs.includesProtection) setTcgIncludesProtection(d.collectibleSpecs.includesProtection);
       }
       if (d.customSpecifications) {
         // Section 6: Ficha de Especificaciones Técnicas Especializadas
@@ -621,10 +668,35 @@ export default function NewProductAdminPage() {
               id: "meta-col",
               productId: "preview-id",
               category: collectibleCategory,
-              condition: collectibleCondition,
-              authenticationBody: collectibleAuth,
-              cardLanguage: collectibleLang,
-              serialNumber: collectibleSerial,
+              condition: tcgGradingCondition as any,
+              authenticationBody: tcgCertification as any,
+              cardLanguage: tcgLanguage,
+              serialNumber: tcgSerial,
+              gradeScore: tcgGradingCondition === "GEM_MINT_10" ? "10" : tcgGradingCondition === "MINT_9" ? "9" : "8",
+              slabType: tcgProductType,
+
+              // 1. Información General del Producto
+              productName: tcgProductName || name,
+              franchise: tcgFranchise,
+              gameSystem: tcgGameSystem,
+              language: tcgLanguage,
+
+              // 2. Detalles de Edición y Rareza
+              setExpansion: tcgSetExpansion,
+              releaseYear: tcgReleaseYear,
+              cardNumber: tcgCardNumber,
+              rarity: tcgRarity,
+              finishVariant: tcgFinishVariant,
+
+              // 3. Estado de Conservación (Condición)
+              gradingCondition: tcgGradingCondition,
+              wearDetails: tcgWearDetails,
+              certification: tcgCertification,
+
+              // 4. Presentación y Empaque
+              productType: tcgProductType,
+              itemQuantity: tcgItemQuantity,
+              includesProtection: tcgIncludesProtection,
             }
           : undefined,
       customSpecifications: type === "OTHER" ? customSpecifications : undefined,
@@ -700,10 +772,22 @@ export default function NewProductAdminPage() {
     figureBoxDimensions,
     figureShippingWeight,
     collectibleCategory,
-    collectibleCondition,
-    collectibleAuth,
-    collectibleLang,
-    collectibleSerial,
+    tcgProductName,
+    tcgFranchise,
+    tcgGameSystem,
+    tcgLanguage,
+    tcgSetExpansion,
+    tcgReleaseYear,
+    tcgCardNumber,
+    tcgRarity,
+    tcgFinishVariant,
+    tcgGradingCondition,
+    tcgWearDetails,
+    tcgCertification,
+    tcgSerial,
+    tcgProductType,
+    tcgItemQuantity,
+    tcgIncludesProtection,
     selectedBundleItems,
     customSpecifications,
   ]);
@@ -811,10 +895,35 @@ export default function NewProductAdminPage() {
     } else if (type === "COLLECTIBLE") {
       payload.collectibleMetadata = {
         category: collectibleCategory,
-        condition: collectibleCondition,
-        authenticationBody: collectibleAuth,
-        cardLanguage: collectibleLang || undefined,
-        serialNumber: collectibleSerial || undefined,
+        condition: (tcgGradingCondition as CollectibleCondition) || "GEM_MINT_10",
+        authenticationBody: (tcgCertification as Authenticator) || "PSA",
+        cardLanguage: tcgLanguage || undefined,
+        serialNumber: tcgSerial || undefined,
+        gradeScore: tcgGradingCondition === "GEM_MINT_10" ? "10" : tcgGradingCondition === "MINT_9" ? "9" : undefined,
+        slabType: tcgProductType || undefined,
+
+        // 1. Información General del Producto
+        productName: (tcgProductName || name).trim(),
+        franchise: tcgFranchise.trim(),
+        gameSystem: tcgGameSystem.trim(),
+        language: tcgLanguage.trim(),
+
+        // 2. Detalles de Edición y Rareza
+        setExpansion: tcgSetExpansion.trim(),
+        releaseYear: tcgReleaseYear.trim(),
+        cardNumber: tcgCardNumber.trim(),
+        rarity: tcgRarity.trim(),
+        finishVariant: tcgFinishVariant.trim(),
+
+        // 3. Estado de Conservación (Condición)
+        gradingCondition: tcgGradingCondition,
+        wearDetails: tcgWearDetails.trim(),
+        certification: tcgCertification,
+
+        // 4. Presentación y Empaque
+        productType: tcgProductType.trim(),
+        itemQuantity: tcgItemQuantity.trim(),
+        includesProtection: tcgIncludesProtection.trim(),
       };
     } else if (type === "BUNDLE") {
       payload.bundleComponents = selectedBundleItems;
@@ -2543,64 +2652,239 @@ export default function NewProductAdminPage() {
           </div>
 
           {type === "COLLECTIBLE" && (
-            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md animate-in fade-in duration-200">
-              <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                6. Especificaciones de Rareza TCG & Coleccionismo
-              </h2>
+            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-5 shadow-md animate-in fade-in duration-200">
+              <div className="flex items-center justify-between border-b border-[#004E72]/40 pb-3">
+                <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#FF6E42]" />
+                  6. Especificaciones de Rareza TCG & Coleccionismo
+                </h2>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#004E72]/40 text-[#FF6E42] border border-[#004E72]/60">
+                  Ficha Técnica Especializada
+                </span>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Categoría de Colección</label>
-                  <select
-                    value={collectibleCategory}
-                    onChange={(e) => setCollectibleCategory(e.target.value as CollectibleCategory)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  >
-                    <option value="TCG">Tarjeta Coleccionable (TCG)</option>
-                    <option value="REPLICA">Réplica a Escala</option>
-                    <option value="STATUE">Estatua de Resina</option>
-                    <option value="MEMORABILIA">Memorabilia y Pines</option>
-                  </select>
+              {/* Categoría 1: Información General del Producto */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Info className="w-4 h-4 text-[#FF6E42]" />
+                  <span>1. Información General del Producto</span>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Nombre del Producto *</label>
+                    <input
+                      type="text"
+                      value={tcgProductName}
+                      onChange={(e) => setTcgProductName(e.target.value)}
+                      placeholder={name || "Ej: Charizard Base Set Holo 1st Edition"}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Entidad Certificadora</label>
-                  <select
-                    value={collectibleAuth}
-                    onChange={(e) => setCollectibleAuth(e.target.value as Authenticator)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  >
-                    <option value="PSA">PSA (Professional Sports Authenticator)</option>
-                    <option value="BGS">BGS (Beckett Grading Services)</option>
-                    <option value="CGC">CGC Cards</option>
-                    <option value="NONE">Sin Certificación Externa</option>
-                  </select>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Franquicia / IP *</label>
+                    <input
+                      type="text"
+                      value={tcgFranchise}
+                      onChange={(e) => setTcgFranchise(e.target.value)}
+                      placeholder="Ej: Pokémon / Yu-Gi-Oh! / Magic / One Piece"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Juego / Sistema *</label>
+                    <input
+                      type="text"
+                      value={tcgGameSystem}
+                      onChange={(e) => setTcgGameSystem(e.target.value)}
+                      placeholder="Ej: Pokémon TCG / Yu-Gi-Oh! OCG / MTG"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Idioma *</label>
+                    <select
+                      value={tcgLanguage}
+                      onChange={(e) => setTcgLanguage(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="Japonés">Japonés (Original)</option>
+                      <option value="Inglés">Inglés (Global)</option>
+                      <option value="Español">Español</option>
+                      <option value="Coreano">Coreano</option>
+                      <option value="Chino">Chino Simplificado</option>
+                    </select>
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Grado / Condición</label>
-                  <select
-                    value={collectibleCondition}
-                    onChange={(e) => setCollectibleCondition(e.target.value as CollectibleCondition)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                  >
-                    <option value="GEM_MINT_10">GEM MINT 10 (Grado Perfecto)</option>
-                    <option value="MINT_9">MINT 9 (Excelente Estado)</option>
-                    <option value="NEAR_MINT_8">NEAR MINT 8</option>
-                    <option value="EXCELLENT_7">EXCELLENT 7</option>
-                  </select>
+              {/* Categoría 2: Detalles de Edición y Rareza */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Layers className="w-4 h-4 text-[#FF6E42]" />
+                  <span>2. Detalles de Edición y Rareza</span>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Set / Expansión *</label>
+                    <input
+                      type="text"
+                      value={tcgSetExpansion}
+                      onChange={(e) => setTcgSetExpansion(e.target.value)}
+                      placeholder="Ej: Base Set 1st Edition / Scarlet & Violet 151 / Evolving Skies"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#9bb5c2]">Número de Serie / Certificado</label>
-                  <input
-                    type="text"
-                    value={collectibleSerial}
-                    onChange={(e) => setCollectibleSerial(e.target.value)}
-                    placeholder="PSA-88492019"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Año de Lanzamiento *</label>
+                    <input
+                      type="text"
+                      value={tcgReleaseYear}
+                      onChange={(e) => setTcgReleaseYear(e.target.value)}
+                      placeholder="Ej: 1996 / 1999 / 2023 / 2024"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Código de Colección / Número de Carta *</label>
+                    <input
+                      type="text"
+                      value={tcgCardNumber}
+                      onChange={(e) => setTcgCardNumber(e.target.value)}
+                      placeholder="Ej: 4/102, 004/102, OP05-119, LOB-001"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Rareza *</label>
+                    <input
+                      type="text"
+                      value={tcgRarity}
+                      onChange={(e) => setTcgRarity(e.target.value)}
+                      placeholder="Ej: Holo Rare / Secret Rare (SAR) / Ultra Rare / Ghost Rare"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Acabado / Variante *</label>
+                    <input
+                      type="text"
+                      value={tcgFinishVariant}
+                      onChange={(e) => setTcgFinishVariant(e.target.value)}
+                      placeholder="Ej: Holográfica (Foil Cosmos) / 1st Edition / Shadowless / Textured"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoría 3: Estado de Conservación (Condición) */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <ShieldCheck className="w-4 h-4 text-[#FF6E42]" />
+                  <span>3. Estado de Conservación (Condición)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Graduación General *</label>
+                    <select
+                      value={tcgGradingCondition}
+                      onChange={(e) => setTcgGradingCondition(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="GEM_MINT_10">GEM MINT 10 (Grado Perfecto / Impecable)</option>
+                      <option value="MINT_9">MINT 9 (Excelente Estado de Colección)</option>
+                      <option value="NEAR_MINT_8">NEAR MINT 8 (Casi Nuevo / Desgaste Mínimo)</option>
+                      <option value="EXCELLENT_7">EXCELLENT 7 (Excelente)</option>
+                      <option value="RAW_NEAR_MINT">RAW (Sin Graduar - Condición Near Mint)</option>
+                      <option value="LIGHT_PLAYED">Light Played (Desgaste Ligero)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Certificación (Si aplica)</label>
+                    <select
+                      value={tcgCertification}
+                      onChange={(e) => setTcgCertification(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="PSA">PSA (Professional Sports Authenticator)</option>
+                      <option value="BGS">BGS (Beckett Grading Services)</option>
+                      <option value="CGC">CGC Cards</option>
+                      <option value="ARS">ARS (Authentic Rare Service)</option>
+                      <option value="NONE">Sin Certificación Externa (Raw / Autenticado OmniCollector)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">N° de Serie / Certificado</label>
+                    <input
+                      type="text"
+                      value={tcgSerial}
+                      onChange={(e) => setTcgSerial(e.target.value)}
+                      placeholder="PSA-99201482"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Detalles del Desgaste *</label>
+                    <textarea
+                      rows={2}
+                      value={tcgWearDetails}
+                      onChange={(e) => setTcgWearDetails(e.target.value)}
+                      placeholder="Ej: Esquinas afiladas 10/10, centrado 55/45 frontal y trasero, superficie libre de rayas o microarañazos, bordes sin blanqueamiento (whitening)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42] resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoría 4: Presentación y Empaque */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Box className="w-4 h-4 text-[#FF6E42]" />
+                  <span>4. Presentación y Empaque</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Tipo de Producto *</label>
+                    <input
+                      type="text"
+                      value={tcgProductType}
+                      onChange={(e) => setTcgProductType(e.target.value)}
+                      placeholder="Ej: Carta Individual Graduada (Slab Acrílico) / Booster Box / Pack Sellado"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Cantidad de Elementos *</label>
+                    <input
+                      type="text"
+                      value={tcgItemQuantity}
+                      onChange={(e) => setTcgItemQuantity(e.target.value)}
+                      placeholder="Ej: 1 Carta en Slab Certificado / 36 Sobres de 10 Cartas"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">¿Incluye Protección? *</label>
+                    <input
+                      type="text"
+                      value={tcgIncludesProtection}
+                      onChange={(e) => setTcgIncludesProtection(e.target.value)}
+                      placeholder="Ej: Sí - Slab Acrílico con Sello Anti-UV 99% & Funda Protectora Sleeve"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

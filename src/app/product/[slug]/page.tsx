@@ -316,11 +316,53 @@ export default function ProductDetailPage() {
       : []),
 
     // TCG / Cartas Coleccionables
-    ...(isCollectible && product.collectibleMetadata?.condition
-      ? [{ label: "Grado de Condición", value: product.collectibleMetadata.condition.replace(/_/g, " ") }]
+    ...(isCollectible && product.collectibleMetadata?.productName
+      ? [{ label: "Nombre del Producto", value: product.collectibleMetadata.productName }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.franchise
+      ? [{ label: "Franquicia / IP", value: product.collectibleMetadata.franchise }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.gameSystem
+      ? [{ label: "Juego / Sistema", value: product.collectibleMetadata.gameSystem }]
+      : []),
+    ...(isCollectible && (product.collectibleMetadata?.language || product.collectibleMetadata?.cardLanguage)
+      ? [{ label: "Idioma", value: product.collectibleMetadata.language || product.collectibleMetadata.cardLanguage || "Japonés" }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.setExpansion
+      ? [{ label: "Set / Expansión", value: product.collectibleMetadata.setExpansion }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.releaseYear
+      ? [{ label: "Año de Lanzamiento", value: product.collectibleMetadata.releaseYear }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.cardNumber
+      ? [{ label: "Código / N° de Carta", value: product.collectibleMetadata.cardNumber }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.rarity
+      ? [{ label: "Rareza", value: product.collectibleMetadata.rarity }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.finishVariant
+      ? [{ label: "Acabado / Variante", value: product.collectibleMetadata.finishVariant }]
+      : []),
+    ...(isCollectible && (product.collectibleMetadata?.gradingCondition || product.collectibleMetadata?.condition)
+      ? [{ label: "Graduación General", value: (product.collectibleMetadata.gradingCondition || product.collectibleMetadata.condition || "").replace(/_/g, " ") }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.wearDetails
+      ? [{ label: "Detalles del Desgaste", value: product.collectibleMetadata.wearDetails }]
+      : []),
+    ...(isCollectible && (product.collectibleMetadata?.certification || product.collectibleMetadata?.authenticationBody)
+      ? [{ label: "Certificación", value: product.collectibleMetadata.certification || product.collectibleMetadata.authenticationBody }]
       : []),
     ...(isCollectible && product.collectibleMetadata?.serialNumber
       ? [{ label: "Número de Serie Certificado", value: product.collectibleMetadata.serialNumber }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.productType
+      ? [{ label: "Tipo de Producto", value: product.collectibleMetadata.productType }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.itemQuantity
+      ? [{ label: "Cantidad de Elementos", value: product.collectibleMetadata.itemQuantity }]
+      : []),
+    ...(isCollectible && product.collectibleMetadata?.includesProtection
+      ? [{ label: "¿Incluye Protección?", value: product.collectibleMetadata.includesProtection }]
       : []),
 
     // Consolas

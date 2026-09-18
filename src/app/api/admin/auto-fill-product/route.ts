@@ -74,11 +74,29 @@ interface AutoFillResponse {
     [key: string]: any;
   };
   collectibleSpecs?: {
-    category: string;
-    condition: string;
-    authBody: string;
-    language: string;
-    serial: string;
+    category?: string;
+    condition?: string;
+    authBody?: string;
+    language?: string;
+    serial?: string;
+    // 1. Información General del Producto
+    productName?: string;
+    franchise?: string;
+    gameSystem?: string;
+    // 2. Detalles de Edición y Rareza
+    setExpansion?: string;
+    releaseYear?: string;
+    cardNumber?: string;
+    rarity?: string;
+    finishVariant?: string;
+    // 3. Estado de Conservación (Condición)
+    gradingCondition?: string;
+    wearDetails?: string;
+    certification?: string;
+    // 4. Presentación y Empaque
+    productType?: string;
+    itemQuantity?: string;
+    includesProtection?: string;
   };
   customSpecifications?: {
     categoryType?: string;
@@ -577,14 +595,92 @@ function generateWithSmartEngine(
         }
       : undefined;
 
+  const inferredTcgFranchise = lower.includes("pokemon") || lower.includes("pokémon") || lower.includes("pikachu") || lower.includes("charizard")
+    ? "Pokémon"
+    : lower.includes("magic") || lower.includes("lotus") || lower.includes("mtg")
+    ? "Magic: The Gathering"
+    : lower.includes("yu-gi-oh") || lower.includes("yugioh") || lower.includes("blue-eyes")
+    ? "Yu-Gi-Oh!"
+    : lower.includes("one piece") || lower.includes("luffy")
+    ? "One Piece Card Game"
+    : lower.includes("lorcana")
+    ? "Disney Lorcana"
+    : "Coleccionismo TCG";
+
+  const inferredGameSystem = inferredTcgFranchise === "Pokémon"
+    ? "Pokémon TCG"
+    : inferredTcgFranchise === "Magic: The Gathering"
+    ? "Magic: The Gathering"
+    : inferredTcgFranchise === "Yu-Gi-Oh!"
+    ? "Yu-Gi-Oh! OCG / TCG"
+    : inferredTcgFranchise === "One Piece Card Game"
+    ? "One Piece Card Game (Bandai)"
+    : "Sistema TCG Oficial";
+
+  const inferredExpansion = lower.includes("base set")
+    ? "Base Set (1st Edition)"
+    : lower.includes("151")
+    ? "Scarlet & Violet: 151"
+    : lower.includes("evolving")
+    ? "Sword & Shield: Evolving Skies"
+    : lower.includes("paldea")
+    ? "Paldean Fates"
+    : lower.includes("alpha")
+    ? "Limited Edition Alpha"
+    : "Edición Coleccionista / Set Oficial";
+
+  const inferredCardNumber = lower.includes("charizard")
+    ? "4/102"
+    : `${Math.floor(1 + Math.random() * 150)}/${Math.floor(151 + Math.random() * 50)}`;
+
+  const inferredRarity = lower.includes("sar") || lower.includes("secret")
+    ? "Special Art Rare (SAR)"
+    : lower.includes("holo")
+    ? "Holo Rare (1st Edition)"
+    : lower.includes("ultra")
+    ? "Ultra Rare"
+    : "Holo Rare";
+
+  const inferredFinish = lower.includes("foil") || lower.includes("holo")
+    ? "Holográfica (Foil Cosmos)"
+    : lower.includes("textured")
+    ? "Texturizada con Relieve Premium"
+    : "Holográfica de Alto Brillo";
+
+  const inferredGradingCondition = lower.includes("9") ? "MINT_9" : "GEM_MINT_10";
+  const inferredAuth = lower.includes("cgc") ? "CGC" : lower.includes("bgs") ? "BGS" : "PSA";
+  const inferredSerial = `${inferredAuth}-${Math.floor(10000000 + Math.random() * 89999999)}`;
+
   const collectibleSpecs =
     type === "COLLECTIBLE"
       ? {
           category: "TCG",
-          condition: lower.includes("9") ? "MINT_9" : "GEM_MINT_10",
-          authBody: lower.includes("cgc") ? "CGC" : lower.includes("bgs") ? "BGS" : "PSA",
-          language: lower.includes("jap") ? "Japonés" : "Inglés",
-          serial: `PSA-${Math.floor(10000000 + Math.random() * 89999999)}`,
+          condition: inferredGradingCondition,
+          authBody: inferredAuth,
+          language: lower.includes("jap") ? "Japonés" : lower.includes("esp") ? "Español" : "Inglés",
+          serial: inferredSerial,
+
+          // 1. Información General del Producto
+          productName: name,
+          franchise: inferredTcgFranchise,
+          gameSystem: inferredGameSystem,
+
+          // 2. Detalles de Edición y Rareza
+          setExpansion: inferredExpansion,
+          releaseYear: lower.includes("1996") ? "1996" : lower.includes("1999") ? "1999" : "2024",
+          cardNumber: inferredCardNumber,
+          rarity: inferredRarity,
+          finishVariant: inferredFinish,
+
+          // 3. Estado de Conservación (Condición)
+          gradingCondition: inferredGradingCondition,
+          wearDetails: "Sin blanqueamiento en bordes, centrado 55/45, superficie limpia sin rayas ni dobleces",
+          certification: inferredAuth,
+
+          // 4. Presentación y Empaque
+          productType: "Carta Individual Graduada (Slab Acrílico)",
+          itemQuantity: "1 Carta en Slab Certificado",
+          includesProtection: "Sí - Slab Acrílico Hermético con Filtro UV 99% & Funda Protectora Sleeve",
         }
       : undefined;
 
@@ -1198,8 +1294,22 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     "category": "TCG" | "MEMORABILIA" | "COMIC",
     "condition": "GEM_MINT_10" | "MINT_9" | "NEAR_MINT_8",
     "authBody": "PSA" | "CGC" | "BGS",
-    "language": "Japonés" | "Inglés",
-    "serial": "Código serial de certificación"
+    "language": "Japonés" | "Inglés" | "Español",
+    "serial": "Código serial de certificación ej. PSA-99201482",
+    "productName": "Nombre exacto de la carta o coleccionable",
+    "franchise": "Franquicia ej. Pokémon, Magic: The Gathering, Yu-Gi-Oh!, One Piece",
+    "gameSystem": "Juego o Sistema ej. Pokémon TCG, MTG, Yu-Gi-Oh! OCG",
+    "setExpansion": "Set o Expansión ej. Base Set 1st Edition, Scarlet & Violet 151",
+    "releaseYear": "Año de lanzamiento ej. 1996 o 2024",
+    "cardNumber": "Número de carta o código ej. 4/102 o OP05-119",
+    "rarity": "Rareza ej. Holo Rare, Secret Rare (SAR), Ultra Rare",
+    "finishVariant": "Acabado o variante ej. Holográfica Foil Cosmos, 1st Edition, Textured",
+    "gradingCondition": "Graduación o estado ej. GEM MINT 10 o Near Mint",
+    "wearDetails": "Detalles del desgaste ej. Esquinas nítidas 10/10, centrado 55/45, sin imperfecciones",
+    "certification": "PSA | BGS | CGC | Sin Certificación",
+    "productType": "Carta Individual Graduada (Slab) | Booster Box | Pack Sellado",
+    "itemQuantity": "1 Carta en Slab Certificado | 36 Sobres",
+    "includesProtection": "Sí - Slab Acrílico Hermético con Filtro UV 99% + Funda Sleeve"
   },
   "customSpecifications": {
     "categoryType": "GAMING_ACCESSORY" | "CONSOLE" | "HARDWARE" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO",
@@ -1381,6 +1491,11 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             if (parsed.type === "VIDEO_GAME") {
               const fallbackHeuristic: any = generateWithSmartEngine(productName, "VIDEO_GAME");
               parsed.gameSpecs = mergeNonEmpty(fallbackHeuristic.gameSpecs || {}, parsed.gameSpecs || {});
+            }
+
+            if (parsed.type === "COLLECTIBLE") {
+              const fallbackHeuristic: any = generateWithSmartEngine(productName, "COLLECTIBLE");
+              parsed.collectibleSpecs = mergeNonEmpty(fallbackHeuristic.collectibleSpecs || {}, parsed.collectibleSpecs || {});
             }
 
             // Cross-category cleanup: strictly delete specifications not belonging to the chosen type

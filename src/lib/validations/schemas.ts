@@ -199,14 +199,38 @@ export const CreateProductSchema = z.object({
     .optional(),
   collectibleMetadata: z
     .object({
-      category: CollectibleCategoryEnum,
-      condition: CollectibleConditionEnum,
+      category: CollectibleCategoryEnum.optional(),
+      condition: CollectibleConditionEnum.optional(),
       cardLanguage: z.string().optional(),
-      authenticationBody: AuthenticatorEnum,
+      authenticationBody: AuthenticatorEnum.optional(),
       serialNumber: z.string().optional(),
       gradeScore: z.string().optional(),
       slabType: z.string().optional(),
+
+      // 1. Información General del Producto
+      productName: z.string().optional(),
+      franchise: z.string().optional(),
+      gameSystem: z.string().optional(),
+      language: z.string().optional(),
+
+      // 2. Detalles de Edición y Rareza
+      setExpansion: z.string().optional(),
+      releaseYear: z.string().optional(),
+      cardNumber: z.string().optional(),
+      rarity: z.string().optional(),
+      finishVariant: z.string().optional(),
+
+      // 3. Estado de Conservación (Condición)
+      gradingCondition: z.string().optional(),
+      wearDetails: z.string().optional(),
+      certification: z.string().optional(),
+
+      // 4. Presentación y Empaque
+      productType: z.string().optional(),
+      itemQuantity: z.string().optional(),
+      includesProtection: z.string().optional(),
     })
+    .passthrough()
     .optional(),
   bundleComponents: z
     .array(

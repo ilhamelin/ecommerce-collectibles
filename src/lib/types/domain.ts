@@ -130,15 +130,38 @@ export interface FigureMetadata {
 }
 
 export interface CollectibleMetadata {
-  id: string;
-  productId: string;
-  category: CollectibleCategory | string;
-  condition: CollectibleCondition | string;
+  id?: string;
+  productId?: string;
+  category?: CollectibleCategory | string;
+  condition?: CollectibleCondition | string;
   cardLanguage?: string;
   authenticationBody?: Authenticator | string;
   serialNumber?: string;
   gradeScore?: string;
   slabType?: string;
+
+  // 1. Información General del Producto
+  productName?: string;
+  franchise?: string;
+  gameSystem?: string;
+  language?: string;
+
+  // 2. Detalles de Edición y Rareza
+  setExpansion?: string;
+  releaseYear?: string;
+  cardNumber?: string;
+  rarity?: string;
+  finishVariant?: string;
+
+  // 3. Estado de Conservación (Condición)
+  gradingCondition?: string;
+  wearDetails?: string;
+  certification?: string;
+
+  // 4. Presentación y Empaque
+  productType?: string;
+  itemQuantity?: string;
+  includesProtection?: string;
 }
 
 export interface BundleItemDefinition {

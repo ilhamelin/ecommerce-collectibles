@@ -35,8 +35,11 @@ import {
   Box,
   ShieldAlert,
   Info,
+  HardDrive,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
+import { GoogleDriveImportModal } from "@/components/admin/GoogleDriveImportModal";
+import { normalizeImageUrl } from "@/lib/utils/media";
 import {
   ProductDomainEntity,
   ProductType,
@@ -98,22 +101,44 @@ export default function NewProductAdminPage() {
   const [contentGallery, setContentGallery] = useState<string[]>([]);
   const [contentGalleryInput, setContentGalleryInput] = useState("");
 
+  // Google Drive Import Modal State
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+  const [driveTarget, setDriveTarget] = useState<"MAIN_IMAGES" | "CONTENT_GALLERY">("CONTENT_GALLERY");
+
   const handleAddImageUrl = () => {
     if (imageUrlInput.trim()) {
-      setImages((prev) => [...prev, imageUrlInput.trim()]);
+      const normalized = normalizeImageUrl(imageUrlInput.trim());
+      setImages((prev) => [...prev, normalized]);
       setImageUrlInput("");
     }
   };
 
   const handleAddContentGalleryImage = () => {
     if (contentGalleryInput.trim()) {
-      setContentGallery((prev) => [...prev, contentGalleryInput.trim()]);
+      const normalized = normalizeImageUrl(contentGalleryInput.trim());
+      setContentGallery((prev) => [...prev, normalized]);
       setContentGalleryInput("");
     }
   };
 
   const handleRemoveContentGalleryImage = (indexToRemove: number) => {
     setContentGallery((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleContentGalleryFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setContentGallery((prev) => [...prev, uploadEvent.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1469,8 +1494,8 @@ export default function NewProductAdminPage() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/50 border border-[#004E72]/60 text-[#F9F9F9] text-xs font-semibold transition">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/50 border border-[#004E72]/60 text-[#F9F9F9] text-xs font-semibold transition hover:border-[#FF6E42]/50">
                   <UploadCloud className="w-4 h-4 text-[#FF6E42]" />
                   <span>Subir desde mi equipo</span>
                   <input
@@ -1481,8 +1506,21 @@ export default function NewProductAdminPage() {
                     className="hidden"
                   />
                 </label>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDriveTarget("MAIN_IMAGES");
+                    setIsDriveModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0F394C]/60 hover:bg-[#0F394C] border border-cyan-500/40 hover:border-cyan-400 text-[#F9F9F9] text-xs font-semibold transition shadow-sm"
+                >
+                  <HardDrive className="w-4 h-4 text-cyan-400" />
+                  <span>Google Drive</span>
+                </button>
+
                 <span className="text-[11px] text-[#9bb5c2]">
-                  Formatos JPG, PNG, WebP. La primera foto será la portada principal del catálogo.
+                  Formatos JPG, PNG, WebP o enlaces de Drive. La primera foto será la portada principal del catálogo.
                 </span>
               </div>
             </div>
@@ -2643,6 +2681,37 @@ export default function NewProductAdminPage() {
                 </button>
               </div>
 
+              {/* Botones para Subir desde el Equipo y desde Google Drive */}
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#004E72]/30 hover:bg-[#004E72]/50 border border-[#004E72]/60 text-[#F9F9F9] text-xs font-semibold transition hover:border-[#FF6E42]/50 shadow-sm">
+                  <UploadCloud className="w-4 h-4 text-[#FF6E42]" />
+                  <span>Subir desde el equipo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleContentGalleryFileUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDriveTarget("CONTENT_GALLERY");
+                    setIsDriveModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0F394C]/60 hover:bg-[#0F394C] border border-cyan-500/40 hover:border-cyan-400 text-[#F9F9F9] text-xs font-semibold transition shadow-sm"
+                >
+                  <HardDrive className="w-4 h-4 text-cyan-400" />
+                  <span>Subir desde Google Drive</span>
+                </button>
+
+                <span className="text-[11px] text-[#9bb5c2]">
+                  Formatos JPG, PNG, WebP o enlaces de Google Drive (se normalizan a CDN directo automáticamente).
+                </span>
+              </div>
+
               {contentGallery.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
                   {contentGallery.map((img, idx) => (
@@ -3123,6 +3192,29 @@ export default function NewProductAdminPage() {
           </div>
         </div>
       )}
+
+      {/* Google Drive Import Modal */}
+      <GoogleDriveImportModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
+        title={
+          driveTarget === "CONTENT_GALLERY"
+            ? "Importar Captura desde Google Drive"
+            : "Importar Foto de Producto desde Google Drive"
+        }
+        description={
+          driveTarget === "CONTENT_GALLERY"
+            ? "Pega el enlace compartido de Google Drive. Se convertirá automáticamente a URL CDN directa para la galería interactiva."
+            : "Pega el enlace compartido de Google Drive. Se convertirá automáticamente a URL CDN directa para el catálogo."
+        }
+        onImport={(normalizedUrl) => {
+          if (driveTarget === "CONTENT_GALLERY") {
+            setContentGallery((prev) => [...prev, normalizedUrl]);
+          } else {
+            setImages((prev) => [...prev, normalizedUrl]);
+          }
+        }}
+      />
     </div>
   );
 }

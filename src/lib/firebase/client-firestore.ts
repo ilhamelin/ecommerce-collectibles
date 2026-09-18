@@ -2,6 +2,7 @@ import { db, isFirebaseConfigured } from "./config";
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { COLLECTIONS } from "./collections";
 import type { UserAccount } from "../store/authStore";
+import type { ProductDomainEntity } from "../types/domain";
 
 /**
  * Helper to log database operation timings for monitoring and diagnostics
@@ -115,10 +116,27 @@ export async function deleteProductFromFirestoreClient(
  * Used as a fallback when the server runtime does not have Firebase Admin keys configured.
  */
 export async function saveProductToFirestoreClient(
-  product: any
+  product: ProductDomainEntity
 ): Promise<boolean> {
   try {
     if (!db || !isFirebaseConfigured()) return false;
+
+    // Ensure nested sub-metadata has proper productId references
+    if (product.gameMetadata && !product.gameMetadata.productId) {
+      product.gameMetadata.productId = product.id;
+    }
+    if (product.figureMetadata && !product.figureMetadata.productId) {
+      product.figureMetadata.productId = product.id;
+    }
+    if (product.collectibleMetadata && !product.collectibleMetadata.productId) {
+      product.collectibleMetadata.productId = product.id;
+    }
+
+    // Ensure category label consistency
+    if (product.type === "VIDEO_GAME" && product.customCategoryLabel?.toUpperCase().includes("CONSOLA")) {
+      product.customCategoryLabel = "Videojuegos";
+    }
+
     // Strip undefined values to prevent Firestore unsupported field errors
     const cleanProduct = JSON.parse(JSON.stringify(product));
     await setDoc(doc(db, COLLECTIONS.PRODUCTS, product.id), cleanProduct, { merge: true });

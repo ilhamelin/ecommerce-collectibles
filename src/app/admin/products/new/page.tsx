@@ -445,8 +445,9 @@ export default function NewProductAdminPage() {
       const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
       setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);
       setTimeout(() => setAutoFillSuccessMsg(null), 8000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al autocompletar con IA.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al autocompletar con IA.";
+      setErrorMsg(msg);
     } finally {
       setIsAutoFilling(false);
     }
@@ -509,7 +510,7 @@ export default function NewProductAdminPage() {
           message: data.error || "No se pudo autogenerar el SKU.",
         });
       }
-    } catch (err: any) {
+    } catch (_err: unknown) {
       setSkuValidation({
         isChecking: false,
         isAvailable: null,
@@ -828,7 +829,7 @@ export default function NewProductAdminPage() {
     const resolvedAgeRating =
       ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       sku: sku.trim().toUpperCase(),
       name: name.trim(),
       description: description.trim(),
@@ -978,8 +979,9 @@ export default function NewProductAdminPage() {
         setCreatedProduct(prod);
         // Do not force scroll to top: floating toast notifies admin right where they are!
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Error de conexión con el servidor");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error de conexión con el servidor";
+      setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
     }

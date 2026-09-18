@@ -285,8 +285,9 @@ export default function EditProductAdminPage() {
       const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
       setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron actualizados respetando la categoría.`);
       setTimeout(() => setAutoFillSuccessMsg(null), 8000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al autocompletar con IA.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al autocompletar con IA.";
+      setErrorMsg(msg);
     } finally {
       setIsAutoFilling(false);
     }
@@ -703,7 +704,7 @@ export default function EditProductAdminPage() {
       ageRating === "CUSTOM" ? customAgeRating.trim() : ageRating.trim();
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         id: productId,
         sku: sku.trim().toUpperCase(),
         name: name.trim(),
@@ -799,8 +800,9 @@ export default function EditProductAdminPage() {
       }
 
       setSuccessMsg(`¡Producto ${sku} actualizado con éxito! Los cambios ya están disponibles en el catálogo.`);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error inesperado al actualizar el producto.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error inesperado al actualizar el producto.";
+      setErrorMsg(msg);
     } finally {
       setSubmitting(false);
     }

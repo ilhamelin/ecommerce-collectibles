@@ -89,9 +89,29 @@ export class CatalogRepository {
 
     const id = productData.id || `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 
+    // Ensure nested metadata productId matches parent id and categories are consistent
+    const gameMetadata = productData.gameMetadata
+      ? { ...productData.gameMetadata, productId: id }
+      : undefined;
+    const figureMetadata = productData.figureMetadata
+      ? { ...productData.figureMetadata, productId: id }
+      : undefined;
+    const collectibleMetadata = productData.collectibleMetadata
+      ? { ...productData.collectibleMetadata, productId: id }
+      : undefined;
+
+    let categoryLabel = productData.customCategoryLabel;
+    if (productData.type === "VIDEO_GAME" && (!categoryLabel || categoryLabel.toUpperCase().includes("CONSOLA"))) {
+      categoryLabel = "Videojuegos";
+    }
+
     const newProduct: ProductDomainEntity = {
       ...productData,
       id,
+      gameMetadata,
+      figureMetadata,
+      collectibleMetadata,
+      customCategoryLabel: categoryLabel,
       sku: productData.sku.toUpperCase().trim(),
       stockReserved: 0,
       price: Math.round(productData.price),
@@ -118,10 +138,26 @@ export class CatalogRepository {
       }
     }
 
+    const mergedType = updates.type || existing.type;
+    let categoryLabel = updates.customCategoryLabel !== undefined ? updates.customCategoryLabel : existing.customCategoryLabel;
+    if (mergedType === "VIDEO_GAME" && (!categoryLabel || categoryLabel.toUpperCase().includes("CONSOLA"))) {
+      categoryLabel = "Videojuegos";
+    }
+
     const updatedProduct: ProductDomainEntity = {
       ...existing,
       ...updates,
       id: existing.id,
+      customCategoryLabel: categoryLabel,
+      gameMetadata: updates.gameMetadata
+        ? { ...updates.gameMetadata, productId: existing.id }
+        : existing.gameMetadata,
+      figureMetadata: updates.figureMetadata
+        ? { ...updates.figureMetadata, productId: existing.id }
+        : existing.figureMetadata,
+      collectibleMetadata: updates.collectibleMetadata
+        ? { ...updates.collectibleMetadata, productId: existing.id }
+        : existing.collectibleMetadata,
       sku: updates.sku ? updates.sku.toUpperCase().trim() : existing.sku,
       price: updates.price !== undefined ? Math.round(updates.price) : existing.price,
       originalPrice: updates.originalPrice !== undefined ? Math.round(updates.originalPrice) : existing.originalPrice,

@@ -273,8 +273,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare domain entity fields
+    // Prepare domain entity fields with guaranteed parent-child ID correlation
+    const productId = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
     const newProduct = repo.addProduct({
+      id: productId,
       sku: data.sku,
       name: data.name,
       description: data.description,
@@ -293,18 +296,18 @@ export async function POST(request: NextRequest) {
       contentGallery: data.contentGallery,
       gameMetadata: data.gameMetadata ? ({
         id: `meta-gm-${Date.now()}`,
-        productId: "",
+        productId,
         publisher: data.gameMetadata.publisher || "Publisher Oficial",
         ...data.gameMetadata,
       } as GameMetadata) : undefined,
       figureMetadata: data.figureMetadata ? ({
         id: `meta-fig-${Date.now()}`,
-        productId: "",
+        productId,
         ...data.figureMetadata,
       } as FigureMetadata) : undefined,
       collectibleMetadata: data.collectibleMetadata ? ({
         id: `meta-col-${Date.now()}`,
-        productId: "",
+        productId,
         ...data.collectibleMetadata,
       } as CollectibleMetadata) : undefined,
       bundleComponents,

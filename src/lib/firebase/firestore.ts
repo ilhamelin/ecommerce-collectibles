@@ -189,6 +189,22 @@ export function cleanFirestoreData<T>(obj: T): T {
  */
 export async function saveProductToFirestore(product: ProductDomainEntity): Promise<boolean> {
   try {
+    // Ensure nested sub-metadata has proper productId references
+    if (product.gameMetadata && !product.gameMetadata.productId) {
+      product.gameMetadata.productId = product.id;
+    }
+    if (product.figureMetadata && !product.figureMetadata.productId) {
+      product.figureMetadata.productId = product.id;
+    }
+    if (product.collectibleMetadata && !product.collectibleMetadata.productId) {
+      product.collectibleMetadata.productId = product.id;
+    }
+
+    // Ensure category label consistency
+    if (product.type === "VIDEO_GAME" && product.customCategoryLabel?.toUpperCase().includes("CONSOLA")) {
+      product.customCategoryLabel = "Videojuegos";
+    }
+
     const cleanProduct = cleanFirestoreData(product);
 
     if (typeof window === "undefined" && adminDb) {

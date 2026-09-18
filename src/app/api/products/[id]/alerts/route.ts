@@ -87,10 +87,11 @@ export async function POST(
         previewUrl: emailResult.previewUrl,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Error interno al registrar alerta";
     console.error("[Alerts API] Unhandled error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Error interno al registrar alerta" },
+      { success: false, error: errorMsg },
       { status: 500 }
     );
   }
@@ -139,7 +140,8 @@ export async function GET(
       active: Boolean(foundAlert),
       alert: foundAlert || null,
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message, active: false }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Error interno";
+    return NextResponse.json({ success: false, error: errorMsg, active: false }, { status: 500 });
   }
 }

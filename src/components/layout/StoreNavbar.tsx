@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ShoppingBag,
   Sparkles,
@@ -40,16 +40,10 @@ import { formatCLP } from "@/lib/utils/currency";
 
 let cachedBranding: StoreBrandingData | null = null;
 
-export function StoreNavbar() {
+function StoreNavbarContent() {
   const pathname = usePathname();
-  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      setCurrentCategory(params.get("category"));
-    }
-  }, [pathname]);
+  const searchParams = useSearchParams();
+  const currentCategory = searchParams?.get("category") || null;
 
   const { openCart, getTotals } = useCartStore();
   const { currentUser, isAuthenticated, isAdmin, logout, guestWishlist } = useAuthStore();
@@ -317,9 +311,9 @@ export function StoreNavbar() {
           <div className="hidden lg:flex items-center gap-1 xl:gap-1.5">
             {navLinks.map((link) => {
               const isActive = link.categoryKey
-                ? pathname === "/catalog" && currentCategory === link.categoryKey
+                ? pathname === "/catalog" && currentCategory?.toUpperCase() === link.categoryKey
                 : link.href === "/catalog"
-                ? pathname === "/catalog" && !currentCategory
+                ? pathname === "/catalog" && (!currentCategory || currentCategory.toUpperCase() === "ALL")
                 : pathname === link.href;
 
               return (
@@ -382,26 +376,33 @@ export function StoreNavbar() {
                     </div>
 
                     {[
-                      { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", icon: "🎮", count: categoryCounts.VIDEO_GAME },
-                      { href: "/catalog?category=FIGURE", label: "Figuras de Escala", icon: "🎎", count: categoryCounts.FIGURE },
-                      { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas PSA", icon: "🏆", count: categoryCounts.COLLECTIBLE },
-                      { href: "/catalog?category=BUNDLE", label: "Bundles Compuestos", icon: "📦", count: categoryCounts.BUNDLE },
-                    ].map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition"
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <span className="text-sm">{item.icon}</span>
-                          <span>{item.label}</span>
-                        </span>
-                        <span className="text-[11px] font-mono font-bold text-slate-400">
-                          ({item.count})
-                        </span>
-                      </Link>
-                    ))}
+                      { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", icon: "🎮", count: categoryCounts.VIDEO_GAME, key: "VIDEO_GAME" },
+                      { href: "/catalog?category=FIGURE", label: "Figuras de Escala", icon: "🎎", count: categoryCounts.FIGURE, key: "FIGURE" },
+                      { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas PSA", icon: "🏆", count: categoryCounts.COLLECTIBLE, key: "COLLECTIBLE" },
+                      { href: "/catalog?category=BUNDLE", label: "Bundles Compuestos", icon: "📦", count: categoryCounts.BUNDLE, key: "BUNDLE" },
+                    ].map((item) => {
+                      const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsDropdownOpen(false)}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                            isItemActive
+                              ? "bg-[#FF6B35] text-white font-bold shadow-sm"
+                              : "text-slate-200 hover:text-white hover:bg-white/10"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span className="text-sm">{item.icon}</span>
+                            <span>{item.label}</span>
+                          </span>
+                          <span className={`text-[11px] font-mono font-bold ${isItemActive ? "text-white" : "text-slate-400"}`}>
+                            ({item.count})
+                          </span>
+                        </Link>
+                      );
+                    })}
 
                     {/* Sección 2: Categorías Especializadas */}
                     <div className="px-2 pt-3 pb-1 flex items-center gap-2 text-[10px] font-bold text-[#FF6B35] uppercase tracking-wider">
@@ -411,30 +412,37 @@ export function StoreNavbar() {
                     </div>
 
                     {[
-                      { href: "/catalog?category=CONSOLE", label: "Consolas", icon: "🕹️", count: categoryCounts.CONSOLE },
-                      { href: "/catalog?category=HARDWARE", label: "Hardware & Componentes", icon: "🖥️", count: categoryCounts.HARDWARE },
-                      { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: "🎧", count: categoryCounts.GAMING_ACCESSORY },
-                      { href: "/catalog?category=APPAREL", label: "Ropa & Estilo", icon: "👕", count: categoryCounts.APPAREL },
-                      { href: "/catalog?category=BOOK", label: "Manga / Artbooks", icon: "📖", count: categoryCounts.BOOK },
-                      { href: "/catalog?category=MERCH", label: "Merchandising", icon: "🎁", count: categoryCounts.MERCH },
-                      { href: "/catalog?category=AUDIO", label: "Audio / OST", icon: "💿", count: categoryCounts.AUDIO },
-                      { href: "/catalog?category=OTHER", label: "Otras Categorías", icon: "🧩", count: categoryCounts.OTHER },
-                    ].map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition"
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <span className="text-sm">{item.icon}</span>
-                          <span>{item.label}</span>
-                        </span>
-                        <span className="text-[11px] font-mono font-bold text-slate-400">
-                          ({item.count})
-                        </span>
-                      </Link>
-                    ))}
+                      { href: "/catalog?category=CONSOLE", label: "Consolas", icon: "🕹️", count: categoryCounts.CONSOLE, key: "CONSOLE" },
+                      { href: "/catalog?category=HARDWARE", label: "Hardware & Componentes", icon: "🖥️", count: categoryCounts.HARDWARE, key: "HARDWARE" },
+                      { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: "🎧", count: categoryCounts.GAMING_ACCESSORY, key: "GAMING_ACCESSORY" },
+                      { href: "/catalog?category=APPAREL", label: "Ropa & Estilo", icon: "👕", count: categoryCounts.APPAREL, key: "APPAREL" },
+                      { href: "/catalog?category=BOOK", label: "Manga / Artbooks", icon: "📖", count: categoryCounts.BOOK, key: "BOOK" },
+                      { href: "/catalog?category=MERCH", label: "Merchandising", icon: "🎁", count: categoryCounts.MERCH, key: "MERCH" },
+                      { href: "/catalog?category=AUDIO", label: "Audio / OST", icon: "💿", count: categoryCounts.AUDIO, key: "AUDIO" },
+                      { href: "/catalog?category=OTHER", label: "Otras Categorías", icon: "🧩", count: categoryCounts.OTHER, key: "OTHER" },
+                    ].map((item) => {
+                      const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsDropdownOpen(false)}
+                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                            isItemActive
+                              ? "bg-[#FF6B35] text-white font-bold shadow-sm"
+                              : "text-slate-200 hover:text-white hover:bg-white/10"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            <span className="text-sm">{item.icon}</span>
+                            <span>{item.label}</span>
+                          </span>
+                          <span className={`text-[11px] font-mono font-bold ${isItemActive ? "text-white" : "text-slate-400"}`}>
+                            ({item.count})
+                          </span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -508,16 +516,28 @@ export function StoreNavbar() {
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t border-[#E5E5E5] bg-white px-4 pt-3 pb-5 space-y-2 shadow-lg">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2.5 rounded-xl text-sm text-[#1A1A1A] hover:text-[#FF6B35] hover:bg-[#F7F7F5] font-medium"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = link.categoryKey
+              ? pathname === "/catalog" && currentCategory?.toUpperCase() === link.categoryKey
+              : link.href === "/catalog"
+              ? pathname === "/catalog" && (!currentCategory || currentCategory.toUpperCase() === "ALL")
+              : pathname === link.href;
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-3 py-2.5 rounded-xl text-sm font-medium transition ${
+                  isActive
+                    ? "bg-[#1F3A5F] text-white font-bold"
+                    : "text-[#1A1A1A] hover:text-[#FF6B35] hover:bg-[#F7F7F5]"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           <div className="pt-2 border-t border-[#E5E5E5] space-y-1">
             <Link
               href="/account?tab=wishlist"
@@ -612,6 +632,18 @@ export function StoreNavbar() {
         </div>
       )}
     </nav>
+  );
+}
+
+export function StoreNavbar() {
+  return (
+    <Suspense
+      fallback={
+        <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/95 border-b border-[#E5E5E5] shadow-sm min-h-[4rem]" />
+      }
+    >
+      <StoreNavbarContent />
+    </Suspense>
   );
 }
 

@@ -35,6 +35,7 @@ import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP } from "@/lib/utils/currency";
 import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
+import { getProductCategoryInfo } from "@/lib/utils/category";
 
 export function StoreNavbar() {
   const pathname = usePathname();
@@ -117,35 +118,11 @@ export function StoreNavbar() {
             ALL: prods.length,
           };
           for (const p of prods) {
-            if (p.type === "VIDEO_GAME") counts.VIDEO_GAME++;
-            else if (p.type === "FIGURE") counts.FIGURE++;
-            else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
-            else if (p.type === "BUNDLE") counts.BUNDLE++;
-            else if (p.type === "CONSOLE") counts.CONSOLE++;
-            else if (p.type === "HARDWARE") counts.HARDWARE++;
-            else if (p.type === "OTHER") {
-              const spec = (p.customSpecifications?.categoryType || "").toUpperCase();
-              const l = (p.customCategoryLabel || "").toLowerCase();
-              const nameLower = (p.name || "").toLowerCase();
-              const skuLower = (p.sku || "").toLowerCase();
-              const isConsole = spec === "CONSOLE" || 
-                                l === "consolas" || 
-                                l === "consola" || 
-                                skuLower.startsWith("con-") || 
-                                nameLower.includes("switch") || 
-                                nameLower.includes("ps5") || 
-                                nameLower.includes("playstation") || 
-                                nameLower.includes("xbox") || 
-                                (l.includes("consola") && !l.includes("accesorio"));
-
-              if (isConsole) counts.CONSOLE++;
-              else if (spec === "HARDWARE" || (!isConsole && (l.includes("hardware") || l.includes("componente") || l.includes("tarjeta") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu") || l.includes("placa") || l.includes("fuente") || l.includes("cooler") || l.includes("gabinete") || l.includes("ventilador")))) counts.HARDWARE++;
-              else if (spec === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono") || l.includes("headset")) counts.GAMING_ACCESSORY++;
-              else if (spec === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
-              else if (spec === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;
-              else if (spec === "MERCH" || l.includes("merch") || l.includes("decoraci") || l.includes("peluche")) counts.MERCH++;
-              else if (spec === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("vinilo")) counts.AUDIO++;
-              else counts.OTHER++;
+            const catKey = getProductCategoryInfo(p).key;
+            if (counts[catKey] !== undefined) {
+              counts[catKey]++;
+            } else {
+              counts.OTHER++;
             }
           }
           setCategoryCounts(counts);

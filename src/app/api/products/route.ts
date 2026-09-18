@@ -53,28 +53,67 @@ function sanitizeProductData(prod: ProductDomainEntity): ProductDomainEntity {
     }
   }
 
-  // 4. Normalize Consoles and Hardware separation
+  // 4. Strict category normalization respecting canonical product types
   const catLabel = (p.customCategoryLabel || "").toUpperCase();
   const skuUpper = (p.sku || "").toUpperCase();
-  const isConsole = catLabel.includes("CONSOLA") || 
+
+  // Video Games should NEVER be classified as Consolas
+  if (p.type === "VIDEO_GAME" || skuUpper.startsWith("VG-")) {
+    p.type = "VIDEO_GAME";
+    if (!p.customCategoryLabel || p.customCategoryLabel.toUpperCase().includes("CONSOLA")) {
+      p.customCategoryLabel = "Videojuegos";
+    }
+    if (p.customSpecifications?.categoryType === "CONSOLE") {
+      p.customSpecifications.categoryType = "VIDEO_GAME";
+    }
+    return p;
+  }
+
+  // Figures
+  if (p.type === "FIGURE" || skuUpper.startsWith("FIG-")) {
+    p.type = "FIGURE";
+    if (p.customCategoryLabel?.toUpperCase().includes("CONSOLA")) {
+      p.customCategoryLabel = "Figuras";
+    }
+    return p;
+  }
+
+  // Collectibles / TCG
+  if (p.type === "COLLECTIBLE" || skuUpper.startsWith("TCG-")) {
+    p.type = "COLLECTIBLE";
+    if (p.customCategoryLabel?.toUpperCase().includes("CONSOLA")) {
+      p.customCategoryLabel = "TCG & Cartas";
+    }
+    return p;
+  }
+
+  // Bundles
+  if (p.type === "BUNDLE" || skuUpper.startsWith("BUN-")) {
+    p.type = "BUNDLE";
+    if (p.customCategoryLabel?.toUpperCase().includes("CONSOLA")) {
+      p.customCategoryLabel = "Packs & Bundles";
+    }
+    return p;
+  }
+
+  // Actual Consoles (Hardware systems)
+  const isConsole = p.type === "CONSOLE" || 
                     skuUpper.startsWith("CON-") || 
-                    nameUpper.includes("NINTENDO SWITCH") || 
-                    nameUpper.includes("PLAYSTATION") || 
-                    nameUpper.includes("PS5") || 
-                    nameUpper.includes("XBOX") || 
-                    nameUpper.includes("CONSOLA");
+                    catLabel === "CONSOLA" || 
+                    catLabel === "CONSOLAS" || 
+                    (p.type === "OTHER" && nameUpper.includes("CONSOLA") && !nameUpper.includes("JUEGO"));
 
   if (isConsole) {
-    if (catLabel.includes("HARDWARE") || catLabel === "CONSOLA / HARDWARE" || p.type === "OTHER" || !p.customCategoryLabel) {
-      p.customCategoryLabel = "Consolas";
-    }
+    p.type = "CONSOLE";
+    p.customCategoryLabel = "Consolas";
     if (p.customSpecifications) {
       p.customSpecifications = {
         ...p.customSpecifications,
         categoryType: "CONSOLE",
       };
     }
-  } else if (catLabel.includes("HARDWARE") || catLabel.includes("COMPONENTES") || (p.customSpecifications?.categoryType === "HARDWARE")) {
+  } else if (p.type === "HARDWARE" || skuUpper.startsWith("HW-") || catLabel.includes("HARDWARE") || catLabel.includes("COMPONENTES") || (p.customSpecifications?.categoryType === "HARDWARE")) {
+    p.type = "HARDWARE";
     p.customCategoryLabel = "Hardware & Componentes";
     if (p.customSpecifications) {
       p.customSpecifications = {

@@ -36,6 +36,7 @@ import { ProductDomainEntity, ProductType } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { useAuthStore } from "@/lib/store/authStore";
+import { getProductCategoryInfo } from "@/lib/utils/category";
 
 export default function AdminProductsListPage() {
   const { currentUser, login } = useAuthStore();
@@ -164,43 +165,10 @@ export default function AdminProductsListPage() {
     const list = products.filter((p) => {
       // Category filter matching standard types and custom categories
       if (selectedType !== "ALL") {
-        if (p.type === selectedType) {
-          // direct standard match
-        } else if (p.type === "OTHER") {
-          const l = (p.customCategoryLabel || "").toLowerCase();
-          const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
-          const nameLower = (p.name || "").toLowerCase();
-          const skuLower = (p.sku || "").toLowerCase();
-          const isConsole = specCat === "CONSOLE" ||
-                            l === "consolas" ||
-                            l === "consola" ||
-                            skuLower.startsWith("con-") ||
-                            nameLower.includes("switch") ||
-                            nameLower.includes("ps5") ||
-                            nameLower.includes("playstation") ||
-                            nameLower.includes("xbox") ||
-                            (l.includes("consola") && !l.includes("accesorio"));
-
-          if (selectedType === "OTHER") {
-            // matches any other
-          } else if (selectedType === "CONSOLE" && isConsole) {
-            // matches console
-          } else if (selectedType === "HARDWARE" && !isConsole && (specCat === "HARDWARE" || l.includes("hardware") || l.includes("componente") || l.includes("tarjeta") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu") || l.includes("placa") || l.includes("fuente") || l.includes("cooler") || l.includes("gabinete") || l.includes("ventilador"))) {
-            // matches hardware
-          } else if (selectedType === "GAMING_ACCESSORY" && (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono"))) {
-            // matches gaming accessory
-          } else if (selectedType === "APPAREL" && (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo") || l.includes("poleron") || l.includes("polera"))) {
-            // matches apparel
-          } else if (selectedType === "BOOK" && (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro"))) {
-            // matches book / manga
-          } else if (selectedType === "MERCH" && (specCat === "MERCH" || l.includes("merch") || l.includes("decoraci") || l.includes("peluche"))) {
-            // matches merch
-          } else if (selectedType === "AUDIO" && (specCat === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("vinilo"))) {
-            // matches audio
-          } else {
-            return false;
-          }
-        } else {
+        const catKey = p.type !== "OTHER" ? p.type : getProductCategoryInfo(p).key;
+        if (selectedType === "OTHER") {
+          if (p.type !== "OTHER") return false;
+        } else if (catKey !== selectedType) {
           return false;
         }
       }
@@ -275,35 +243,12 @@ export default function AdminProductsListPage() {
       OTHER: 0,
     };
     for (const p of products) {
-      if (p.type === "VIDEO_GAME") counts.VIDEO_GAME++;
-      else if (p.type === "FIGURE") counts.FIGURE++;
-      else if (p.type === "COLLECTIBLE") counts.COLLECTIBLE++;
-      else if (p.type === "BUNDLE") counts.BUNDLE++;
-      else if (p.type === "CONSOLE") counts.CONSOLE++;
-      else if (p.type === "HARDWARE") counts.HARDWARE++;
-      else if (p.type === "OTHER") {
-        const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
-        const l = (p.customCategoryLabel || "").toLowerCase();
-        const nameLower = (p.name || "").toLowerCase();
-        const skuLower = (p.sku || "").toLowerCase();
-        const isConsole = specCat === "CONSOLE" ||
-                          l === "consolas" ||
-                          l === "consola" ||
-                          skuLower.startsWith("con-") ||
-                          nameLower.includes("switch") ||
-                          nameLower.includes("ps5") ||
-                          nameLower.includes("playstation") ||
-                          nameLower.includes("xbox") ||
-                          (l.includes("consola") && !l.includes("accesorio"));
-
-        if (isConsole) counts.CONSOLE++;
-        else if (specCat === "HARDWARE" || (!isConsole && (l.includes("hardware") || l.includes("componente") || l.includes("tarjeta") || l.includes("procesador") || l.includes("ssd") || l.includes("ram") || l.includes("gpu") || l.includes("placa") || l.includes("fuente") || l.includes("cooler") || l.includes("gabinete") || l.includes("ventilador")))) counts.HARDWARE++;
-        else if (specCat === "GAMING_ACCESSORY" || l.includes("accesorio") || l.includes("gaming") || l.includes("mouse") || l.includes("teclado") || l.includes("audifono")) counts.GAMING_ACCESSORY++;
-        else if (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo")) counts.APPAREL++;
-        else if (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro")) counts.BOOK++;
-        else if (specCat === "MERCH" || l.includes("merch") || l.includes("decoraci")) counts.MERCH++;
-        else if (specCat === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("soundtrack")) counts.AUDIO++;
-        else counts.OTHER++;
+      const catKey = p.type !== "OTHER" ? p.type : getProductCategoryInfo(p).key;
+      if (counts[catKey] !== undefined) {
+        counts[catKey]++;
+      }
+      if (p.type === "OTHER") {
+        counts.OTHER++;
       }
     }
     return counts;
@@ -865,16 +810,7 @@ export default function AdminProductsListPage() {
                           }`}
                         >
                           {prod.type === "OTHER"
-                            ? (() => {
-                                const l = (prod.customCategoryLabel || "").toLowerCase();
-                                const specCat = (prod.customSpecifications?.categoryType || "").toUpperCase();
-                                const nameLower = (prod.name || "").toLowerCase();
-                                const skuLower = (prod.sku || "").toLowerCase();
-                                const isConsole = specCat === "CONSOLE" || l === "consolas" || l === "consola" || skuLower.startsWith("con-") || nameLower.includes("switch") || nameLower.includes("ps5") || nameLower.includes("playstation") || nameLower.includes("xbox") || (l.includes("consola") && !l.includes("accesorio"));
-                                if (isConsole) return "CONSOLAS";
-                                if (l.includes("hardware") || l.includes("componente") || specCat === "HARDWARE") return "HARDWARE & COMPONENTES";
-                                return prod.customCategoryLabel?.toUpperCase() || "OTRA";
-                              })()
+                            ? getProductCategoryInfo(prod).label.toUpperCase()
                             : prod.type}
                         </span>
                       </td>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
 import { ProductDomainEntity } from "@/lib/types/domain";
 import { ProductCard } from "@/components/catalog/ProductCard";
+import { getProductCategoryInfo } from "@/lib/utils/category";
 
 interface RelatedProductsSliderProps {
   currentProduct: ProductDomainEntity;
@@ -12,70 +13,7 @@ interface RelatedProductsSliderProps {
 }
 
 function getProductCategoryKey(p: any): string {
-  if (!p) return "OTHER";
-  if (p.type === "CONSOLE") return "CONSOLE";
-  if (p.type === "HARDWARE") return "HARDWARE";
-  if (p.type === "FIGURE") return "FIGURE";
-  if (p.type === "VIDEO_GAME") return "VIDEO_GAME";
-  if (p.type === "COLLECTIBLE") return "COLLECTIBLE";
-  if (p.type === "BUNDLE") return "BUNDLE";
-
-  const specCat = (p.customSpecifications?.categoryType || "").toUpperCase();
-  const l = (p.customCategoryLabel || "").toLowerCase();
-  const nameLower = (p.name || "").toLowerCase();
-  const skuLower = (p.sku || "").toLowerCase();
-
-  const isConsole =
-    specCat === "CONSOLE" ||
-    l === "consolas" ||
-    l === "consola" ||
-    skuLower.startsWith("con-") ||
-    nameLower.includes("switch") ||
-    nameLower.includes("ps5") ||
-    nameLower.includes("playstation") ||
-    nameLower.includes("xbox") ||
-    (l.includes("consola") && !l.includes("accesorio"));
-
-  if (isConsole) return "CONSOLE";
-  if (
-    specCat === "HARDWARE" ||
-    (!isConsole &&
-      (l.includes("hardware") ||
-        l.includes("componente") ||
-        l.includes("tarjeta") ||
-        l.includes("procesador") ||
-        l.includes("ssd") ||
-        l.includes("ram") ||
-        l.includes("gpu") ||
-        l.includes("placa") ||
-        l.includes("fuente") ||
-        l.includes("cooler") ||
-        l.includes("gabinete") ||
-        l.includes("ventilador")))
-  )
-    return "HARDWARE";
-  if (
-    specCat === "GAMING_ACCESSORY" ||
-    l.includes("accesorio") ||
-    l.includes("gaming") ||
-    l.includes("mouse") ||
-    l.includes("teclado") ||
-    l.includes("audifono") ||
-    l.includes("headset") ||
-    l.includes("mando") ||
-    l.includes("control")
-  )
-    return "GAMING_ACCESSORY";
-  if (specCat === "APPAREL" || l.includes("ropa") || l.includes("estilo") || l.includes("poleron") || l.includes("polera"))
-    return "APPAREL";
-  if (specCat === "BOOK" || l.includes("manga") || l.includes("artbook") || l.includes("libro") || l.includes("comic"))
-    return "BOOK";
-  if (specCat === "MERCH" || l.includes("merch") || l.includes("decoraci") || l.includes("peluche") || l.includes("taza"))
-    return "MERCH";
-  if (specCat === "AUDIO" || l.includes("audio") || l.includes("ost") || l.includes("soundtrack") || l.includes("vinilo"))
-    return "AUDIO";
-
-  return "OTHER";
+  return getProductCategoryInfo(p).key;
 }
 
 export function RelatedProductsSlider({ currentProduct, allProducts }: RelatedProductsSliderProps) {

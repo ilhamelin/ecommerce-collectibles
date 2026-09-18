@@ -218,15 +218,27 @@ export default function ProductDetailPage() {
   const acc = product.customSpecifications?.gamingAccessory;
   const accSubtype = acc?.accessoryType;
 
+  const hasSpecializedHw = Boolean(
+    hw && (hw.gpu || hw.cpu || hw.motherboard || hw.ram || hw.hdd || hw.ssd || hw.powerSupply || hw.coolerCpu || hw.cabinet || hw.fan)
+  );
+
+  const hasSpecializedAcc = Boolean(
+    acc && (acc.mouse || acc.keyboard || acc.headset || acc.controller)
+  );
+
   const technicalSpecs = [
-    {
-      label: "Formato Producto",
-      value: categoryInfo.formatLabel,
-    },
-    {
-      label: "Fabricante / Marca",
-      value: categoryInfo.brand,
-    },
+    ...(!hasSpecializedHw && !hasSpecializedAcc
+      ? [
+          {
+            label: "Formato Producto",
+            value: categoryInfo.formatLabel,
+          },
+          {
+            label: "Fabricante / Marca",
+            value: categoryInfo.brand,
+          },
+        ]
+      : []),
     // Videojuegos (Consola y PC)
     ...(isVideoGame && product.gameMetadata?.title
       ? [{ label: "Título", value: product.gameMetadata.title }]
@@ -381,33 +393,33 @@ export default function ProductDetailPage() {
       ? [{ label: "Características Destacadas", value: product.customSpecifications.console.featuredHighlights }]
       : []),
 
-    // Hardware & Componentes
-    ...(isHardwareCat && hw?.componentType
+    // Hardware & Componentes Genéricos (SOLO si no posee subtipo especializado)
+    ...(isHardwareCat && !hasSpecializedHw && hw?.componentType
       ? [{ label: "Tipo de Componente", value: hw.componentType }]
       : []),
-    ...(isHardwareCat && hw?.brand
+    ...(isHardwareCat && !hasSpecializedHw && hw?.brand
       ? [{ label: "Marca del Fabricante", value: hw.brand }]
       : []),
-    ...(isHardwareCat && hw?.model
+    ...(isHardwareCat && !hasSpecializedHw && hw?.model
       ? [{ label: "Modelo Exacto", value: hw.model }]
       : []),
-    ...(isHardwareCat && hw?.interfaceOrSocket
+    ...(isHardwareCat && !hasSpecializedHw && hw?.interfaceOrSocket
       ? [{ label: "Interfaz / Socket", value: hw.interfaceOrSocket }]
       : []),
-    ...(isHardwareCat && hw?.capacityOrSpeed
+    ...(isHardwareCat && !hasSpecializedHw && hw?.capacityOrSpeed
       ? [{ label: "Capacidad / Velocidad", value: hw.capacityOrSpeed }]
       : []),
-    ...(isHardwareCat && hw?.formFactor
+    ...(isHardwareCat && !hasSpecializedHw && hw?.formFactor
       ? [{ label: "Factor de Forma", value: hw.formFactor }]
       : []),
-    ...(isHardwareCat && hw?.powerConsumptionTdp
+    ...(isHardwareCat && !hasSpecializedHw && hw?.powerConsumptionTdp
       ? [{ label: "Consumo / TDP", value: hw.powerConsumptionTdp }]
       : []),
-    ...(isHardwareCat && hw?.warrantyYears
-      ? [{ label: "Garantía Oficial", value: hw.warrantyYears }]
-      : []),
-    ...(isHardwareCat && hw?.featuredHighlights
+    ...(isHardwareCat && !hasSpecializedHw && hw?.featuredHighlights
       ? [{ label: "Características Destacadas", value: hw.featuredHighlights }]
+      : []),
+    ...(isHardwareCat && !hasSpecializedHw && hw?.warrantyYears
+      ? [{ label: "Garantía Oficial", value: hw.warrantyYears }]
       : []),
 
     // Tarjeta de Video (GPU) - SOLO SI ES TARJETA DE VIDEO

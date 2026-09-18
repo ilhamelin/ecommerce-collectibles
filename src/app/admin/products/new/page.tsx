@@ -80,6 +80,20 @@ export default function NewProductAdminPage() {
   const [type, setType] = useState<ProductType>("FIGURE");
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
+
+  const isCustomOrSpecializedCategory = useMemo(() => {
+    return [
+      "HARDWARE",
+      "CONSOLE",
+      "GAMING_ACCESSORY",
+      "ACCESSORY",
+      "APPAREL",
+      "BOOK",
+      "MERCH",
+      "AUDIO",
+      "OTHER",
+    ].includes(type);
+  }, [type]);
   const [price, setPrice] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(undefined);
   const [costPrice, setCostPrice] = useState<number>(0);
@@ -861,8 +875,23 @@ export default function NewProductAdminPage() {
       description: description.trim(),
       type,
       customCategoryLabel:
-        type === "OTHER" || customCategoryLabel.trim()
-          ? customCategoryLabel.trim()
+        isCustomOrSpecializedCategory || customCategoryLabel.trim()
+          ? (customCategoryLabel.trim() ||
+              (type === "HARDWARE"
+                ? "Hardware & Componentes"
+                : type === "CONSOLE"
+                ? "Consolas"
+                : type === "GAMING_ACCESSORY"
+                ? "Accesorio Gaming"
+                : type === "APPAREL"
+                ? "Ropa & Estilo"
+                : type === "BOOK"
+                ? "Manga / Libros"
+                : type === "MERCH"
+                ? "Merchandising"
+                : type === "AUDIO"
+                ? "Audio / OST"
+                : undefined))
           : undefined,
       price: Number(price),
       originalPrice:
@@ -976,7 +1005,7 @@ export default function NewProductAdminPage() {
       };
     } else if (type === "BUNDLE") {
       payload.bundleComponents = selectedBundleItems;
-    } else if (type === "OTHER") {
+    } else if (isCustomOrSpecializedCategory) {
       payload.customSpecifications = customSpecifications;
     }
 
@@ -1128,11 +1157,13 @@ export default function NewProductAdminPage() {
               1. Tipo de Producto Especializado
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
               {[
                 { id: "FIGURE", label: "Figura", icon: Clock },
                 { id: "VIDEO_GAME", label: "Videojuego", icon: Gamepad2 },
                 { id: "COLLECTIBLE", label: "Coleccionable / TCG", icon: Trophy },
+                { id: "HARDWARE", label: "Hardware / PC", icon: Cpu },
+                { id: "CONSOLE", label: "Consola", icon: Tv },
                 { id: "BUNDLE", label: "Bundle Lote", icon: Layers },
                 { id: "OTHER", label: "+ Otra Categoría", icon: Tag },
               ].map((item) => {
@@ -1143,9 +1174,16 @@ export default function NewProductAdminPage() {
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      setType(item.id as ProductType);
-                      if (item.id === "FIGURE") setIsPreOrder(true);
+                      const newType = item.id as ProductType;
+                      setType(newType);
+                      if (newType === "FIGURE") setIsPreOrder(true);
                       else setIsPreOrder(false);
+
+                      if (newType === "HARDWARE") {
+                        if (!customCategoryLabel) setCustomCategoryLabel("Hardware & Componentes");
+                      } else if (newType === "CONSOLE") {
+                        if (!customCategoryLabel) setCustomCategoryLabel("Consolas");
+                      }
                     }}
                     className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center ${
                       isSelected
@@ -1160,8 +1198,8 @@ export default function NewProductAdminPage() {
               })}
             </div>
 
-            {/* Custom Category Subpanel (when OTHER is active) */}
-            {type === "OTHER" && (
+            {/* Custom Category Subpanel (when specialized category or OTHER is active) */}
+            {isCustomOrSpecializedCategory && (
               <div className="p-4 rounded-xl bg-[#004E72]/20 border border-[#FF6E42]/50 space-y-3 animate-in fade-in-50 duration-200">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
@@ -1177,7 +1215,16 @@ export default function NewProductAdminPage() {
                     <button
                       key={preset}
                       type="button"
-                      onClick={() => setCustomCategoryLabel(preset)}
+                      onClick={() => {
+                        setCustomCategoryLabel(preset);
+                        if (preset === "Hardware & Componentes") setType("HARDWARE" as ProductType);
+                        else if (preset === "Consolas") setType("CONSOLE" as ProductType);
+                        else if (preset === "Accesorio Gaming") setType("GAMING_ACCESSORY" as ProductType);
+                        else if (preset === "Ropa & Estilo") setType("APPAREL" as ProductType);
+                        else if (preset === "Manga / Artbook") setType("BOOK" as ProductType);
+                        else if (preset === "Merchandising") setType("MERCH" as ProductType);
+                        else if (preset === "Audio / OST") setType("AUDIO" as ProductType);
+                      }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
                         customCategoryLabel === preset
                           ? "bg-[#FF6E42] text-[#092634] border-[#FF6E42]"
@@ -1191,10 +1238,10 @@ export default function NewProductAdminPage() {
 
                 <input
                   type="text"
-                  required={type === "OTHER"}
+                  required={isCustomOrSpecializedCategory}
                   value={customCategoryLabel}
                   onChange={(e) => setCustomCategoryLabel(e.target.value)}
-                  placeholder="Ej: Consola Nintendo, Polerón Edición Limitada, Joypad Pro..."
+                  placeholder="Ej: Hardware & Componentes, Consolas, Ropa Gamer..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#092634] border border-[#004E72]/80 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
                 />
               </div>
@@ -3060,9 +3107,26 @@ export default function NewProductAdminPage() {
           )}
 
           {/* Section 6: Custom Category Technical Specifications Form */}
-          {type === "OTHER" && (
+          {isCustomOrSpecializedCategory && (
             <CustomSpecificationsForm
-              customCategoryLabel={customCategoryLabel}
+              customCategoryLabel={
+                customCategoryLabel ||
+                (type === "HARDWARE"
+                  ? "Hardware & Componentes"
+                  : type === "CONSOLE"
+                  ? "Consolas"
+                  : type === "GAMING_ACCESSORY"
+                  ? "Accesorio Gaming"
+                  : type === "APPAREL"
+                  ? "Ropa & Estilo"
+                  : type === "BOOK"
+                  ? "Manga / Libros"
+                  : type === "MERCH"
+                  ? "Merchandising"
+                  : type === "AUDIO"
+                  ? "Audio / OST"
+                  : "")
+              }
               value={customSpecifications}
               onChange={setCustomSpecifications}
             />

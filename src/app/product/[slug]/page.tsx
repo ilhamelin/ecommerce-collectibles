@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -171,20 +171,15 @@ export default function ProductDetailPage() {
   const categoryInfo = getProductCategoryInfo(product);
 
   // Digital Authenticity Passport (Anti-Bootleg Guarantee)
-  const passport = useMemo(() => {
-    if (!product) return null;
-    return product.authenticityPassport || generateDigitalPassport(product);
-  }, [product]);
+  const passport = product.authenticityPassport || generateDigitalPassport(product);
 
   // Real-Time TCG Market Price Guide Tracker
-  const marketPriceGuide = useMemo(() => {
-    if (!product) return null;
-    const isTcgOrCollectible =
-      categoryInfo.key === "COLLECTIBLE" ||
-      Boolean(product.collectibleMetadata);
-    if (!isTcgOrCollectible) return null;
-    return product.marketPriceGuide || generateTcgMarketPriceGuide(product);
-  }, [product, categoryInfo.key]);
+  const isTcgOrCollectible =
+    categoryInfo.key === "COLLECTIBLE" ||
+    Boolean(product.collectibleMetadata);
+  const marketPriceGuide = isTcgOrCollectible
+    ? product.marketPriceGuide || generateTcgMarketPriceGuide(product)
+    : null;
 
   // Clean Genres List (Strictly eliminates erroneous TCG/Graduada tags on non-TCG items)
   let rawList: string[] = [];

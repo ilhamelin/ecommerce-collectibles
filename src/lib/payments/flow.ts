@@ -16,11 +16,12 @@ export function getFlowApiUrl(): string {
 }
 
 /**
- * Signs parameters using HMAC-SHA256 according to Flow's official specification
+ * Signs parameters using HMAC-SHA256 according to Flow's official specification:
+ * Keys sorted alphabetically, concatenated as `key1value1key2value2...` without '=' or '&'
  */
 export function signFlowParams(params: Record<string, string | number>, secretKey: string): string {
   const keys = Object.keys(params).sort();
-  const toSign = keys.map((k) => `${k}=${params[k]}`).join("&");
+  const toSign = keys.map((k) => `${k}${params[k]}`).join("");
   return crypto.createHmac("sha256", secretKey).update(toSign).digest("hex");
 }
 

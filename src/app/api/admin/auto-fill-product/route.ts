@@ -1215,7 +1215,20 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawProductName = body?.name?.trim() || "";
-    const selectedType = body?.selectedType as "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER" | undefined;
+    const selectedType = body?.selectedType as
+      | "FIGURE"
+      | "VIDEO_GAME"
+      | "COLLECTIBLE"
+      | "OTHER"
+      | "HARDWARE"
+      | "CONSOLE"
+      | "GAMING_ACCESSORY"
+      | "APPAREL"
+      | "BOOK"
+      | "MERCH"
+      | "AUDIO"
+      | string
+      | undefined;
     const customCategoryLabel = body?.customCategoryLabel?.trim();
     const imageBase64 = body?.imageBase64 as string | undefined;
     const imageFileName = body?.imageFileName?.trim() || "";

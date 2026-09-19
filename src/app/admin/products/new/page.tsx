@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Sparkles,
+  Camera,
   CheckCircle2,
   AlertCircle,
   Gamepad2,
@@ -295,6 +296,8 @@ export default function NewProductAdminPage() {
 
   // AI Auto-Fill State
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [isAutoFillingWithImage, setIsAutoFillingWithImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [autoFillSuccessMsg, setAutoFillSuccessMsg] = useState<string | null>(null);
   const [aiEngineUsed, setAiEngineUsed] = useState<string | null>(null);
   const [aiEngineErrorDetail, setAiEngineErrorDetail] = useState<string | null>(null);
@@ -318,6 +321,162 @@ export default function NewProductAdminPage() {
     return "NONE";
   };
 
+  const populateFormWithAutoFillData = (
+    d: any,
+    fromImage: boolean,
+    chosenType?: ProductType,
+    chosenCustomCategory?: string,
+    imageUploadedUrl?: string
+  ) => {
+    // If identified from image and product name was returned, fill name
+    if (fromImage && d.name && (!name.trim() || name === "Producto Coleccionable")) {
+      setName(d.name);
+    } else if (fromImage && d.name && !name.trim()) {
+      setName(d.name);
+    }
+
+    // Set cover image if not set yet
+    if (fromImage && imageUploadedUrl && !imageUrl) {
+      setImageUrl(imageUploadedUrl);
+    }
+
+    // Update SKU with the category-accurate SKU
+    if (d.sku) {
+      setSku(d.sku);
+      setSkuValidation({
+        isChecking: false,
+        isAvailable: true,
+        message: `SKU (${d.sku}) asignado para la categoría seleccionada.`,
+      });
+    }
+
+    // Strictly preserve the admin's chosen category and custom label
+    if (chosenType) {
+      setType(chosenType);
+      if (chosenType === "OTHER") {
+        setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
+      }
+    } else if (d.type) {
+      setType(d.type);
+      if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+    }
+
+    if (d.description) setDescription(d.description);
+    if (typeof d.price === "number") setPrice(d.price);
+    if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
+    if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
+    if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
+    if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
+    if (d.ageRating) setAgeRating(d.ageRating);
+    if (d.genres) setGenresInput(d.genres);
+
+    // Category-specific specs
+    const targetCategoryType = chosenType || d.type;
+    if (targetCategoryType === "FIGURE" && d.figureSpecs) {
+      if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
+      if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
+      if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
+      if (d.figureSpecs.dimensions) setFigureDimensions(d.figureSpecs.dimensions);
+      if (d.figureSpecs.sculptor) setFigureSculptor(d.figureSpecs.sculptor);
+      if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
+      if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
+      if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
+
+      // 1. Información General del Producto
+      if (d.figureSpecs.productName) setFigureProductName(d.figureSpecs.productName);
+      if (d.figureSpecs.franchise) setFigureFranchise(d.figureSpecs.franchise);
+      if (d.figureSpecs.productLine) setFigureProductLine(d.figureSpecs.productLine);
+      if (d.figureSpecs.releaseDate) setFigureReleaseDate(d.figureSpecs.releaseDate);
+      if (d.figureSpecs.licenseStatus) setFigureLicenseStatus(d.figureSpecs.licenseStatus);
+
+      // 2. Especificaciones Físicas y Dimensiones
+      if (d.figureSpecs.height) setFigureHeight(d.figureSpecs.height);
+      if (d.figureSpecs.width) setFigureWidth(d.figureSpecs.width);
+      if (d.figureSpecs.weight) setFigureWeight(d.figureSpecs.weight);
+      if (d.figureSpecs.base) setFigureBase(d.figureSpecs.base);
+
+      // 3. Materiales y Fabricación
+      if (d.figureSpecs.materials) setFigureMaterials(d.figureSpecs.materials);
+      if (d.figureSpecs.paintTechnique) setFigurePaintTechnique(d.figureSpecs.paintTechnique);
+      if (d.figureSpecs.articulation) setFigureArticulation(d.figureSpecs.articulation);
+
+      // 4. Contenido de la Caja y Accesorio
+      if (d.figureSpecs.interchangeableParts) setFigureInterchangeableParts(d.figureSpecs.interchangeableParts);
+      if (d.figureSpecs.accessories) setFigureAccessories(d.figureSpecs.accessories);
+      if (d.figureSpecs.certificate) setFigureCertificate(d.figureSpecs.certificate);
+
+      // 5. Seguridad y Logística
+      if (d.figureSpecs.ageRecommendation) setFigureAgeRecommendation(d.figureSpecs.ageRecommendation);
+      if (d.figureSpecs.boxDimensions) setFigureBoxDimensions(d.figureSpecs.boxDimensions);
+      if (d.figureSpecs.shippingWeight) setFigureShippingWeight(d.figureSpecs.shippingWeight);
+    } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
+      if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
+      if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
+      if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
+      if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
+      if (d.gameSpecs.releaseYear) setGameReleaseYear(d.gameSpecs.releaseYear);
+      if (d.gameSpecs.genre) setGameGenre(d.gameSpecs.genre);
+      if (d.gameSpecs.gameModes) setGameModes(d.gameSpecs.gameModes);
+      if (d.gameSpecs.gameEngine) setGameEngine(d.gameSpecs.gameEngine);
+      if (d.gameSpecs.supportedPlatforms) setGameSupportedPlatforms(d.gameSpecs.supportedPlatforms);
+      if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
+      if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
+      if (d.gameSpecs.audioLanguages) setGameAudioLanguages(d.gameSpecs.audioLanguages);
+      if (d.gameSpecs.subtitleLanguages) setGameSubtitleLanguages(d.gameSpecs.subtitleLanguages);
+      if (d.gameSpecs.ageRating) setGameAgeRating(d.gameSpecs.ageRating);
+      if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
+      if (d.gameSpecs.displayModes) setGameDisplayModes(d.gameSpecs.displayModes);
+      if (d.gameSpecs.xboxSeriesSOptimization) setGameXboxSeriesSOptimization(d.gameSpecs.xboxSeriesSOptimization);
+      if (d.gameSpecs.hardwareFeatures) setGameHardwareFeatures(d.gameSpecs.hardwareFeatures);
+      if (d.gameSpecs.pcOs) setGamePcOs(d.gameSpecs.pcOs);
+      if (d.gameSpecs.pcProcessor) setGamePcProcessor(d.gameSpecs.pcProcessor);
+      if (d.gameSpecs.pcRam) setGamePcRam(d.gameSpecs.pcRam);
+      if (d.gameSpecs.pcGpu) setGamePcGpu(d.gameSpecs.pcGpu);
+      if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
+    } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
+      if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
+      if (d.collectibleSpecs.condition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.condition));
+      if (d.collectibleSpecs.authBody) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.authBody));
+      if (d.collectibleSpecs.language) setTcgLanguage(d.collectibleSpecs.language);
+      if (d.collectibleSpecs.serial) setTcgSerial(d.collectibleSpecs.serial);
+
+      // 1. Información General del Producto
+      if (d.collectibleSpecs.productName) setTcgProductName(d.collectibleSpecs.productName);
+      if (d.collectibleSpecs.franchise) setTcgFranchise(d.collectibleSpecs.franchise);
+      if (d.collectibleSpecs.gameSystem) setTcgGameSystem(d.collectibleSpecs.gameSystem);
+
+      // 2. Detalles de Edición y Rareza
+      if (d.collectibleSpecs.setExpansion) setTcgSetExpansion(d.collectibleSpecs.setExpansion);
+      if (d.collectibleSpecs.releaseYear) setTcgReleaseYear(d.collectibleSpecs.releaseYear);
+      if (d.collectibleSpecs.cardNumber) setTcgCardNumber(d.collectibleSpecs.cardNumber);
+      if (d.collectibleSpecs.rarity) setTcgRarity(d.collectibleSpecs.rarity);
+      if (d.collectibleSpecs.finishVariant) setTcgFinishVariant(d.collectibleSpecs.finishVariant);
+
+      // 3. Estado de Conservación (Condición)
+      if (d.collectibleSpecs.gradingCondition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.gradingCondition));
+      if (d.collectibleSpecs.wearDetails) setTcgWearDetails(d.collectibleSpecs.wearDetails);
+      if (d.collectibleSpecs.certification) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.certification));
+
+      // 4. Presentación y Empaque
+      if (d.collectibleSpecs.productType) setTcgProductType(d.collectibleSpecs.productType);
+      if (d.collectibleSpecs.itemQuantity) setTcgItemQuantity(d.collectibleSpecs.itemQuantity);
+      if (d.collectibleSpecs.includesProtection) setTcgIncludesProtection(d.collectibleSpecs.includesProtection);
+    }
+    if (d.customSpecifications) {
+      // Section 6: Ficha de Especificaciones Técnicas Especializadas
+      setCustomSpecifications(d.customSpecifications);
+    }
+
+    setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
+    setAiEngineErrorDetail(d.geminiErrorDetail || null);
+    const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
+    const actionLabel = fromImage
+      ? `¡Producto identificado por imagen y rellenado exitosamente con ${engineLabel}!`
+      : `¡Ficha generada exitosamente con ${engineLabel}!`;
+    setAutoFillSuccessMsg(`${actionLabel} Todos los campos fueron completados.`);
+    setTimeout(() => setAutoFillSuccessMsg(null), 8000);
+  };
+
   const handleAutoFillWithAI = async () => {
     if (!name.trim()) {
       setErrorMsg("Por favor ingresa primero el Nombre del Producto para autocompletar la ficha.");
@@ -328,7 +487,6 @@ export default function NewProductAdminPage() {
     setErrorMsg(null);
     setAutoFillSuccessMsg(null);
 
-    // Capture the admin's intentionally chosen category & custom label
     const chosenType = type;
     const chosenCustomCategory = customCategoryLabel;
 
@@ -348,149 +506,72 @@ export default function NewProductAdminPage() {
         throw new Error(data.error || "No se pudo auto-completar el producto.");
       }
 
-      const d = data.data;
-
-      // Update SKU with the category-accurate SKU
-      if (d.sku) {
-        setSku(d.sku);
-        setSkuValidation({
-          isChecking: false,
-          isAvailable: true,
-          message: `SKU (${d.sku}) asignado para la categoría seleccionada.`,
-        });
-      }
-
-      // Strictly preserve the admin's chosen category and custom label
-      if (chosenType) {
-        setType(chosenType);
-        if (chosenType === "OTHER") {
-          setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
-        }
-      } else if (d.type) {
-        setType(d.type);
-        if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
-      }
-
-      if (d.description) setDescription(d.description);
-      if (typeof d.price === "number") setPrice(d.price);
-      if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
-      if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
-      if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
-      if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
-      if (d.ageRating) setAgeRating(d.ageRating);
-      if (d.genres) setGenresInput(d.genres);
-
-      // Category-specific specs
-      const targetCategoryType = chosenType || d.type;
-      if (targetCategoryType === "FIGURE" && d.figureSpecs) {
-        if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
-        if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
-        if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
-        if (d.figureSpecs.dimensions) setFigureDimensions(d.figureSpecs.dimensions);
-        if (d.figureSpecs.sculptor) setFigureSculptor(d.figureSpecs.sculptor);
-        if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
-        if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
-        if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
-
-        // 1. Información General del Producto
-        if (d.figureSpecs.productName) setFigureProductName(d.figureSpecs.productName);
-        if (d.figureSpecs.franchise) setFigureFranchise(d.figureSpecs.franchise);
-        if (d.figureSpecs.productLine) setFigureProductLine(d.figureSpecs.productLine);
-        if (d.figureSpecs.releaseDate) setFigureReleaseDate(d.figureSpecs.releaseDate);
-        if (d.figureSpecs.licenseStatus) setFigureLicenseStatus(d.figureSpecs.licenseStatus);
-
-        // 2. Especificaciones Físicas y Dimensiones
-        if (d.figureSpecs.height) setFigureHeight(d.figureSpecs.height);
-        if (d.figureSpecs.width) setFigureWidth(d.figureSpecs.width);
-        if (d.figureSpecs.weight) setFigureWeight(d.figureSpecs.weight);
-        if (d.figureSpecs.base) setFigureBase(d.figureSpecs.base);
-
-        // 3. Materiales y Fabricación
-        if (d.figureSpecs.materials) setFigureMaterials(d.figureSpecs.materials);
-        if (d.figureSpecs.paintTechnique) setFigurePaintTechnique(d.figureSpecs.paintTechnique);
-        if (d.figureSpecs.articulation) setFigureArticulation(d.figureSpecs.articulation);
-
-        // 4. Contenido de la Caja y Accesorio
-        if (d.figureSpecs.interchangeableParts) setFigureInterchangeableParts(d.figureSpecs.interchangeableParts);
-        if (d.figureSpecs.accessories) setFigureAccessories(d.figureSpecs.accessories);
-        if (d.figureSpecs.certificate) setFigureCertificate(d.figureSpecs.certificate);
-
-        // 5. Seguridad y Logística
-        if (d.figureSpecs.ageRecommendation) setFigureAgeRecommendation(d.figureSpecs.ageRecommendation);
-        if (d.figureSpecs.boxDimensions) setFigureBoxDimensions(d.figureSpecs.boxDimensions);
-        if (d.figureSpecs.shippingWeight) setFigureShippingWeight(d.figureSpecs.shippingWeight);
-      } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
-        if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
-        if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
-        if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
-        if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
-        if (d.gameSpecs.releaseYear) setGameReleaseYear(d.gameSpecs.releaseYear);
-        if (d.gameSpecs.genre) setGameGenre(d.gameSpecs.genre);
-        if (d.gameSpecs.gameModes) setGameModes(d.gameSpecs.gameModes);
-        if (d.gameSpecs.gameEngine) setGameEngine(d.gameSpecs.gameEngine);
-        if (d.gameSpecs.supportedPlatforms) setGameSupportedPlatforms(d.gameSpecs.supportedPlatforms);
-        if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
-        if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
-        if (d.gameSpecs.audioLanguages) setGameAudioLanguages(d.gameSpecs.audioLanguages);
-        if (d.gameSpecs.subtitleLanguages) setGameSubtitleLanguages(d.gameSpecs.subtitleLanguages);
-        if (d.gameSpecs.ageRating) setGameAgeRating(d.gameSpecs.ageRating);
-        if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
-        if (d.gameSpecs.displayModes) setGameDisplayModes(d.gameSpecs.displayModes);
-        if (d.gameSpecs.xboxSeriesSOptimization) setGameXboxSeriesSOptimization(d.gameSpecs.xboxSeriesSOptimization);
-        if (d.gameSpecs.hardwareFeatures) setGameHardwareFeatures(d.gameSpecs.hardwareFeatures);
-        if (d.gameSpecs.pcOs) setGamePcOs(d.gameSpecs.pcOs);
-        if (d.gameSpecs.pcProcessor) setGamePcProcessor(d.gameSpecs.pcProcessor);
-        if (d.gameSpecs.pcRam) setGamePcRam(d.gameSpecs.pcRam);
-        if (d.gameSpecs.pcGpu) setGamePcGpu(d.gameSpecs.pcGpu);
-        if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
-      } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
-        if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
-        if (d.collectibleSpecs.condition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.condition));
-        if (d.collectibleSpecs.authBody) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.authBody));
-        if (d.collectibleSpecs.language) setTcgLanguage(d.collectibleSpecs.language);
-        if (d.collectibleSpecs.serial) setTcgSerial(d.collectibleSpecs.serial);
-
-        // 1. Información General del Producto
-        if (d.collectibleSpecs.productName) setTcgProductName(d.collectibleSpecs.productName);
-        if (d.collectibleSpecs.franchise) setTcgFranchise(d.collectibleSpecs.franchise);
-        if (d.collectibleSpecs.gameSystem) setTcgGameSystem(d.collectibleSpecs.gameSystem);
-
-        // 2. Detalles de Edición y Rareza
-        if (d.collectibleSpecs.setExpansion) setTcgSetExpansion(d.collectibleSpecs.setExpansion);
-        if (d.collectibleSpecs.releaseYear) setTcgReleaseYear(d.collectibleSpecs.releaseYear);
-        if (d.collectibleSpecs.cardNumber) setTcgCardNumber(d.collectibleSpecs.cardNumber);
-        if (d.collectibleSpecs.rarity) setTcgRarity(d.collectibleSpecs.rarity);
-        if (d.collectibleSpecs.finishVariant) setTcgFinishVariant(d.collectibleSpecs.finishVariant);
-
-        // 3. Estado de Conservación (Condición)
-        if (d.collectibleSpecs.gradingCondition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.gradingCondition));
-        if (d.collectibleSpecs.wearDetails) setTcgWearDetails(d.collectibleSpecs.wearDetails);
-        if (d.collectibleSpecs.certification) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.certification));
-
-        // 4. Presentación y Empaque
-        if (d.collectibleSpecs.productType) setTcgProductType(d.collectibleSpecs.productType);
-        if (d.collectibleSpecs.itemQuantity) setTcgItemQuantity(d.collectibleSpecs.itemQuantity);
-        if (d.collectibleSpecs.includesProtection) setTcgIncludesProtection(d.collectibleSpecs.includesProtection);
-      }
-      if (d.customSpecifications) {
-        // Section 6: Ficha de Especificaciones Técnicas Especializadas
-        setCustomSpecifications(d.customSpecifications);
-      }
-
-      // Explicitly DO NOT alter "4. Galería de Fotos & Portada" per user requirement
-      // Images remain untouched for manual user upload or URL entry.
-
-      setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
-      setAiEngineErrorDetail(d.geminiErrorDetail || null);
-      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
-      setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron completados respetando la categoría seleccionada.`);
-      setTimeout(() => setAutoFillSuccessMsg(null), 8000);
+      populateFormWithAutoFillData(data.data, false, chosenType, chosenCustomCategory);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al autocompletar con IA.";
       setErrorMsg(msg);
     } finally {
       setIsAutoFilling(false);
     }
+  };
+
+  const handleImageSelectedForAI = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so the user can re-select the same file if desired
+    e.target.value = "";
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg("La imagen seleccionada supera el límite máximo de 10 MB.");
+      return;
+    }
+
+    setIsAutoFillingWithImage(true);
+    setErrorMsg(null);
+    setAutoFillSuccessMsg(null);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result as string;
+
+        const chosenType = type;
+        const chosenCustomCategory = customCategoryLabel;
+
+        const res = await fetch("/api/admin/auto-fill-product", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim() || undefined,
+            selectedType: chosenType,
+            customCategoryLabel: chosenType === "OTHER" ? chosenCustomCategory : undefined,
+            imageBase64: base64Data,
+            imageMimeType: file.type || "image/jpeg",
+            imageFileName: file.name,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "No se pudo identificar el producto a partir de la imagen.");
+        }
+
+        populateFormWithAutoFillData(data.data, true, chosenType, chosenCustomCategory, base64Data);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al procesar la imagen con IA.";
+        setErrorMsg(msg);
+      } finally {
+        setIsAutoFillingWithImage(false);
+      }
+    };
+
+    reader.onerror = () => {
+      setIsAutoFillingWithImage(false);
+      setErrorMsg("No se pudo leer el archivo de imagen seleccionado.");
+    };
+
+    reader.readAsDataURL(file);
   };
 
   // SKU Generator & Real-time Database Validation State
@@ -1256,26 +1337,60 @@ export default function NewProductAdminPage() {
                 2. Información General
               </h2>
 
-              {/* Botón Auto-completar con IA en la posición indicada */}
-              <button
-                type="button"
-                onClick={handleAutoFillWithAI}
-                disabled={isAutoFilling || !name.trim()}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#ff5421] text-[#092634] font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                title="Genera automáticamente todos los datos del producto (categoría, SKU, precios, ficha técnica y descripción) a partir del Nombre"
-              >
-                {isAutoFilling ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-[#092634] border-t-transparent rounded-full animate-spin" />
-                    <span>Generando con IA...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-[#092634]" />
-                    <span>Auto-completar con IA</span>
-                  </>
-                )}
-              </button>
+              {/* Contenedor de Botones de IA: Identificación por Imagen y por Nombre */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Input oculto para subir la imagen del producto */}
+                <input
+                  type="file"
+                  ref={imageInputRef}
+                  onChange={handleImageSelectedForAI}
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  aria-label="Seleccionar imagen de producto para autocompletar con IA"
+                />
+
+                {/* Botón 1: Auto-completar con Imagen (Nuevo) */}
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isAutoFillingWithImage || isAutoFilling}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#009EE3] to-[#0077B6] hover:from-[#00A8F3] hover:to-[#0088CC] text-white font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border border-[#009EE3]/30"
+                  title="Sube una fotografía o imagen del producto: la IA identificará qué producto es y rellenará automáticamente la ficha completa"
+                >
+                  {isAutoFillingWithImage ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Analizando Imagen...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 text-white" />
+                      <span>Auto-completar con Imagen</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Botón 2: Auto-completar con IA por Nombre (Actual) */}
+                <button
+                  type="button"
+                  onClick={handleAutoFillWithAI}
+                  disabled={isAutoFilling || isAutoFillingWithImage || !name.trim()}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#ff5421] text-[#092634] font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Genera automáticamente todos los datos del producto (categoría, SKU, precios, ficha técnica y descripción) a partir del Nombre"
+                >
+                  {isAutoFilling ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-[#092634] border-t-transparent rounded-full animate-spin" />
+                      <span>Generando con IA...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-[#092634]" />
+                      <span>Auto-completar con IA</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {autoFillSuccessMsg && (

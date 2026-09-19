@@ -1178,15 +1178,46 @@ function generateWithSmartEngine(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const productName = body?.name?.trim();
+    const rawProductName = body?.name?.trim() || "";
     const selectedType = body?.selectedType as "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER" | undefined;
     const customCategoryLabel = body?.customCategoryLabel?.trim();
+    const imageBase64 = body?.imageBase64 as string | undefined;
+    const imageFileName = body?.imageFileName?.trim() || "";
+    const imageMimeType = (body?.imageMimeType as string) || "image/jpeg";
 
-    if (!productName) {
+    if (!rawProductName && !imageBase64) {
       return NextResponse.json(
-        { success: false, error: "Debes ingresar al menos el Nombre del Producto para auto-completar los datos." },
+        {
+          success: false,
+          error: "Debes ingresar el Nombre del Producto o seleccionar una Imagen para auto-completar.",
+        },
         { status: 400 }
       );
+    }
+
+    // Clean base64 if it has data URL prefix
+    let cleanBase64: string | undefined = undefined;
+    let detectedMime = imageMimeType;
+    if (imageBase64) {
+      if (imageBase64.includes(";base64,")) {
+        const parts = imageBase64.split(";base64,");
+        detectedMime = parts[0].replace("data:", "").trim() || "image/jpeg";
+        cleanBase64 = parts[1].trim();
+      } else {
+        cleanBase64 = imageBase64.trim();
+      }
+    }
+
+    // Determine initial heuristic name if product name was empty but filename was provided
+    let productName = rawProductName;
+    if (!productName && imageFileName) {
+      productName = imageFileName
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[-_]+/g, " ")
+        .trim();
+    }
+    if (!productName) {
+      productName = "Producto Coleccionable";
     }
 
     const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)?.trim();
@@ -1217,8 +1248,17 @@ Si el producto es un componente de hardware de PC (o si la categoría es HARDWAR
    - Si es "RAM", "DISCO_DURO", "SSD", "FUENTE_DE_PODER", "COOLER_CPU", "GABINETE" o "VENTILADORES": completa todos sus atributos básicos y avanzados con valores técnicos coherentes.
 `;
 
+        const imageAnalysisInstructions = cleanBase64
+          ? `INSTRUCCIÓN CRÍTICA DE VISIÓN ARTIFICIAL:
+Se ha adjuntado una fotografía/imagen del producto.
+1. Examina minuciosamente la imagen: analiza la figura, caja, carátula del videojuego, carta coleccionable TCG, empaque, marcas, sellos, textos impresos, escala, logotipos y componentes visibles.
+2. IDENTIFICA Y ESCRIBE EL NOMBRE COMERCIAL EXACTO Y COMPLETO EN EL CAMPO "name" (por ejemplo: "Makima 1/7 Scale Figure Chainsaw Man Shibuya Scramble" o "Final Fantasy VII Rebirth Deluxe Edition PS5" o "Tarjeta de Video ASUS ROG Strix GeForce RTX 4070 Ti SUPER 16GB").
+${rawProductName ? `(Nota: el usuario ingresó como nombre de referencia: "${rawProductName}", puedes refinarlo con los detalles exactos observados en la imagen).` : ""}
+3. Determina con alta exactitud la categoría correspondiente según la imagen y rellena todas las especificaciones pertinentes.`
+          : `Genera la ficha técnica completa en formato JSON para el siguiente producto: "${productName}".`;
+
         const prompt = `Eres un experto catalogador de productos de colección y e-commerce de videojuegos, figuras de anime y componentes de hardware en Chile llamado OmniCollector.
-Genera la ficha técnica completa en formato JSON para el siguiente producto: "${productName}".
+${imageAnalysisInstructions}
 
 ${categoryConstraint}
 ${hardwareInstructions}
@@ -1226,7 +1266,7 @@ ${hardwareInstructions}
 Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código tipo \`\`\`json) con esta estructura exacta:
 {
   "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o HW-RTX5070-01",
-  "name": "${productName}",
+  "name": "Nombre comercial oficial completo identificado",
   "type": "${selectedType || "FIGURE"}",
   "customCategoryLabel": "${customCategoryLabel || ""}",
   "description": "Descripción comercial y técnica detallada en español para coleccionistas en Chile (2 párrafos)",
@@ -1348,11 +1388,11 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       "motherboard": { "manufacturer": "", "socket": "", "chipset": "", "memorySlots": "", "memoryChannels": "", "format": "", "rgbSupport": "", "videoPorts": "", "powerPorts": "", "sliSupport": "", "crossfireSupport": "", "raidSupport": "", "connectors": "", "ports": "", "expansions": "" },
       "ram": { "capacity": "", "type": "", "speed": "", "format": "", "voltage": "", "casLatency": "", "trcdLatency": "", "trpLatency": "", "trasLatency": "", "eccSupport": "", "fullBufferedSupport": "" },
       "hdd": { "type": "", "line": "", "capacity": "", "rpm": "", "size": "", "bus": "", "buffer": "" },
-      "ssd": { "line": "", "capacity": "", "format": "", "bus": "", "hasDram": "", "nandType": "", "controller": "", "sequentialRead": "", "sequentialWrite": "" },
-      "powerSupply": { "power": "", "certification": "", "size": "", "activePfc": "", "modular": "", "current12v": "", "current5v": "", "current3v": "", "powerConnectors": "" },
-      "coolerCpu": { "brand": "", "type": "", "weight": "", "rpm": "", "noise": "", "airflow": "", "height": "", "fanSize": "", "hasHeatpipes": "", "compatibleSockets": "" },
-      "cabinet": { "brand": "", "model": "", "format": "", "sidePanel": "", "bays": "", "expansionSlots": "", "maxGpuLength": "", "maxCoolerHeight": "", "radiatorSupport": "", "frontConnectors": "" },
-      "fan": { "brand": "", "size": "", "rpm": "", "airflow": "", "noiseLevel": "", "connectorPins": "", "lighting": "", "staticPressure": "", "bearing": "" }
+      "ssd": { "type": "", "line": "", "capacity": "", "format": "", "bus": "", "nandType": "", "controller": "", "readSeq": "", "writeSeq": "", "dram": "" },
+      "powerSupply": { "certification": "", "power": "", "wiring": "", "pfc": "", "fanSize": "", "standard": "" },
+      "coolerCpu": { "type": "", "radiatorSize": "", "fanRpm": "", "noise": "", "airflow": "", "height": "" },
+      "cabinet": { "size": "", "sidePanel": "", "motherboardSupport": "", "includedFans": "", "frontPorts": "" },
+      "fan": { "size": "", "speed": "", "bearingType": "", "noiseLevel": "", "airflowCfm": "", "lighting": "", "connector": "" }
     },
     "apparel": { "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": "" },
     "merch": { "itemType": "", "material": "", "dimensions": "", "franchise": "" },
@@ -1360,15 +1400,23 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
   }
 }`;
 
+        // Construct multimodal content parts
+        const contentParts: any[] = [{ text: prompt }];
+        if (cleanBase64) {
+          contentParts.push({
+            inlineData: {
+              mimeType: detectedMime,
+              data: cleanBase64,
+            },
+          });
+        }
+
         const candidates = [
-          "gemini-flash-lite-latest",
-          "gemini-flash-latest",
           "gemini-2.0-flash",
+          "gemini-flash-latest",
           "gemini-2.0-flash-lite",
-          "gemini-3.5-flash-lite",
-          "gemini-3.6-flash",
-          "gemini-3-flash-preview",
-          "gemini-1.5-flash-8b",
+          "gemini-flash-lite-latest",
+          "gemini-1.5-flash",
           "gemini-1.5-pro",
         ];
         let geminiRes: Response | null = null;
@@ -1385,7 +1433,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                   "X-goog-api-key": geminiApiKey,
                 },
                 body: JSON.stringify({
-                  contents: [{ parts: [{ text: prompt }] }],
+                  contents: [{ parts: contentParts }],
                   generationConfig: {
                     temperature: 0.2,
                     responseMimeType: "application/json",

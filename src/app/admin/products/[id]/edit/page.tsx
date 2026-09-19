@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Sparkles,
+  Camera,
   CheckCircle2,
   AlertCircle,
   Gamepad2,
@@ -198,9 +199,124 @@ export default function EditProductAdminPage() {
 
   // Auto-fill state
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [isAutoFillingWithImage, setIsAutoFillingWithImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [autoFillSuccessMsg, setAutoFillSuccessMsg] = useState<string | null>(null);
   const [aiEngineUsed, setAiEngineUsed] = useState<"GEMINI_AI" | "SMART_KNOWLEDGE_ENGINE">("SMART_KNOWLEDGE_ENGINE");
   const [aiEngineErrorDetail, setAiEngineErrorDetail] = useState<string | null>(null);
+
+  const populateEditFormWithAutoFillData = (
+    d: any,
+    fromImage: boolean,
+    chosenType?: ProductType,
+    chosenCustomCategory?: string,
+    imageUploadedUrl?: string
+  ) => {
+    // If identified from image and product name was returned
+    if (fromImage && d.name && (!name.trim() || name === "Producto Coleccionable")) {
+      setName(d.name);
+    } else if (fromImage && d.name && !name.trim()) {
+      setName(d.name);
+    }
+
+    // Set cover image if not set yet
+    if (fromImage && imageUploadedUrl && !imageUrl) {
+      setImageUrl(imageUploadedUrl);
+    }
+
+    // In edit mode: preserve current SKU if already defined to protect URLs & database key
+    if (!sku.trim() && d.sku) {
+      setSku(d.sku);
+    }
+
+    // Preserve admin category selection
+    if (chosenType) {
+      setType(chosenType);
+      if (chosenType === "OTHER") {
+        setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
+      }
+    } else if (d.type) {
+      setType(d.type);
+      if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+    }
+
+    if (d.description) setDescription(d.description);
+    if (typeof d.price === "number") setPrice(d.price);
+    if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
+    if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
+    if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
+    if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
+    
+    if (d.ageRating) {
+      const match = WORLDWIDE_AGE_RATINGS.find(
+        (r) => r.value.toLowerCase() === d.ageRating.toLowerCase()
+      );
+      if (match) {
+        setAgeRating(match.value);
+      } else {
+        setAgeRating("CUSTOM");
+        setCustomAgeRating(d.ageRating);
+      }
+    }
+
+    if (d.genres) setGenresInput(d.genres);
+
+    // Category-specific specs
+    const targetCategoryType = chosenType || d.type;
+    if (targetCategoryType === "FIGURE" && d.figureSpecs) {
+      if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
+      if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
+      if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
+      if (d.figureSpecs.dimensions) setFigureDimensions(d.figureSpecs.dimensions);
+      if (d.figureSpecs.sculptor) setFigureSculptor(d.figureSpecs.sculptor);
+      if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
+      if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
+      if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
+    } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
+      if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
+      if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
+      if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
+      if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
+      if (d.gameSpecs.releaseYear) setGameReleaseYear(d.gameSpecs.releaseYear);
+      if (d.gameSpecs.genre) setGameGenre(d.gameSpecs.genre);
+      if (d.gameSpecs.gameModes) setGameModes(d.gameSpecs.gameModes);
+      if (d.gameSpecs.gameEngine) setGameEngine(d.gameSpecs.gameEngine);
+      if (d.gameSpecs.supportedPlatforms) setGameSupportedPlatforms(d.gameSpecs.supportedPlatforms);
+      if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
+      if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
+      if (d.gameSpecs.audioLanguages) setGameAudioLanguages(d.gameSpecs.audioLanguages);
+      if (d.gameSpecs.subtitleLanguages) setGameSubtitleLanguages(d.gameSpecs.subtitleLanguages);
+      if (d.gameSpecs.ageRating) setGameAgeRating(d.gameSpecs.ageRating);
+      if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
+      if (d.gameSpecs.displayModes) setGameDisplayModes(d.gameSpecs.displayModes);
+      if (d.gameSpecs.xboxSeriesSOptimization) setGameXboxSeriesSOptimization(d.gameSpecs.xboxSeriesSOptimization);
+      if (d.gameSpecs.hardwareFeatures) setGameHardwareFeatures(d.gameSpecs.hardwareFeatures);
+      if (d.gameSpecs.pcOs) setGamePcOs(d.gameSpecs.pcOs);
+      if (d.gameSpecs.pcProcessor) setGamePcProcessor(d.gameSpecs.pcProcessor);
+      if (d.gameSpecs.pcRam) setGamePcRam(d.gameSpecs.pcRam);
+      if (d.gameSpecs.pcGpu) setGamePcGpu(d.gameSpecs.pcGpu);
+      if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
+    } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
+      if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
+      if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
+      if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
+      if (d.collectibleSpecs.language) setCollectibleLanguage(d.collectibleSpecs.language);
+      if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
+    }
+
+    if (d.customSpecifications) {
+      setCustomSpecifications(d.customSpecifications);
+    }
+
+    setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
+    setAiEngineErrorDetail(d.geminiErrorDetail || null);
+    const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
+    const actionLabel = fromImage
+      ? `¡Producto identificado por imagen y actualizado exitosamente con ${engineLabel}!`
+      : `¡Ficha generada exitosamente con ${engineLabel}!`;
+    setAutoFillSuccessMsg(`${actionLabel} Todos los campos fueron actualizados respetando la categoría.`);
+    setTimeout(() => setAutoFillSuccessMsg(null), 8000);
+  };
 
   const handleAutoFillWithAI = async () => {
     if (!name.trim()) {
@@ -231,105 +347,72 @@ export default function EditProductAdminPage() {
         throw new Error(data.error || "No se pudo auto-completar el producto.");
       }
 
-      const d = data.data;
-
-      // In edit mode: preserve current SKU if already defined to protect URLs & database key
-      if (!sku.trim() && d.sku) {
-        setSku(d.sku);
-      }
-
-      // Preserve admin category selection
-      if (chosenType) {
-        setType(chosenType);
-        if (chosenType === "OTHER") {
-          setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
-        }
-      } else if (d.type) {
-        setType(d.type);
-        if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
-      }
-
-      if (d.description) setDescription(d.description);
-      if (typeof d.price === "number") setPrice(d.price);
-      if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
-      if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
-      if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
-      if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
-      
-      if (d.ageRating) {
-        const match = WORLDWIDE_AGE_RATINGS.find(
-          (r) => r.value.toLowerCase() === d.ageRating.toLowerCase()
-        );
-        if (match) {
-          setAgeRating(match.value);
-        } else {
-          setAgeRating("CUSTOM");
-          setCustomAgeRating(d.ageRating);
-        }
-      }
-
-      if (d.genres) setGenresInput(d.genres);
-
-      // Category-specific specs
-      const targetCategoryType = chosenType || d.type;
-      if (targetCategoryType === "FIGURE" && d.figureSpecs) {
-        if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
-        if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
-        if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
-        if (d.figureSpecs.dimensions) setFigureDimensions(d.figureSpecs.dimensions);
-        if (d.figureSpecs.sculptor) setFigureSculptor(d.figureSpecs.sculptor);
-        if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
-        if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
-        if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
-      } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
-        if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
-        if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
-        if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
-        if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);
-        if (d.gameSpecs.releaseYear) setGameReleaseYear(d.gameSpecs.releaseYear);
-        if (d.gameSpecs.genre) setGameGenre(d.gameSpecs.genre);
-        if (d.gameSpecs.gameModes) setGameModes(d.gameSpecs.gameModes);
-        if (d.gameSpecs.gameEngine) setGameEngine(d.gameSpecs.gameEngine);
-        if (d.gameSpecs.supportedPlatforms) setGameSupportedPlatforms(d.gameSpecs.supportedPlatforms);
-        if (d.gameSpecs.platform) setGamePlatform(d.gameSpecs.platform as any);
-        if (d.gameSpecs.edition) setGameEdition(d.gameSpecs.edition as any);
-        if (d.gameSpecs.audioLanguages) setGameAudioLanguages(d.gameSpecs.audioLanguages);
-        if (d.gameSpecs.subtitleLanguages) setGameSubtitleLanguages(d.gameSpecs.subtitleLanguages);
-        if (d.gameSpecs.ageRating) setGameAgeRating(d.gameSpecs.ageRating);
-        if (d.gameSpecs.fileSize) setGameFileSize(d.gameSpecs.fileSize);
-        if (d.gameSpecs.displayModes) setGameDisplayModes(d.gameSpecs.displayModes);
-        if (d.gameSpecs.xboxSeriesSOptimization) setGameXboxSeriesSOptimization(d.gameSpecs.xboxSeriesSOptimization);
-        if (d.gameSpecs.hardwareFeatures) setGameHardwareFeatures(d.gameSpecs.hardwareFeatures);
-        if (d.gameSpecs.pcOs) setGamePcOs(d.gameSpecs.pcOs);
-        if (d.gameSpecs.pcProcessor) setGamePcProcessor(d.gameSpecs.pcProcessor);
-        if (d.gameSpecs.pcRam) setGamePcRam(d.gameSpecs.pcRam);
-        if (d.gameSpecs.pcGpu) setGamePcGpu(d.gameSpecs.pcGpu);
-        if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
-      } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
-        if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
-        if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
-        if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
-        if (d.collectibleSpecs.language) setCollectibleLanguage(d.collectibleSpecs.language);
-        if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
-      }
-
-      if (d.customSpecifications) {
-        setCustomSpecifications(d.customSpecifications);
-      }
-
-      // DO NOT alter images (photo gallery stays pristine)
-
-      setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
-      setAiEngineErrorDetail(d.geminiErrorDetail || null);
-      const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
-      setAutoFillSuccessMsg(`¡Ficha generada exitosamente con ${engineLabel}! Todos los campos fueron actualizados respetando la categoría.`);
-      setTimeout(() => setAutoFillSuccessMsg(null), 8000);
+      populateEditFormWithAutoFillData(data.data, false, chosenType, chosenCustomCategory);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al autocompletar con IA.";
       setErrorMsg(msg);
     } finally {
       setIsAutoFilling(false);
     }
+  };
+
+  const handleImageSelectedForAI = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so the user can re-select the same file if desired
+    e.target.value = "";
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg("La imagen seleccionada supera el límite máximo de 10 MB.");
+      return;
+    }
+
+    setIsAutoFillingWithImage(true);
+    setErrorMsg(null);
+    setAutoFillSuccessMsg(null);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result as string;
+
+        const chosenType = type;
+        const chosenCustomCategory = customCategoryLabel;
+
+        const res = await fetch("/api/admin/auto-fill-product", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim() || undefined,
+            selectedType: chosenType,
+            customCategoryLabel: chosenType === "OTHER" ? chosenCustomCategory : undefined,
+            imageBase64: base64Data,
+            imageMimeType: file.type || "image/jpeg",
+            imageFileName: file.name,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "No se pudo identificar el producto a partir de la imagen.");
+        }
+
+        populateEditFormWithAutoFillData(data.data, true, chosenType, chosenCustomCategory, base64Data);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al procesar la imagen con IA.";
+        setErrorMsg(msg);
+      } finally {
+        setIsAutoFillingWithImage(false);
+      }
+    };
+
+    reader.onerror = () => {
+      setIsAutoFillingWithImage(false);
+      setErrorMsg("No se pudo leer el archivo de imagen seleccionado.");
+    };
+
+    reader.readAsDataURL(file);
   };
 
   // Submission State
@@ -1079,26 +1162,60 @@ export default function EditProductAdminPage() {
                 Información Básica del Producto
               </h2>
 
-              {/* Botón Auto-completar con IA en la vista de edición */}
-              <button
-                type="button"
-                onClick={handleAutoFillWithAI}
-                disabled={isAutoFilling || !name.trim()}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#ff5421] text-[#092634] font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                title="Genera automáticamente o actualiza los datos del producto (categoría, precios, ficha técnica y descripción) a partir del Nombre con IA"
-              >
-                {isAutoFilling ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-[#092634] border-t-transparent rounded-full animate-spin" />
-                    <span>Generando con IA...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-[#092634]" />
-                    <span>Auto-completar con IA</span>
-                  </>
-                )}
-              </button>
+              {/* Contenedor de Botones de IA: Identificación por Imagen y por Nombre */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Input oculto para subir la imagen del producto */}
+                <input
+                  type="file"
+                  ref={imageInputRef}
+                  onChange={handleImageSelectedForAI}
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  aria-label="Seleccionar imagen de producto para autocompletar con IA"
+                />
+
+                {/* Botón 1: Auto-completar con Imagen (Nuevo) */}
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isAutoFillingWithImage || isAutoFilling}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#009EE3] to-[#0077B6] hover:from-[#00A8F3] hover:to-[#0088CC] text-white font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border border-[#009EE3]/30"
+                  title="Sube una fotografía o imagen del producto: la IA identificará qué producto es y actualizará la ficha completa"
+                >
+                  {isAutoFillingWithImage ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Analizando Imagen...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 text-white" />
+                      <span>Auto-completar con Imagen</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Botón 2: Auto-completar con IA por Nombre (Actual) */}
+                <button
+                  type="button"
+                  onClick={handleAutoFillWithAI}
+                  disabled={isAutoFilling || isAutoFillingWithImage || !name.trim()}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#ff5421] text-[#092634] font-black text-xs uppercase tracking-wider shadow hover:brightness-110 active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Genera automáticamente o actualiza los datos del producto (categoría, precios, ficha técnica y descripción) a partir del Nombre con IA"
+                >
+                  {isAutoFilling ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-[#092634] border-t-transparent rounded-full animate-spin" />
+                      <span>Generando con IA...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-[#092634]" />
+                      <span>Auto-completar con IA</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {autoFillSuccessMsg && (

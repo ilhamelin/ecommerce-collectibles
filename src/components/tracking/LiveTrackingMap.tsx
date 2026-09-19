@@ -9,16 +9,8 @@ import {
 } from "@/lib/geo/chilean-coordinates";
 import {
   Truck,
-  Building2,
-  MapPin,
   Compass,
-  Play,
-  Pause,
-  RotateCcw,
   Navigation,
-  ShieldCheck,
-  FastForward,
-  CheckCircle2,
 } from "lucide-react";
 
 interface LiveTrackingMapProps {
@@ -275,32 +267,6 @@ export default function LiveTrackingMap({
     mapInstanceRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
   };
 
-  const handleRestart = () => {
-    setCurrentWaypointIndex(0);
-    setHasTriggeredDelivered(false);
-    if (truckMarkerRef.current && routeWaypoints[0]) {
-      truckMarkerRef.current.setLatLng([routeWaypoints[0].lat, routeWaypoints[0].lng]);
-    }
-    setIsPlaying(true);
-    onProgressChange?.(0, 45);
-  };
-
-  const handleInstantArrival = () => {
-    if (routeWaypoints.length === 0) return;
-    const lastIdx = routeWaypoints.length - 1;
-    setCurrentWaypointIndex(lastIdx);
-    if (truckMarkerRef.current && routeWaypoints[lastIdx]) {
-      const pt = routeWaypoints[lastIdx];
-      truckMarkerRef.current.setLatLng([pt.lat, pt.lng]);
-    }
-    setIsPlaying(false);
-    onProgressChange?.(100, 0);
-    if (!hasTriggeredDelivered) {
-      setHasTriggeredDelivered(true);
-      onDestinationReached?.();
-    }
-  };
-
   const progressPercent =
     routeWaypoints.length > 0
       ? Math.round((currentWaypointIndex / (routeWaypoints.length - 1)) * 100)
@@ -311,12 +277,12 @@ export default function LiveTrackingMap({
       {/* Map Target Div */}
       <div ref={mapContainerRef} className="w-full flex-1 z-0" style={{ minHeight: "420px" }} />
 
-      {/* Floating Map Controls Toolbar */}
+      {/* Floating Map Controls Toolbar (Limpio y Profesional) */}
       <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
         <button
           onClick={handleCenterTruck}
-          className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md hover:bg-white text-[#1F3A5F] font-bold text-xs shadow-md border border-[#E5E5E5] flex items-center gap-1.5 transition hover:scale-105 active:scale-95"
-          title="Centrar mapa en el vehículo de reparto"
+          className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md hover:bg-white text-[#1F3A5F] font-bold text-xs shadow-md border border-[#E5E5E5] flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer"
+          title="Centrar mapa en la posición actual del móvil de reparto"
         >
           <Navigation className="w-3.5 h-3.5 text-[#009EE3]" />
           <span>Centrar Móvil</span>
@@ -324,55 +290,17 @@ export default function LiveTrackingMap({
 
         <button
           onClick={handleFitRoute}
-          className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md hover:bg-white text-[#1F3A5F] font-bold text-xs shadow-md border border-[#E5E5E5] flex items-center gap-1.5 transition hover:scale-105 active:scale-95"
+          className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md hover:bg-white text-[#1F3A5F] font-bold text-xs shadow-md border border-[#E5E5E5] flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer"
           title="Ver ruta completa de origen a destino"
         >
           <Compass className="w-3.5 h-3.5 text-[#FF6B35]" />
-          <span>Ruta Completa</span>
+          <span>Ver Ruta Completa</span>
         </button>
 
-        <button
-          onClick={() => setIsPlaying(!isPlaying)}
-          className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-md border transition flex items-center gap-1.5 ${
-            isPlaying
-              ? "bg-[#1F3A5F] text-white border-[#1F3A5F]"
-              : "bg-amber-500 text-white border-amber-600"
-          }`}
-          title={isPlaying ? "Pausar simulación" : "Reanudar simulación"}
-        >
-          {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-          <span>{isPlaying ? "En Vivo" : "Pausado"}</span>
-        </button>
-
-        {/* Speed Toggle: 1x, 2x, 4x */}
-        <button
-          onClick={() => setSimSpeed((prev) => (prev === 1 ? 2 : prev === 2 ? 4 : 1))}
-          className="px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md hover:bg-white text-[#1F3A5F] font-mono font-black text-xs shadow-md border border-[#E5E5E5] flex items-center gap-1 transition"
-          title="Cambiar velocidad de la simulación"
-        >
-          <FastForward className="w-3 h-3 text-[#FF6B35]" />
-          <span>{simSpeed}x</span>
-        </button>
-
-        {/* Quick Instant Arrival Test Button */}
-        {progressPercent < 100 && (
-          <button
-            onClick={handleInstantArrival}
-            className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-1 transition hover:scale-105 active:scale-95"
-            title="Acelerar y confirmar entrega en destino"
-          >
-            <CheckCircle2 className="w-3 h-3 text-white" />
-            <span>Completar Ruta</span>
-          </button>
-        )}
-
-        <button
-          onClick={handleRestart}
-          className="p-2 rounded-xl bg-white/95 backdrop-blur-md hover:bg-white text-[#666666] hover:text-[#1A1A1A] text-xs shadow-md border border-[#E5E5E5] transition"
-          title="Reiniciar trayecto desde bodega"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
+        <div className="px-3 py-1.5 rounded-xl bg-[#1F3A5F] text-white font-mono text-xs shadow-md border border-[#1F3A5F] flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="font-bold">Telemetría OT #{trackingNumber}</span>
+        </div>
       </div>
 
       {/* Floating Bottom Status Bar */}

@@ -145,7 +145,19 @@ function getCategoryTypeFromLabel(
 // Smart Heuristic Engine (Dual-Engine Fallback)
 function generateWithSmartEngine(
   rawName: string,
-  userSelectedType?: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER",
+  userSelectedType?:
+    | "FIGURE"
+    | "VIDEO_GAME"
+    | "COLLECTIBLE"
+    | "OTHER"
+    | "HARDWARE"
+    | "CONSOLE"
+    | "GAMING_ACCESSORY"
+    | "APPAREL"
+    | "BOOK"
+    | "MERCH"
+    | "AUDIO"
+    | string,
   userCustomCategoryLabel?: string
 ): AutoFillResponse {
   const name = rawName.trim();

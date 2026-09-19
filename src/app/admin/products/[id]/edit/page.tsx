@@ -220,8 +220,8 @@ export default function EditProductAdminPage() {
     }
 
     // Set cover image if not set yet
-    if (fromImage && imageUploadedUrl && !imageUrl) {
-      setImageUrl(imageUploadedUrl);
+    if (fromImage && imageUploadedUrl) {
+      setImages((prev) => (prev.length === 0 ? [imageUploadedUrl] : prev));
     }
 
     // In edit mode: preserve current SKU if already defined to protect URLs & database key

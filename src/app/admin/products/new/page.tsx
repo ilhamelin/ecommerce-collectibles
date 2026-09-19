@@ -336,8 +336,8 @@ export default function NewProductAdminPage() {
     }
 
     // Set cover image if not set yet
-    if (fromImage && imageUploadedUrl && !imageUrl) {
-      setImageUrl(imageUploadedUrl);
+    if (fromImage && imageUploadedUrl) {
+      setImages((prev) => (prev.length === 0 ? [imageUploadedUrl] : prev));
     }
 
     // Update SKU with the category-accurate SKU

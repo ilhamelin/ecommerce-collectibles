@@ -769,10 +769,15 @@ export default function CheckoutPage() {
                   </button>
                 </div>
 
-                {/* 1. SECCIÓN: TUS TARJETAS GUARDADAS (Solo si el usuario ha iniciado sesión y tiene tarjetas registradas) */}
+                {/* 1. SECCIÓN: TUS TARJETAS GUARDADAS */}
                 {currentUser && currentUser.paymentMethods && currentUser.paymentMethods.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-[#666666] px-1">Tus tarjetas guardadas</h3>
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-xs font-bold text-[#666666]">Tus tarjetas guardadas</h3>
+                      <span className="text-[10px] font-bold text-[#009EE3] bg-[#009EE3]/10 px-2 py-0.5 rounded-full">
+                        Procesado por Mercado Pago
+                      </span>
+                    </div>
                     <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden divide-y divide-[#F0F0F0] shadow-xs">
                       {currentUser.paymentMethods.map((pm) => {
                         const optionKey = `saved_${pm.id}`;
@@ -820,9 +825,74 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {/* 2. SECCIÓN TARJETAS (Mercado Pago) */}
+                {/* 2. SECCIÓN FLOW.CL (WEBPAY PLUS / TRANSBANK) */}
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-[#666666] px-1">Tarjetas</h3>
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A1A]">
+                      <span className="w-2 h-2 rounded-full bg-[#00A650]"></span>
+                      <span>Webpay Plus Transbank (Vía Flow.cl)</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#00A650] bg-[#E8F8F0] px-2 py-0.5 rounded-full">
+                      Pasarela Flow Chile
+                    </span>
+                  </div>
+                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden shadow-xs hover:border-[#00A650]/50 transition">
+                    {/* Tarjeta de débito / Webpay vía Flow */}
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("debit_card");
+                        setPaymentMethod("WEBPAY");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "debit_card" ? "bg-[#F0FDF4] border-l-4 border-l-[#00A650]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "debit_card"
+                            ? "border-[#00A650] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "debit_card" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#00A650]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-white flex items-center justify-center text-[#1A1A1A] shrink-0 shadow-xs font-black text-[10px] text-[#D92534]">
+                        webpay
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-[#1A1A1A]">
+                            Webpay Plus / Tarjetas de Débito
+                          </span>
+                          <span className="text-[10px] font-black bg-[#1F3A5F] text-white px-1.5 py-0.2 rounded">
+                            FLOW
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#666666] block mt-0.5">
+                          Redcompra, CuentaRUT, BancoEstado, Santander, BCI, MACH, Tenpo
+                        </span>
+                        <span className="inline-block mt-1 text-[11px] font-semibold text-[#00A650]">
+                          ✓ Redirección directa a Webpay Plus oficial
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. SECCIÓN MERCADO PAGO CHILE */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1A1A1A]">
+                      <span className="w-2 h-2 rounded-full bg-[#009EE3]"></span>
+                      <span>Mercado Pago Chile</span>
+                      <span className="text-[#009EE3]">🤝</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#009EE3] bg-[#F4F9FF] px-2 py-0.5 rounded-full">
+                      Pasarela Mercado Pago
+                    </span>
+                  </div>
                   <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden divide-y divide-[#F0F0F0] shadow-xs">
                     {/* Tarjeta de crédito */}
                     <div
@@ -831,7 +901,7 @@ export default function CheckoutPage() {
                         setPaymentMethod("MERCADO_PAGO");
                       }}
                       className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
-                        selectedOptionId === "credit_card" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                        selectedOptionId === "credit_card" ? "bg-[#F4F9FF] border-l-4 border-l-[#009EE3]" : "hover:bg-[#FAFAFA]"
                       }`}
                     >
                       <div
@@ -849,9 +919,14 @@ export default function CheckoutPage() {
                         <CreditCard className="w-4 h-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-[#1A1A1A] block">
-                          Tarjeta de crédito
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#1A1A1A]">
+                            Tarjeta de crédito
+                          </span>
+                          <span className="text-[10px] font-black bg-[#009EE3] text-white px-1.5 py-0.2 rounded">
+                            MP
+                          </span>
+                        </div>
                         <span className="text-xs text-[#666666] block">
                           Visa, Mastercard, American Express, CMR, Magna
                         </span>
@@ -861,56 +936,14 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    {/* Tarjeta de débito */}
-                    <div
-                      onClick={() => {
-                        setSelectedOptionId("debit_card");
-                        setPaymentMethod("WEBPAY");
-                      }}
-                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
-                        selectedOptionId === "debit_card" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
-                      }`}
-                    >
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
-                          selectedOptionId === "debit_card"
-                            ? "border-[#009EE3] bg-white"
-                            : "border-[#CCCCCC] bg-white"
-                        }`}
-                      >
-                        {selectedOptionId === "debit_card" && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
-                        )}
-                      </div>
-                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#F7F7F5] flex items-center justify-center text-[#1A1A1A] shrink-0 shadow-xs">
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-[#1A1A1A] block">
-                          Tarjeta de débito
-                        </span>
-                        <span className="text-xs text-[#666666] block">
-                          Redcompra, Webpay Plus, CuentaRUT, MACH, Tenpo (con CVV)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. SECCIÓN MERCADO PAGO */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#666666] px-1">
-                    <span>Mercado Pago</span>
-                    <span className="text-[#009EE3]">🤝</span>
-                  </div>
-                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden shadow-xs">
+                    {/* Cuenta de Mercado Pago */}
                     <div
                       onClick={() => {
                         setSelectedOptionId("mp_account");
                         setPaymentMethod("MERCADO_PAGO");
                       }}
                       className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
-                        selectedOptionId === "mp_account" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                        selectedOptionId === "mp_account" ? "bg-[#F4F9FF] border-l-4 border-l-[#009EE3]" : "hover:bg-[#FAFAFA]"
                       }`}
                     >
                       <div
@@ -928,9 +961,14 @@ export default function CheckoutPage() {
                         <Wallet className="w-5 h-5 text-[#1A1A1A]" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-[#1A1A1A] block">
-                          Cuenta de Mercado Pago
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#1A1A1A]">
+                            Cuenta de Mercado Pago
+                          </span>
+                          <span className="text-[10px] font-black bg-[#009EE3] text-white px-1.5 py-0.2 rounded">
+                            MP
+                          </span>
+                        </div>
                         <span className="text-xs text-[#666666] block">
                           Paga con dinero disponible o tarjetas asociadas a tu cuenta
                         </span>
@@ -939,55 +977,15 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* 4. SECCIÓN OTROS MEDIOS DE PAGO */}
-                <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-[#666666] px-1">Otros medios de pago</h3>
-                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden divide-y divide-[#F0F0F0] shadow-xs">
-                    {/* Transferencia bancaria */}
-                    <div
-                      onClick={() => {
-                        setSelectedOptionId("bank_transfer");
-                        setPaymentMethod("BANK_TRANSFER");
-                      }}
-                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
-                        selectedOptionId === "bank_transfer" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
-                      }`}
-                    >
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
-                          selectedOptionId === "bank_transfer"
-                            ? "border-[#009EE3] bg-white"
-                            : "border-[#CCCCCC] bg-white"
-                        }`}
-                      >
-                        {selectedOptionId === "bank_transfer" && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#009EE3]" />
-                        )}
-                      </div>
-                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#EAEFF5] flex items-center justify-center text-[#1F3A5F] shrink-0 shadow-xs">
-                        <Building2 className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-[#1A1A1A] block">
-                          Transferencia bancaria electrónica
-                        </span>
-                        <span className="text-xs text-[#666666] block">
-                          BancoEstado, Banco de Chile, Santander, BCI (Acreditación en 15 min)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Efectivo en puntos de pago (Servipag) */}
+                    {/* Efectivo Servipag vía Mercado Pago */}
                     <div
                       onClick={() => {
                         setSelectedOptionId("cash_servipag");
                         setPaymentMethod("MERCADO_PAGO");
                       }}
                       className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
-                        selectedOptionId === "cash_servipag" ? "bg-[#F4F9FF]" : "hover:bg-[#FAFAFA]"
+                        selectedOptionId === "cash_servipag" ? "bg-[#F4F9FF] border-l-4 border-l-[#009EE3]" : "hover:bg-[#FAFAFA]"
                       }`}
                     >
                       <div
@@ -1005,14 +1003,55 @@ export default function CheckoutPage() {
                         <Store className="w-4 h-4" />
                       </div>
                       <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[#1A1A1A]">
+                            Efectivo en puntos de pago (Servipag)
+                          </span>
+                          <span className="text-[10px] font-black bg-[#009EE3] text-white px-1.5 py-0.2 rounded">
+                            MP
+                          </span>
+                        </div>
+                        <span className="text-xs text-[#666666] block">
+                          Paga en efectivo en cualquier Servipag con tu cupón emitido
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. SECCIÓN TRANSFERENCIA BANCARIA DIRECTA */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-[#666666] px-1">Transferencia Directa</h3>
+                  <div className="bg-white border border-[#E5E5E5] rounded-2xl overflow-hidden shadow-xs">
+                    <div
+                      onClick={() => {
+                        setSelectedOptionId("bank_transfer");
+                        setPaymentMethod("BANK_TRANSFER");
+                      }}
+                      className={`flex items-center gap-4 p-4 sm:p-5 cursor-pointer transition ${
+                        selectedOptionId === "bank_transfer" ? "bg-[#F4F9FF] border-l-4 border-l-[#1F3A5F]" : "hover:bg-[#FAFAFA]"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                          selectedOptionId === "bank_transfer"
+                            ? "border-[#1F3A5F] bg-white"
+                            : "border-[#CCCCCC] bg-white"
+                        }`}
+                      >
+                        {selectedOptionId === "bank_transfer" && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#1F3A5F]" />
+                        )}
+                      </div>
+                      <div className="w-10 h-7 rounded border border-[#E5E5E5] bg-[#EAEFF5] flex items-center justify-center text-[#1F3A5F] shrink-0 shadow-xs">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <span className="text-sm font-semibold text-[#1A1A1A] block">
-                          Efectivo en puntos de pago (Servipag)
+                          Transferencia bancaria electrónica (Sin comisiones)
                         </span>
                         <span className="text-xs text-[#666666] block">
-                          Paga en efectivo en cualquier Servipag del país con tu cupón
-                        </span>
-                        <span className="inline-block mt-1 text-[11px] font-semibold text-[#666666] bg-[#F0F0F0] px-2 py-0.5 rounded">
-                          1 a 2 horas para pagar
+                          BancoEstado, Banco de Chile, Santander, BCI
                         </span>
                       </div>
                     </div>
@@ -1192,14 +1231,26 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={handleCompleteOrder}
                     disabled={isProcessing}
-                    className="w-full py-4 rounded-2xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-black text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-xl shadow-[#FF6B35]/25 disabled:opacity-50 cursor-pointer"
+                    className={`w-full py-4 rounded-2xl text-white font-black text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-xl disabled:opacity-50 cursor-pointer ${
+                      selectedOptionId === "debit_card"
+                        ? "bg-[#00A650] hover:bg-[#008f45] shadow-[#00A650]/25"
+                        : selectedOptionId === "bank_transfer"
+                        ? "bg-[#1F3A5F] hover:bg-[#152740] shadow-[#1F3A5F]/25"
+                        : "bg-[#FF6B35] hover:bg-[#E85A24] shadow-[#FF6B35]/25"
+                    }`}
                   >
                     {isProcessing ? (
                       <>Conectando con pasarela de pago segura...</>
                     ) : (
                       <>
                         <Lock className="w-4 h-4" />
-                        <span>Continuar y Pagar {formatCLP(finalTotalToday)}</span>
+                        <span>
+                          {selectedOptionId === "debit_card"
+                            ? `Pagar con Webpay Plus (Flow) ${formatCLP(finalTotalToday)}`
+                            : selectedOptionId === "bank_transfer"
+                            ? `Confirmar Transferencia Bancaria ${formatCLP(finalTotalToday)}`
+                            : `Pagar con Mercado Pago ${formatCLP(finalTotalToday)}`}
+                        </span>
                       </>
                     )}
                   </button>
@@ -1210,7 +1261,13 @@ export default function CheckoutPage() {
                       <span>Cifrado SSL 256-bit</span>
                     </div>
                     <span>•</span>
-                    <div>PCI-DSS Compliant (Mercado Pago)</div>
+                    <div>
+                      {selectedOptionId === "debit_card"
+                        ? "Transbank Webpay Plus (Flow.cl)"
+                        : selectedOptionId === "bank_transfer"
+                        ? "Transferencia Electrónica Directa"
+                        : "PCI-DSS Compliant (Mercado Pago)"}
+                    </div>
                     <span>•</span>
                     <div>Garantía 6 Meses SERNAC</div>
                   </div>

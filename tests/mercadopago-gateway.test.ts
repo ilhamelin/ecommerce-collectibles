@@ -114,4 +114,22 @@ describe("Mercado Pago Integration & Gateway Integrity", () => {
     expect(gatewayResult.mode).toBe("SIMULATED");
     expect(gatewayResult.redirectUrl).toContain("/checkout/sandbox-payment");
   });
+
+  it("should route to Flow.cl when paymentMethod is WEBPAY", async () => {
+    process.env.FLOW_API_KEY = "flow-test-api-key";
+    process.env.FLOW_SECRET_KEY = "flow-test-secret-key-123456";
+    process.env.FLOW_SANDBOX_MODE = "true";
+
+    const flowOrder = {
+      ...mockOrder,
+      paymentMethod: "WEBPAY" as const,
+    };
+
+    const gatewayResult = await initiatePaymentGateway(flowOrder, "https://omnicollector.cl");
+
+    expect(gatewayResult.gatewayName).toBe("FLOW");
+    expect(gatewayResult.mode).toBe("SANDBOX");
+    expect(gatewayResult.requiresRedirect).toBe(true);
+  });
 });
+

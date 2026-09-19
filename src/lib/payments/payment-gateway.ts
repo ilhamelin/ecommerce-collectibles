@@ -34,26 +34,32 @@ export async function initiatePaymentGateway(
     };
   }
 
-  // 2. Flow.cl (Prioridad para Débito / Transbank Webpay Plus)
-  if (method === "WEBPAY" && isFlowConfigured()) {
-    try {
-      const flowResult = await createFlowPaymentOrder(order, baseUrl);
-      if (flowResult) {
-        return {
-          requiresRedirect: true,
-          redirectUrl: flowResult.url,
-          gatewayName: "FLOW",
-          mode: process.env.FLOW_SANDBOX_MODE !== "false" ? "SANDBOX" : "LIVE",
-          message: "Orden de pago Webpay Plus generada con Flow Chile.",
-        };
+  // 2. Flow.cl (Pasarela designada para Débito / Transbank Webpay Plus)
+  if (method === "WEBPAY") {
+    if (isFlowConfigured()) {
+      try {
+        const flowResult = await createFlowPaymentOrder(order, baseUrl);
+        if (flowResult) {
+          return {
+            requiresRedirect: true,
+            redirectUrl: flowResult.url,
+            gatewayName: "FLOW",
+            mode: process.env.FLOW_SANDBOX_MODE !== "false" ? "SANDBOX" : "LIVE",
+            message: "Orden de pago Webpay Plus generada con Flow Chile.",
+          };
+        } else {
+          console.warn("[PaymentGateway] createFlowPaymentOrder devolvió null. Revisa las credenciales de Flow o logs anteriores.");
+        }
+      } catch (err) {
+        console.error("[PaymentGateway] Error al conectar con Flow:", err);
       }
-    } catch (err) {
-      console.error("[PaymentGateway] Error initiating Flow:", err);
+    } else {
+      console.warn("[PaymentGateway] Flow no está configurado (FLOW_API_KEY o FLOW_SECRET_KEY faltantes en el servidor).");
     }
   }
 
   // 3. Mercado Pago (Checkout Pro / Tarjetas de crédito / Cuenta MP)
-  if (method === "MERCADO_PAGO" || method === "WEBPAY") {
+  if (method === "MERCADO_PAGO") {
     if (isMercadoPagoConfigured()) {
       try {
         const preference = await createMercadoPagoPreference({ order, baseUrl });

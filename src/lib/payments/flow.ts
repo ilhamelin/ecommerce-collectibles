@@ -69,15 +69,21 @@ export async function createFlowPaymentOrder(
 
     const data = await res.json();
     if (data.url && data.token) {
+      console.log(`[Flow] Orden creada exitosamente: flowOrder=${data.flowOrder}, token=${data.token}`);
       return {
         url: `${data.url}?token=${data.token}`,
         token: data.token,
         flowOrder: data.flowOrder,
       };
     }
+
+    console.error("[Flow] Error en respuesta de Flow API:", {
+      status: res.status,
+      data,
+    });
     return null;
   } catch (err) {
-    console.error("[Flow] Error creating payment order:", err);
+    console.error("[Flow] Error connecting to Flow API:", err);
     return null;
   }
 }

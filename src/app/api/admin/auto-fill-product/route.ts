@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 interface AutoFillResponse {
   sku: string;
   name: string;
-  type: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER";
+  type: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER" | "HARDWARE" | "CONSOLE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" | string;
   customCategoryLabel?: string;
   description: string;
   price: number;
@@ -130,32 +130,16 @@ function mergeNonEmpty<T extends Record<string, any>>(fallback: T = {} as T, inc
 function getCategoryTypeFromLabel(
   label?: string
 ): "CONSOLE" | "HARDWARE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" {
-  const l = (label || "").toLowerCase();
-  if (l.includes("consola")) return "CONSOLE";
-  if (l.includes("hardware") || l.includes("componente") || l.includes("ssd") || l.includes("nvme") || l.includes("m.2") || l.includes("ram") || l.includes("gpu") || l.includes("tarjeta gr") || l.includes("procesador") || l.includes("placa")) return "HARDWARE";
-  if (l.includes("manga") || l.includes("artbook") || l.includes("libro") || l.includes("comic") || l.includes("tomo"))
-    return "BOOK";
-  if (
-    l.includes("ropa") ||
-    l.includes("estilo") ||
-    l.includes("poleron") ||
-    l.includes("polera") ||
-    l.includes("hoodie") ||
-    l.includes("apparel")
-  )
-    return "APPAREL";
-  if (
-    l.includes("merch") ||
-    l.includes("peluche") ||
-    l.includes("llavero") ||
-    l.includes("taza") ||
-    l.includes("decoraci") ||
-    l.includes("figpin")
-  )
-    return "MERCH";
-  if (l.includes("audio") || l.includes("ost") || l.includes("soundtrack") || l.includes("vinilo") || l.includes("disco"))
-    return "AUDIO";
-  return "GAMING_ACCESSORY";
+  const raw = (label || "").trim();
+  const upper = raw.toUpperCase();
+  if (upper === "CONSOLE" || upper === "CONSOLAS" || upper.includes("CONSOLA")) return "CONSOLE";
+  if (upper === "HARDWARE" || upper.includes("HARDWARE") || upper.includes("COMPONENTE") || upper.includes("SSD") || upper.includes("NVME") || upper.includes("M.2") || upper.includes("RAM") || upper.includes("GPU") || upper.includes("TARJETA") || upper.includes("PROCESADOR") || upper.includes("PROCESSOR") || upper.includes("PLACA") || upper.includes("MOTHERBOARD") || upper.includes("RYZEN") || upper.includes("INTEL") || upper.includes("CORE")) return "HARDWARE";
+  if (upper === "BOOK" || upper.includes("MANGA") || upper.includes("ARTBOOK") || upper.includes("LIBRO") || upper.includes("COMIC") || upper.includes("TOMO")) return "BOOK";
+  if (upper === "APPAREL" || upper.includes("ROPA") || upper.includes("ESTILO") || upper.includes("POLERON") || upper.includes("POLERA") || upper.includes("HOODIE")) return "APPAREL";
+  if (upper === "MERCH" || upper.includes("MERCH") || upper.includes("PELUCHE") || upper.includes("LLAVERO") || upper.includes("TAZA") || upper.includes("DECORACI") || upper.includes("FIGPIN")) return "MERCH";
+  if (upper === "AUDIO" || upper.includes("AUDIO") || upper.includes("OST") || upper.includes("SOUNDTRACK") || upper.includes("VINILO") || upper.includes("DISCO")) return "AUDIO";
+  if (upper === "GAMING_ACCESSORY" || upper === "ACCESSORY" || upper.includes("ACCESORIO") || upper.includes("GAMING") || upper.includes("MOUSE") || upper.includes("TECLADO") || upper.includes("HEADSET") || upper.includes("AUDIFONO") || upper.includes("CONTROL") || upper.includes("MANDO")) return "GAMING_ACCESSORY";
+  return "HARDWARE";
 }
 
 // Smart Heuristic Engine (Dual-Engine Fallback)
@@ -168,21 +152,30 @@ function generateWithSmartEngine(
   const lower = name.toLowerCase();
 
   // 1. Detect / Respect Type
-  let type: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER";
+  let type: "FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "OTHER" | "HARDWARE" | "CONSOLE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" | string;
   let customCategoryLabel: string | undefined = userCustomCategoryLabel?.trim() || undefined;
 
   if (userSelectedType) {
     // Strictly respect the admin's chosen category!
     type = userSelectedType;
-    if (type === "OTHER" && !customCategoryLabel) {
-      const cat = getCategoryTypeFromLabel(name);
-      if (cat === "CONSOLE") customCategoryLabel = "Consola";
-      else if (cat === "HARDWARE") customCategoryLabel = "Hardware & Componentes";
-      else if (cat === "BOOK") customCategoryLabel = "Manga / Artbook";
-      else if (cat === "APPAREL") customCategoryLabel = "Ropa & Estilo";
-      else if (cat === "MERCH") customCategoryLabel = "Merchandising";
-      else if (cat === "AUDIO") customCategoryLabel = "Audio / OST";
-      else customCategoryLabel = "Accesorio Gaming";
+    if (!customCategoryLabel) {
+      if (type === "HARDWARE") customCategoryLabel = "Hardware & Componentes";
+      else if (type === "CONSOLE") customCategoryLabel = "Consolas";
+      else if (type === "GAMING_ACCESSORY") customCategoryLabel = "Accesorio Gaming";
+      else if (type === "APPAREL") customCategoryLabel = "Ropa & Estilo";
+      else if (type === "BOOK") customCategoryLabel = "Manga / Artbook";
+      else if (type === "MERCH") customCategoryLabel = "Merchandising";
+      else if (type === "AUDIO") customCategoryLabel = "Audio / OST";
+      else if (type === "OTHER") {
+        const cat = getCategoryTypeFromLabel(name);
+        if (cat === "CONSOLE") customCategoryLabel = "Consola";
+        else if (cat === "HARDWARE") customCategoryLabel = "Hardware & Componentes";
+        else if (cat === "BOOK") customCategoryLabel = "Manga / Artbook";
+        else if (cat === "APPAREL") customCategoryLabel = "Ropa & Estilo";
+        else if (cat === "MERCH") customCategoryLabel = "Merchandising";
+        else if (cat === "AUDIO") customCategoryLabel = "Audio / OST";
+        else customCategoryLabel = "Accesorio Gaming";
+      }
     }
   } else {
     // Inferred if not specified by the admin
@@ -264,8 +257,8 @@ function generateWithSmartEngine(
   let prefix = "FIG";
   if (type === "VIDEO_GAME") prefix = "VG";
   else if (type === "COLLECTIBLE") prefix = "COL";
-  else if (type === "OTHER") {
-    const cat = getCategoryTypeFromLabel(customCategoryLabel);
+  else {
+    const cat = getCategoryTypeFromLabel(customCategoryLabel || type);
     if (cat === "CONSOLE") prefix = "CON";
     else if (cat === "HARDWARE") prefix = "HW";
     else if (cat === "APPAREL") prefix = "APP";
@@ -686,8 +679,19 @@ function generateWithSmartEngine(
 
   // Custom Category Specifications (Section 6)
   let customSpecifications: any = undefined;
-  if (type === "OTHER") {
-    const matchedCategory = getCategoryTypeFromLabel(customCategoryLabel);
+  const isCustomOrSpecialized = [
+    "HARDWARE",
+    "CONSOLE",
+    "GAMING_ACCESSORY",
+    "APPAREL",
+    "BOOK",
+    "MERCH",
+    "AUDIO",
+    "OTHER",
+  ].includes(type) || Boolean(customCategoryLabel && customCategoryLabel.trim() !== "");
+
+  if (isCustomOrSpecialized) {
+    const matchedCategory = getCategoryTypeFromLabel(customCategoryLabel || type);
     if (matchedCategory === "GAMING_ACCESSORY") {
       // Determine accessory subtype from name
       let accSubtype: "MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER" = "MOUSE";
@@ -848,7 +852,34 @@ function generateWithSmartEngine(
       else if (lower.includes("disco duro") || lower.includes("hdd") || lower.includes("barracuda") || lower.includes("ironwolf") || lower.includes("skyhawk") || lower.includes("wd blue")) hwType = "DISCO_DURO";
       else if (lower.includes("ram") || lower.includes("ddr") || lower.includes("dimm") || lower.includes("fury") || lower.includes("vengeance") || lower.includes("trident")) hwType = "RAM";
       else if (lower.includes("placa") || lower.includes("motherboard") || lower.includes("b650") || lower.includes("b550") || lower.includes("x670") || lower.includes("x870") || lower.includes("z790") || lower.includes("b760") || lower.includes("z890") || lower.includes("chipset")) hwType = "PLACA_MADRE";
-      else if (lower.includes("procesador") || lower.includes("ryzen") || lower.includes("intel core") || lower.includes("core i") || lower.includes("cpu") || lower.includes("7800x3d") || lower.includes("9800x3d") || lower.includes("14700") || lower.includes("14900")) hwType = "PROCESADORES";
+      else if (
+        lower.includes("procesador") ||
+        lower.includes("processor") ||
+        lower.includes("ryzen") ||
+        lower.includes("intel core") ||
+        lower.includes("core i") ||
+        lower.includes("cpu") ||
+        lower.includes("14600") ||
+        lower.includes("14700") ||
+        lower.includes("14900") ||
+        lower.includes("13600") ||
+        lower.includes("13700") ||
+        lower.includes("13900") ||
+        lower.includes("12400") ||
+        lower.includes("12600") ||
+        lower.includes("12700") ||
+        lower.includes("12900") ||
+        lower.includes("7800x3d") ||
+        lower.includes("9800x3d") ||
+        lower.includes("7600") ||
+        lower.includes("7700") ||
+        lower.includes("7900") ||
+        lower.includes("7950") ||
+        lower.includes("5600") ||
+        lower.includes("5700") ||
+        lower.includes("5800") ||
+        /\bi[3579]-?\d{4,5}/i.test(lower)
+      ) hwType = "PROCESADORES";
       else if (lower.includes("fuente") || lower.includes("power supply") || lower.includes("psu") || lower.includes("80 plus") || lower.includes("toughpower") || lower.includes("rm850") || lower.includes("rm750")) hwType = "FUENTE_DE_PODER";
       else if (lower.includes("cooler") || lower.includes("refrigeraci") || lower.includes("disipador") || lower.includes("aio") || lower.includes("kraken") || lower.includes("liquid") || lower.includes("peerless")) hwType = "COOLER_CPU";
       else if (lower.includes("gabinete") || lower.includes("case") || lower.includes("chassis") || lower.includes("mid tower") || lower.includes("4000d") || lower.includes("o11") || lower.includes("h5 flow") || lower.includes("h9 flow")) hwType = "GABINETE";
@@ -993,10 +1024,15 @@ function generateWithSmartEngine(
             cache: cpuCache,
             socket: cpuSocket,
             core: cpuCoreArch,
+            coreName: cpuCoreArch,
             manufacturingProcess: cpuProcess,
             tdp: cpuTdp,
-            cooler: "No incluido (se recomienda refrigeración líquida o disipador doble torre)",
-            integratedGraphics: lower.includes("f") ? "No posee (requiere GPU dedicada)" : lower.includes("ryzen") ? "AMD Radeon Graphics (2 CUs, RDNA 2 a 2200 MHz)" : "Intel UHD Graphics 770",
+            cooler: "No incluido (se recomienda refrigeración líquida o disipador de alto rendimiento)",
+            integratedGraphics: (/\b\d{4,5}k?f\b/i.test(name) || name.includes("KF") || name.includes(" F ") || name.endsWith(" F"))
+              ? "No posee (requiere GPU dedicada)"
+              : lower.includes("ryzen")
+              ? "AMD Radeon Graphics (2 CUs, RDNA 2 a 2200 MHz)"
+              : "Intel UHD Graphics 770",
           } : undefined,
           motherboard: hwType === "PLACA_MADRE" ? {
             manufacturer: lower.includes("asus") ? "ASUS" : lower.includes("msi") ? "MSI" : lower.includes("gigabyte") ? "Gigabyte" : lower.includes("asrock") ? "ASRock" : "Fabricante Oficial",
@@ -1470,17 +1506,36 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             const parsed = JSON.parse(cleanText);
             if (selectedType) {
               parsed.type = selectedType;
-              if (selectedType === "OTHER") {
-                parsed.customCategoryLabel =
-                  customCategoryLabel || parsed.customCategoryLabel || "Accesorio Gaming";
+              if (customCategoryLabel) {
+                parsed.customCategoryLabel = customCategoryLabel;
+              } else if (!parsed.customCategoryLabel) {
+                if (selectedType === "HARDWARE") parsed.customCategoryLabel = "Hardware & Componentes";
+                else if (selectedType === "CONSOLE") parsed.customCategoryLabel = "Consolas";
+                else if (selectedType === "GAMING_ACCESSORY") parsed.customCategoryLabel = "Accesorio Gaming";
+                else if (selectedType === "APPAREL") parsed.customCategoryLabel = "Ropa & Estilo";
+                else if (selectedType === "BOOK") parsed.customCategoryLabel = "Manga / Artbook";
+                else if (selectedType === "MERCH") parsed.customCategoryLabel = "Merchandising";
+                else if (selectedType === "AUDIO") parsed.customCategoryLabel = "Audio / OST";
+                else if (selectedType === "OTHER") parsed.customCategoryLabel = "Accesorio Gaming";
               }
             }
 
-            // Always guarantee isolated, clean customSpecifications if OTHER or HARDWARE
-            if (parsed.type === "OTHER" || parsed.type === "HARDWARE" || (parsed.customCategoryLabel && parsed.customCategoryLabel.toLowerCase().includes("hardware"))) {
+            const isCustomOrSpecialized = [
+              "OTHER",
+              "HARDWARE",
+              "CONSOLE",
+              "GAMING_ACCESSORY",
+              "APPAREL",
+              "BOOK",
+              "MERCH",
+              "AUDIO",
+            ].includes(parsed.type) || Boolean(parsed.customCategoryLabel);
+
+            // Always guarantee isolated, clean customSpecifications if specialized category or OTHER
+            if (isCustomOrSpecialized) {
               const fallbackHeuristic: any = generateWithSmartEngine(productName, parsed.type, parsed.customCategoryLabel);
               const fallbackSpecs: any = fallbackHeuristic.customSpecifications || {};
-              const catType = fallbackSpecs.categoryType || getCategoryTypeFromLabel(parsed.customCategoryLabel);
+              const catType = fallbackSpecs.categoryType || getCategoryTypeFromLabel(parsed.customCategoryLabel || parsed.type);
 
               const cleanSpecs: any = {
                 categoryType: catType,
@@ -1566,7 +1621,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             if (parsed.type !== "FIGURE") delete parsed.figureSpecs;
             if (parsed.type !== "VIDEO_GAME") delete parsed.gameSpecs;
             if (parsed.type !== "COLLECTIBLE") delete parsed.collectibleSpecs;
-            if (parsed.type !== "OTHER") delete parsed.customSpecifications;
+            if (!isCustomOrSpecialized) delete parsed.customSpecifications;
 
             // Remove any image auto-generation so "4. Galería de Fotos & Portada" is NOT touched
             delete parsed.imageUrl;

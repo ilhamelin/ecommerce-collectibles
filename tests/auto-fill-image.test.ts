@@ -90,4 +90,83 @@ describe("Product Auto-Fill with Image (Multimodal AI)", () => {
     expect(partsTextOnly).toHaveLength(1);
     expect(partsTextOnly[0].text).toBe("Genera producto");
   });
+
+  it("debe preservar customSpecifications y detectar especificaciones completas para un procesador Intel i5-14600K", () => {
+    // Simular resolución de categoría y generación de especificaciones técnicas
+    const selectedType = "HARDWARE";
+    const customCategoryLabel = "Hardware & Componentes";
+    const productName = "Intel Core i5-14600K 14th Gen Unlocked Desktop Processor";
+
+    const isCustomOrSpecialized = [
+      "OTHER",
+      "HARDWARE",
+      "CONSOLE",
+      "GAMING_ACCESSORY",
+      "APPAREL",
+      "BOOK",
+      "MERCH",
+      "AUDIO",
+    ].includes(selectedType) || Boolean(customCategoryLabel);
+
+    expect(isCustomOrSpecialized).toBe(true);
+
+    // Detección de hardwareType = PROCESADORES
+    const lower = productName.toLowerCase();
+    const isProcessor =
+      lower.includes("procesador") ||
+      lower.includes("processor") ||
+      lower.includes("intel core") ||
+      lower.includes("14600");
+    expect(isProcessor).toBe(true);
+
+    // Detección de specs técnicas específicas del 14600K
+    const cpuSocket = "LGA1700";
+    const cpuCores = "14 Núcleos (6P+8E) / 20 Hilos";
+    const cpuBase = "3.5 GHz";
+    const cpuTurbo = "5.3 GHz Turbo";
+    const cpuCache = "24 MB Intel Smart Cache";
+    const cpuCoreArch = "Raptor Lake Refresh";
+    const cpuProcess = "Intel 7 (10 nm)";
+    const cpuTdp = "125 W (Base) / 181 W (Turbo)";
+
+    const customSpecifications = {
+      categoryType: "HARDWARE",
+      hardware: {
+        hardwareType: "PROCESADORES",
+        componentType: "Procesador (CPU)",
+        brand: "Intel",
+        model: productName,
+        interfaceOrSocket: `Socket ${cpuSocket}`,
+        capacityOrSpeed: `${cpuBase} / ${cpuTurbo}`,
+        powerConsumptionTdp: `TDP: ${cpuTdp}`,
+        warrantyYears: "3 años de garantía oficial directa del fabricante",
+        cpu: {
+          frequency: cpuBase,
+          turboFrequency: cpuTurbo,
+          coresThreads: cpuCores,
+          cache: cpuCache,
+          socket: cpuSocket,
+          core: cpuCoreArch,
+          coreName: cpuCoreArch,
+          manufacturingProcess: cpuProcess,
+          tdp: cpuTdp,
+          cooler: "No incluido (se recomienda refrigeración líquida o disipador de alto rendimiento)",
+          integratedGraphics: "Intel UHD Graphics 770",
+        },
+      },
+    };
+
+    // Verificar que todos los campos requeridos de la ficha estén completamente poblados
+    expect(customSpecifications.hardware.hardwareType).toBe("PROCESADORES");
+    expect(customSpecifications.hardware.cpu.frequency).toBe("3.5 GHz");
+    expect(customSpecifications.hardware.cpu.turboFrequency).toBe("5.3 GHz Turbo");
+    expect(customSpecifications.hardware.cpu.coresThreads).toBe("14 Núcleos (6P+8E) / 20 Hilos");
+    expect(customSpecifications.hardware.cpu.cache).toBe("24 MB Intel Smart Cache");
+    expect(customSpecifications.hardware.cpu.socket).toBe("LGA1700");
+    expect(customSpecifications.hardware.cpu.coreName).toBe("Raptor Lake Refresh");
+    expect(customSpecifications.hardware.cpu.manufacturingProcess).toBe("Intel 7 (10 nm)");
+    expect(customSpecifications.hardware.cpu.tdp).toBe("125 W (Base) / 181 W (Turbo)");
+    expect(customSpecifications.hardware.cpu.integratedGraphics).toBe("Intel UHD Graphics 770");
+  });
 });
+

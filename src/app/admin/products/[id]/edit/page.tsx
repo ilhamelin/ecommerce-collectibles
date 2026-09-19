@@ -232,8 +232,10 @@ export default function EditProductAdminPage() {
     // Preserve admin category selection
     if (chosenType) {
       setType(chosenType);
-      if (chosenType === "OTHER") {
-        setCustomCategoryLabel(chosenCustomCategory || d.customCategoryLabel || "Accesorio Gaming");
+      if (chosenCustomCategory) {
+        setCustomCategoryLabel(chosenCustomCategory);
+      } else if (d.customCategoryLabel) {
+        setCustomCategoryLabel(d.customCategoryLabel);
       }
     } else if (d.type) {
       setType(d.type);
@@ -246,6 +248,7 @@ export default function EditProductAdminPage() {
     if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
     if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
     if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
+    if (d.trailerUrl) setTrailerUrl(d.trailerUrl);
     
     if (d.ageRating) {
       const match = WORLDWIDE_AGE_RATINGS.find(
@@ -338,7 +341,7 @@ export default function EditProductAdminPage() {
         body: JSON.stringify({
           name,
           selectedType: chosenType,
-          customCategoryLabel: chosenType === "OTHER" ? chosenCustomCategory : undefined,
+          customCategoryLabel: chosenCustomCategory || (chosenType === "HARDWARE" ? "Hardware & Componentes" : chosenType === "CONSOLE" ? "Consolas" : undefined),
         }),
       });
 
@@ -386,7 +389,7 @@ export default function EditProductAdminPage() {
           body: JSON.stringify({
             name: name.trim() || undefined,
             selectedType: chosenType,
-            customCategoryLabel: chosenType === "OTHER" ? chosenCustomCategory : undefined,
+            customCategoryLabel: chosenCustomCategory || (chosenType === "HARDWARE" ? "Hardware & Componentes" : chosenType === "CONSOLE" ? "Consolas" : undefined),
             imageBase64: base64Data,
             imageMimeType: file.type || "image/jpeg",
             imageFileName: file.name,

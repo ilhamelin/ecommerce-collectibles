@@ -37,6 +37,9 @@ import {
   ShieldAlert,
   Info,
   HardDrive,
+  Shirt,
+  BookOpen,
+  RotateCcw,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { GoogleDriveImportModal } from "@/components/admin/GoogleDriveImportModal";
@@ -60,6 +63,21 @@ import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
 
+const ALL_PRODUCT_CATEGORIES = [
+  { id: "FIGURE", label: "Figura", icon: Clock, defaultLabel: "" },
+  { id: "VIDEO_GAME", label: "Videojuego", icon: Gamepad2, defaultLabel: "" },
+  { id: "COLLECTIBLE", label: "Coleccionable / TCG", icon: Trophy, defaultLabel: "" },
+  { id: "CONSOLE", label: "Consolas", icon: Tv, defaultLabel: "Consolas" },
+  { id: "HARDWARE", label: "Hardware / PC", icon: Cpu, defaultLabel: "Hardware & Componentes" },
+  { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Sliders, defaultLabel: "Accesorio Gaming" },
+  { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt, defaultLabel: "Ropa & Estilo" },
+  { id: "BOOK", label: "Manga / Artbook", icon: BookOpen, defaultLabel: "Manga / Artbook" },
+  { id: "MERCH", label: "Merchandising", icon: Sparkles, defaultLabel: "Merchandising" },
+  { id: "AUDIO", label: "Audio / OST", icon: Disc, defaultLabel: "Audio / OST" },
+  { id: "BUNDLE", label: "Bundle Lote", icon: Layers, defaultLabel: "" },
+  { id: "OTHER", label: "+ Personalizada", icon: Tag, defaultLabel: "" },
+] as const;
+
 const CUSTOM_CATEGORY_PRESETS = [
   "Consolas",
   "Hardware & Componentes",
@@ -79,6 +97,7 @@ export default function NewProductAdminPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ProductType>("FIGURE");
+  const [hasUserManuallySelectedType, setHasUserManuallySelectedType] = useState(false);
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
 
@@ -302,6 +321,121 @@ export default function NewProductAdminPage() {
   const [aiEngineUsed, setAiEngineUsed] = useState<string | null>(null);
   const [aiEngineErrorDetail, setAiEngineErrorDetail] = useState<string | null>(null);
 
+  const handleResetForm = () => {
+    if (name || sku || description || images.length > 0) {
+      const confirmReset = window.confirm(
+        "¿Estás seguro de que deseas limpiar todos los campos del formulario? Se restablecerán todos los datos ingresados."
+      );
+      if (!confirmReset) return;
+    }
+
+    setSku("");
+    setName("");
+    setDescription("");
+    setType("FIGURE");
+    setHasUserManuallySelectedType(false);
+    setCustomCategoryLabel("");
+    setCustomSpecifications({});
+    setPrice(0);
+    setOriginalPrice(undefined);
+    setCostPrice(0);
+    setStockAvailable(10);
+    setIsPreOrder(true);
+    setPreOrderState("PREORDER_OPEN");
+    setTrailerUrl("");
+    setAgeRating("TE");
+    setCustomAgeRating("");
+    setGenresInput("Acción, Aventuras");
+    setImages([]);
+    setImageUrlInput("");
+    setContentGallery([]);
+    setContentGalleryInput("");
+    setSelectedBundleItems([]);
+
+    // Reset Video Game Specs
+    setGameType("CONSOLE");
+    setGamePlatform("PS5");
+    setGameEdition("STANDARD");
+    setGameIsDigital(false);
+    setGameTitle("");
+    setGameDeveloper("");
+    setGamePublisher("");
+    setGameReleaseYear("");
+    setGameGenre("");
+    setGameModes("Un jugador");
+    setGameEngine("");
+    setGameSupportedPlatforms("PlayStation 5, Xbox Series X|S");
+    setGameAudioLanguages("Español Latino, Inglés, Japonés");
+    setGameSubtitleLanguages("Español Latino, Inglés");
+    setGameAgeRating("ESRB Teen (13+)");
+    setGameFileSize("65 GB");
+    setGameDisplayModes("Modo Rendimiento 60fps / Modo Calidad 4K 30fps Ray Tracing");
+    setGameXboxSeriesSOptimization("1080p 60fps optimizado con resolución dinámica");
+    setGameHardwareFeatures("Gatillos adaptativos y retroalimentación háptica DualSense, Audio 3D Tempest, Cargas ultrarrápidas con SSD M.2");
+    setGamePcOs("Windows 11 / Windows 10 (64-bit)");
+    setGamePcProcessor("Intel Core i7-12700K / AMD Ryzen 7 7800X3D");
+    setGamePcRam("16 GB RAM (32 GB recomendado)");
+    setGamePcGpu("NVIDIA GeForce RTX 4070 12GB / AMD Radeon RX 7800 XT 16GB");
+    setGamePcStorage("85 GB de espacio disponible en SSD NVMe");
+
+    // Reset Figure Specs
+    setFigureProductName("");
+    setFigureFranchise("");
+    setFigureScale("SCALE_1_7");
+    setFigureManufacturer("GOOD_SMILE_COMPANY");
+    setFigureProductLine("");
+    setFigureSculptor("");
+    setFigureArrivalDate("");
+    setFigureReleaseDate("");
+    setFigureLicenseStatus("Licencia Oficial Japonesa (Sello Holográfico de Autenticidad)");
+    setFigureHeight("");
+    setFigureWidth("");
+    setFigureWeight("");
+    setFigureDimensions("");
+    setFigureBase("Base temática personalizada con soporte acrílico incluida");
+    setFigureMaterial("PVC & ABS de alta densidad pintado a mano");
+    setFigureMaterials("PVC, ABS y acrílico de grado coleccionista");
+    setFigurePaintTechnique("Pintado artesanal a mano con gradientes aerográficos");
+    setFigureArticulation("Estatua Fija (Sin articulación, pose dinámica)");
+    setFigureInterchangeableParts("");
+    setFigureAccessories("");
+    setFigureCertificate("Sello oficial de autenticidad en caja");
+    setFigureAgeRecommendation("15+ años (Coleccionismo adulto)");
+    setFigureBoxDimensions("");
+    setFigureBoxCondition("Caja sellada impecable de fábrica (Mint in Box)");
+    setFigureShippingWeight("");
+    setFigureDepositPercent(0.2);
+
+    // Reset TCG / Collectible Specs
+    setTcgProductName("");
+    setTcgFranchise("");
+    setTcgGameSystem("Pokémon TCG");
+    setTcgLanguage("Japonés");
+    setTcgSetExpansion("");
+    setTcgReleaseYear("");
+    setTcgCardNumber("");
+    setTcgRarity("");
+    setTcgFinishVariant("");
+    setTcgGradingCondition("GEM_MINT_10");
+    setTcgWearDetails("");
+    setTcgCertification("PSA");
+    setTcgSerial("");
+    setTcgProductType("Carta Individual Graduada (Slab Acrílico)");
+    setTcgItemQuantity("1 Carta en Slab Certificado");
+    setTcgIncludesProtection("Sí - Slab Acrílico Hermético con Filtro UV 99% & Funda Protectora Sleeve");
+
+    // Reset UI states
+    setErrorMsg(null);
+    setFieldErrors({});
+    setAiEngineUsed(null);
+    setAiEngineErrorDetail(null);
+    setSkuValidation({ isChecking: false, isAvailable: null, message: null });
+    if (imageInputRef.current) imageInputRef.current.value = "";
+
+    setAutoFillSuccessMsg("Todos los campos han sido limpiados y restablecidos a sus valores iniciales.");
+    setTimeout(() => setAutoFillSuccessMsg(null), 4000);
+  };
+
   const mapToCanonicalCollectibleCondition = (val?: string): CollectibleCondition => {
     if (!val) return "GEM_MINT_10";
     const upper = String(val).toUpperCase().replace(/[\s-]+/g, "_");
@@ -328,41 +462,40 @@ export default function NewProductAdminPage() {
     chosenCustomCategory?: string,
     imageUploadedUrl?: string
   ) => {
-    // If identified from image and product name was returned, fill name
-    if (fromImage && d.name && (!name.trim() || name === "Producto Coleccionable")) {
+    // 1. Nombre comercial identificado
+    if (fromImage && d.name) {
       setName(d.name);
-    } else if (fromImage && d.name && !name.trim()) {
+    } else if (d.name && (!name.trim() || name === "Producto Coleccionable")) {
       setName(d.name);
     }
 
-    // Set cover image if not set yet
+    // 2. Imagen de carátula
     if (fromImage && imageUploadedUrl) {
-      setImages((prev) => (prev.length === 0 ? [imageUploadedUrl] : prev));
+      setImages((prev) => [imageUploadedUrl, ...prev.filter((img) => img !== imageUploadedUrl)]);
     }
 
-    // Update SKU with the category-accurate SKU
+    // 3. SKU
     if (d.sku) {
       setSku(d.sku);
       setSkuValidation({
         isChecking: false,
         isAvailable: true,
-        message: `SKU (${d.sku}) asignado para la categoría seleccionada.`,
+        message: `SKU (${d.sku}) asignado automáticamente para la categoría.`,
       });
     }
 
-    // Strictly preserve the admin's chosen category and custom label
-    if (chosenType) {
-      setType(chosenType);
-      if (chosenCustomCategory) {
-        setCustomCategoryLabel(chosenCustomCategory);
-      } else if (d.customCategoryLabel) {
-        setCustomCategoryLabel(d.customCategoryLabel);
-      }
-    } else if (d.type) {
-      setType(d.type);
-      if (d.customCategoryLabel) setCustomCategoryLabel(d.customCategoryLabel);
+    // 4. Tipo de Producto y Categoría
+    // Si viene de imagen o el usuario no seleccionó un tipo manualmente, adoptamos el clasificado por la IA
+    const resolvedType = (hasUserManuallySelectedType && !fromImage ? chosenType : d.type) || d.type || chosenType || "FIGURE";
+    setType(resolvedType as ProductType);
+
+    if (d.customCategoryLabel) {
+      setCustomCategoryLabel(d.customCategoryLabel);
+    } else if (chosenCustomCategory) {
+      setCustomCategoryLabel(chosenCustomCategory);
     }
 
+    // 5. Datos Generales & Comerciales
     if (d.description) setDescription(d.description);
     if (typeof d.price === "number") setPrice(d.price);
     if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
@@ -373,9 +506,8 @@ export default function NewProductAdminPage() {
     if (d.ageRating) setAgeRating(d.ageRating);
     if (d.genres) setGenresInput(d.genres);
 
-    // Category-specific specs
-    const targetCategoryType = chosenType || d.type;
-    if (targetCategoryType === "FIGURE" && d.figureSpecs) {
+    // 6. Especificaciones de la categoría
+    if (d.figureSpecs) {
       if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
       if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);
       if (d.figureSpecs.material) setFigureMaterial(d.figureSpecs.material);
@@ -385,34 +517,36 @@ export default function NewProductAdminPage() {
       if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
       if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
 
-      // 1. Información General del Producto
+      // Información General de Figura
       if (d.figureSpecs.productName) setFigureProductName(d.figureSpecs.productName);
       if (d.figureSpecs.franchise) setFigureFranchise(d.figureSpecs.franchise);
       if (d.figureSpecs.productLine) setFigureProductLine(d.figureSpecs.productLine);
       if (d.figureSpecs.releaseDate) setFigureReleaseDate(d.figureSpecs.releaseDate);
       if (d.figureSpecs.licenseStatus) setFigureLicenseStatus(d.figureSpecs.licenseStatus);
 
-      // 2. Especificaciones Físicas y Dimensiones
+      // Físicas y Dimensiones
       if (d.figureSpecs.height) setFigureHeight(d.figureSpecs.height);
       if (d.figureSpecs.width) setFigureWidth(d.figureSpecs.width);
       if (d.figureSpecs.weight) setFigureWeight(d.figureSpecs.weight);
       if (d.figureSpecs.base) setFigureBase(d.figureSpecs.base);
 
-      // 3. Materiales y Fabricación
+      // Materiales y Fabricación
       if (d.figureSpecs.materials) setFigureMaterials(d.figureSpecs.materials);
       if (d.figureSpecs.paintTechnique) setFigurePaintTechnique(d.figureSpecs.paintTechnique);
       if (d.figureSpecs.articulation) setFigureArticulation(d.figureSpecs.articulation);
 
-      // 4. Contenido de la Caja y Accesorio
+      // Contenido y Accesorios
       if (d.figureSpecs.interchangeableParts) setFigureInterchangeableParts(d.figureSpecs.interchangeableParts);
       if (d.figureSpecs.accessories) setFigureAccessories(d.figureSpecs.accessories);
       if (d.figureSpecs.certificate) setFigureCertificate(d.figureSpecs.certificate);
 
-      // 5. Seguridad y Logística
+      // Seguridad y Logística
       if (d.figureSpecs.ageRecommendation) setFigureAgeRecommendation(d.figureSpecs.ageRecommendation);
       if (d.figureSpecs.boxDimensions) setFigureBoxDimensions(d.figureSpecs.boxDimensions);
       if (d.figureSpecs.shippingWeight) setFigureShippingWeight(d.figureSpecs.shippingWeight);
-    } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
+    }
+
+    if (d.gameSpecs) {
       if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
       if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
       if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
@@ -436,37 +570,40 @@ export default function NewProductAdminPage() {
       if (d.gameSpecs.pcRam) setGamePcRam(d.gameSpecs.pcRam);
       if (d.gameSpecs.pcGpu) setGamePcGpu(d.gameSpecs.pcGpu);
       if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
-    } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
+    }
+
+    if (d.collectibleSpecs) {
       if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
       if (d.collectibleSpecs.condition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.condition));
       if (d.collectibleSpecs.authBody) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.authBody));
       if (d.collectibleSpecs.language) setTcgLanguage(d.collectibleSpecs.language);
       if (d.collectibleSpecs.serial) setTcgSerial(d.collectibleSpecs.serial);
 
-      // 1. Información General del Producto
+      // Información General TCG
       if (d.collectibleSpecs.productName) setTcgProductName(d.collectibleSpecs.productName);
       if (d.collectibleSpecs.franchise) setTcgFranchise(d.collectibleSpecs.franchise);
       if (d.collectibleSpecs.gameSystem) setTcgGameSystem(d.collectibleSpecs.gameSystem);
 
-      // 2. Detalles de Edición y Rareza
+      // Edición y Rareza
       if (d.collectibleSpecs.setExpansion) setTcgSetExpansion(d.collectibleSpecs.setExpansion);
       if (d.collectibleSpecs.releaseYear) setTcgReleaseYear(d.collectibleSpecs.releaseYear);
       if (d.collectibleSpecs.cardNumber) setTcgCardNumber(d.collectibleSpecs.cardNumber);
       if (d.collectibleSpecs.rarity) setTcgRarity(d.collectibleSpecs.rarity);
       if (d.collectibleSpecs.finishVariant) setTcgFinishVariant(d.collectibleSpecs.finishVariant);
 
-      // 3. Estado de Conservación (Condición)
+      // Condición y Autenticación
       if (d.collectibleSpecs.gradingCondition) setTcgGradingCondition(mapToCanonicalCollectibleCondition(d.collectibleSpecs.gradingCondition));
       if (d.collectibleSpecs.wearDetails) setTcgWearDetails(d.collectibleSpecs.wearDetails);
       if (d.collectibleSpecs.certification) setTcgCertification(mapToCanonicalAuthenticator(d.collectibleSpecs.certification));
 
-      // 4. Presentación y Empaque
+      // Empaque y Protección
       if (d.collectibleSpecs.productType) setTcgProductType(d.collectibleSpecs.productType);
       if (d.collectibleSpecs.itemQuantity) setTcgItemQuantity(d.collectibleSpecs.itemQuantity);
       if (d.collectibleSpecs.includesProtection) setTcgIncludesProtection(d.collectibleSpecs.includesProtection);
     }
+
     if (d.customSpecifications) {
-      // Section 6: Ficha de Especificaciones Técnicas Especializadas
+      // Ficha de Especificaciones Especializadas (Hardware, Consolas, Accesorios, etc.)
       setCustomSpecifications(d.customSpecifications);
     }
 
@@ -490,8 +627,8 @@ export default function NewProductAdminPage() {
     setErrorMsg(null);
     setAutoFillSuccessMsg(null);
 
-    const chosenType = type;
-    const chosenCustomCategory = customCategoryLabel;
+    const chosenType = hasUserManuallySelectedType ? type : undefined;
+    const chosenCustomCategory = hasUserManuallySelectedType ? customCategoryLabel : undefined;
 
     try {
       const res = await fetch("/api/admin/auto-fill-product", {
@@ -500,7 +637,7 @@ export default function NewProductAdminPage() {
         body: JSON.stringify({
           name,
           selectedType: chosenType,
-          customCategoryLabel: chosenCustomCategory || (chosenType === "HARDWARE" ? "Hardware & Componentes" : chosenType === "CONSOLE" ? "Consolas" : undefined),
+          customCategoryLabel: chosenCustomCategory,
         }),
       });
 
@@ -539,8 +676,8 @@ export default function NewProductAdminPage() {
       try {
         const base64Data = reader.result as string;
 
-        const chosenType = type;
-        const chosenCustomCategory = customCategoryLabel;
+        const chosenType = hasUserManuallySelectedType ? type : undefined;
+        const chosenCustomCategory = hasUserManuallySelectedType ? customCategoryLabel : undefined;
 
         const res = await fetch("/api/admin/auto-fill-product", {
           method: "POST",
@@ -548,7 +685,7 @@ export default function NewProductAdminPage() {
           body: JSON.stringify({
             name: name.trim() || undefined,
             selectedType: chosenType,
-            customCategoryLabel: chosenCustomCategory || (chosenType === "HARDWARE" ? "Hardware & Componentes" : chosenType === "CONSOLE" ? "Consolas" : undefined),
+            customCategoryLabel: chosenCustomCategory,
             imageBase64: base64Data,
             imageMimeType: file.type || "image/jpeg",
             imageFileName: file.name,
@@ -1146,7 +1283,16 @@ export default function NewProductAdminPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={handleResetForm}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-xs font-bold transition shadow-sm active:scale-95 cursor-pointer"
+            title="Limpiar todos los campos del formulario y restablecer a valores iniciales"
+          >
+            <RotateCcw className="w-4 h-4 text-rose-600" />
+            <span>Limpiar Formulario</span>
+          </button>
           <Link
             href="/admin/products"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-[#F7F7F5] text-[#1A1A1A] text-xs font-semibold border border-[#E5E5E5] transition shadow-sm"
@@ -1234,23 +1380,21 @@ export default function NewProductAdminPage() {
             </div>
           )}
 
-          {/* Section 1: Type Selector */}
+          {/* Section 1: Type Selector - All Categories Directly Visible */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
-            <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-              1. Tipo de Producto Especializado
-            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
+                1. Tipo de Producto Especializado
+              </h2>
+              <span className="text-xs text-[#9bb5c2]">
+                Todas las categorías visibles • Haz clic para activar su ficha técnica
+              </span>
+            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-              {[
-                { id: "FIGURE", label: "Figura", icon: Clock },
-                { id: "VIDEO_GAME", label: "Videojuego", icon: Gamepad2 },
-                { id: "COLLECTIBLE", label: "Coleccionable / TCG", icon: Trophy },
-                { id: "HARDWARE", label: "Hardware / PC", icon: Cpu },
-                { id: "CONSOLE", label: "Consola", icon: Tv },
-                { id: "BUNDLE", label: "Bundle Lote", icon: Layers },
-                { id: "OTHER", label: "+ Otra Categoría", icon: Tag },
-              ].map((item) => {
+            {/* Grid de 12 categorías a la vista directa sin menús secundarios */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+              {ALL_PRODUCT_CATEGORIES.map((item) => {
                 const Icon = item.icon;
                 const isSelected = type === item.id;
                 return (
@@ -1260,18 +1404,20 @@ export default function NewProductAdminPage() {
                     onClick={() => {
                       const newType = item.id as ProductType;
                       setType(newType);
+                      setHasUserManuallySelectedType(true);
+
+                      if (item.defaultLabel) {
+                        setCustomCategoryLabel(item.defaultLabel);
+                      } else if (newType !== "OTHER") {
+                        setCustomCategoryLabel("");
+                      }
+
                       if (newType === "FIGURE") setIsPreOrder(true);
                       else setIsPreOrder(false);
-
-                      if (newType === "HARDWARE") {
-                        if (!customCategoryLabel) setCustomCategoryLabel("Hardware & Componentes");
-                      } else if (newType === "CONSOLE") {
-                        if (!customCategoryLabel) setCustomCategoryLabel("Consolas");
-                      }
                     }}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center ${
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center cursor-pointer ${
                       isSelected
-                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md shadow-[#004E72]/40 ring-1 ring-[#FF6E42]"
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md shadow-[#004E72]/40 ring-2 ring-[#FF6E42]"
                         : "bg-[#092634]/60 border-[#004E72]/30 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9]"
                     }`}
                   >
@@ -1282,50 +1428,19 @@ export default function NewProductAdminPage() {
               })}
             </div>
 
-            {/* Custom Category Subpanel (when specialized category or OTHER is active) */}
-            {isCustomOrSpecializedCategory && (
-              <div className="p-4 rounded-xl bg-[#004E72]/20 border border-[#FF6E42]/50 space-y-3 animate-in fade-in-50 duration-200">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-[#FF6E42]" />
-                    Nombre de la Categoría Personalizada *
-                  </label>
-                  <span className="text-[10px] text-[#9bb5c2]">Selecciona una plantilla o escribe una nueva</span>
-                </div>
-
-                {/* Preset Chips */}
-                <div className="flex flex-wrap gap-1.5">
-                  {CUSTOM_CATEGORY_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => {
-                        setCustomCategoryLabel(preset);
-                        if (preset === "Hardware & Componentes") setType("HARDWARE" as ProductType);
-                        else if (preset === "Consolas") setType("CONSOLE" as ProductType);
-                        else if (preset === "Accesorio Gaming") setType("GAMING_ACCESSORY" as ProductType);
-                        else if (preset === "Ropa & Estilo") setType("APPAREL" as ProductType);
-                        else if (preset === "Manga / Artbook") setType("BOOK" as ProductType);
-                        else if (preset === "Merchandising") setType("MERCH" as ProductType);
-                        else if (preset === "Audio / OST") setType("AUDIO" as ProductType);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
-                        customCategoryLabel === preset
-                          ? "bg-[#FF6E42] text-[#092634] border-[#FF6E42]"
-                          : "bg-[#092634] text-[#9bb5c2] border-[#004E72]/60 hover:text-[#F9F9F9] hover:border-[#FF6E42]/50"
-                      }`}
-                    >
-                      {preset}
-                    </button>
-                  ))}
-                </div>
-
+            {/* Si selecciona categoría "+ Personalizada", input directo sin desplegar submenús */}
+            {type === "OTHER" && (
+              <div className="p-3.5 rounded-xl bg-[#004E72]/20 border border-[#FF6E42]/40 space-y-2 animate-in fade-in-50 duration-200">
+                <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-[#FF6E42]" />
+                  Nombre de la Categoría Personalizada *
+                </label>
                 <input
                   type="text"
-                  required={isCustomOrSpecializedCategory}
+                  required
                   value={customCategoryLabel}
                   onChange={(e) => setCustomCategoryLabel(e.target.value)}
-                  placeholder="Ej: Hardware & Componentes, Consolas, Ropa Gamer..."
+                  placeholder="Ej: Figuras Custom, Juegos de Mesa, Tazas Coleccionables..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#092634] border border-[#004E72]/80 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
                 />
               </div>
@@ -1340,8 +1455,8 @@ export default function NewProductAdminPage() {
                 2. Información General
               </h2>
 
-              {/* Contenedor de Botones de IA: Identificación por Imagen y por Nombre */}
-              <div className="flex items-center gap-2.5 flex-wrap">
+              {/* Contenedor de Botones de IA y Limpiar Formulario */}
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Input oculto para subir la imagen del producto */}
                 <input
                   type="file"
@@ -1352,7 +1467,7 @@ export default function NewProductAdminPage() {
                   aria-label="Seleccionar imagen de producto para autocompletar con IA"
                 />
 
-                {/* Botón 1: Auto-completar con Imagen (Nuevo) */}
+                {/* Botón 1: Auto-completar con Imagen */}
                 <button
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
@@ -1373,7 +1488,7 @@ export default function NewProductAdminPage() {
                   )}
                 </button>
 
-                {/* Botón 2: Auto-completar con IA por Nombre (Actual) */}
+                {/* Botón 2: Auto-completar con IA por Nombre */}
                 <button
                   type="button"
                   onClick={handleAutoFillWithAI}
@@ -1392,6 +1507,17 @@ export default function NewProductAdminPage() {
                       <span>Auto-completar con IA</span>
                     </>
                   )}
+                </button>
+
+                {/* Botón 3: Limpiar Campos */}
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold transition active:scale-95 cursor-pointer"
+                  title="Limpiar y restablecer todos los campos del formulario"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Limpiar</span>
                 </button>
               </div>
             </div>
@@ -3251,11 +3377,20 @@ export default function NewProductAdminPage() {
           )}
 
           {/* Submit Action Bar */}
-          <div className="pt-2">
+          <div className="pt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleResetForm}
+              className="py-3.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+              title="Limpiar todos los campos del formulario"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-400" />
+              <span>Limpiar Campos</span>
+            </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-6 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] font-bold text-sm tracking-wide transition shadow-lg shadow-[#FF6E42]/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 py-3.5 px-6 rounded-xl bg-[#FF6E42] hover:bg-[#ff5421] text-[#F9F9F9] font-bold text-sm tracking-wide transition shadow-lg shadow-[#FF6E42]/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmitting ? (
                 <>

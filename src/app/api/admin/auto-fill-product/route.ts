@@ -205,13 +205,13 @@ function generateWithSmartEngine(
       lower.includes("arcade stick") ||
       lower.includes("volante")
     ) {
-      type = "OTHER";
+      type = "GAMING_ACCESSORY";
       customCategoryLabel = "Accesorio Gaming";
     } else if (lower.includes("consola") || lower.includes("playstation 5 slim") || lower.includes("switch oled") || lower.includes("xbox series x") || lower.includes("steam deck")) {
-      type = "OTHER";
-      customCategoryLabel = "Consola";
+      type = "CONSOLE";
+      customCategoryLabel = "Consolas";
     } else if (lower.includes("hardware") || lower.includes("componente") || lower.includes("ssd") || lower.includes("nvme") || lower.includes("ram") || lower.includes("gpu") || lower.includes("tarjeta gr") || lower.includes("procesador") || lower.includes("geforce") || lower.includes("ryzen") || lower.includes("rtx")) {
-      type = "OTHER";
+      type = "HARDWARE";
       customCategoryLabel = "Hardware & Componentes";
     } else if (
       lower.includes("psa") ||
@@ -1296,7 +1296,20 @@ El administrador ha seleccionado explícitamente la categoría: "${selectedType}
 DEBES OBLIGATORIAMENTE respetar esta categoría ("type": "${selectedType}", "customCategoryLabel": "${customCategoryLabel || ""}").
 NO cambies la categoría a VIDEO_GAME si es un accesorio como un control, volante o headset; si es "Accesorio Gaming" o "OTHER", genera el SKU con prefijo ACC- y redacta una descripción técnica/comercial enfocada en ergonomía, botones, latencia y compatibilidad.
 Si es Hardware ("HARDWARE" o "Hardware & Componentes"), genera el SKU con prefijo HW- y DEBES llenar OBLIGATORIAMENTE tanto las Especificaciones Básicas como las Avanzadas del componente correspondiente.`
-          : `Clasifica inteligentemente el producto entre "FIGURE", "VIDEO_GAME", "COLLECTIBLE" u "OTHER".`;
+          : `REGLA DE CLASIFICACIÓN INTELIGENTE (MULTICATEGORÍA):
+Examina minuciosamente el producto (nombre e imagen adjunta) y clasifícalo en UNA de las siguientes categorías en el campo "type":
+- "FIGURE": Si es una figura a escala, estatua, Nendoroid, Pop Up Parade, figura de anime o personaje.
+- "VIDEO_GAME": Si es un videojuego de consola o PC (físico o digital).
+- "COLLECTIBLE": Si es una carta TCG (Pokémon, Magic, One Piece, Yu-Gi-Oh), slab graduado PSA/BGS/CGC o artículo de colección seriada.
+- "CONSOLE": Si es una consola de videojuegos (PlayStation 5, Nintendo Switch, Xbox Series X|S, portátil, retro).
+- "HARDWARE": Si es un componente de PC (Tarjeta de video GPU, Procesador CPU, Placa madre, Memoria RAM, Disco SSD/HDD, Fuente de poder, Gabinete, Cooler, Ventiladores).
+- "GAMING_ACCESSORY": Si es un accesorio como control/mando, headset/audífonos gamer, mouse gamer o teclado mecánico.
+- "APPAREL": Si es ropa, polerón, polera, chaqueta o indumentaria gamer.
+- "BOOK": Si es manga, libro de arte, artbook, novela ligera o cómic.
+- "MERCH": Si es peluche, llavero, decoración o taza coleccionable.
+- "AUDIO": Si es banda sonora OST, vinilo, CD de anime/videojuegos o dispositivo de audio.
+- "OTHER": Si es otra categoría diferente.
+DEBES RELLENAR OBLIGATORIAMENTE la sección de especificaciones técnicas correspondiente al tipo seleccionado ("figureSpecs" si es FIGURE, "gameSpecs" si es VIDEO_GAME, "collectibleSpecs" si es COLLECTIBLE, o "customSpecifications" si es CONSOLE, HARDWARE, GAMING_ACCESSORY, APPAREL, BOOK, MERCH, AUDIO u OTHER).`;
 
         const hardwareInstructions = `
 REGLA CRÍTICA PARA HARDWARE & COMPONENTES:
@@ -1312,10 +1325,10 @@ Si el producto es un componente de hardware de PC (o si la categoría es HARDWAR
         const imageAnalysisInstructions = cleanBase64
           ? `INSTRUCCIÓN CRÍTICA DE VISIÓN ARTIFICIAL:
 Se ha adjuntado una fotografía/imagen del producto.
-1. Examina minuciosamente la imagen: analiza la figura, caja, carátula del videojuego, carta coleccionable TCG, empaque, marcas, sellos, textos impresos, escala, logotipos y componentes visibles.
+1. Examina minuciosamente la imagen: analiza la figura, empaque/caja, carátula del videojuego, carta coleccionable TCG, consola, hardware, accesorios, marcas, sellos, textos impresos, logotipos y componentes visibles.
 2. IDENTIFICA Y ESCRIBE EL NOMBRE COMERCIAL EXACTO Y COMPLETO EN EL CAMPO "name" (por ejemplo: "Makima 1/7 Scale Figure Chainsaw Man Shibuya Scramble" o "Final Fantasy VII Rebirth Deluxe Edition PS5" o "Tarjeta de Video ASUS ROG Strix GeForce RTX 4070 Ti SUPER 16GB").
 ${rawProductName ? `(Nota: el usuario ingresó como nombre de referencia: "${rawProductName}", puedes refinarlo con los detalles exactos observados en la imagen).` : ""}
-3. Determina con alta exactitud la categoría correspondiente según la imagen y rellena todas las especificaciones pertinentes.`
+3. Determina con alta exactitud la categoría correspondiente según la imagen y rellena todas las especificaciones técnicas pertinentes.`
           : `Genera la ficha técnica completa en formato JSON para el siguiente producto: "${productName}".`;
 
         const prompt = `Eres un experto catalogador de productos de colección y e-commerce de videojuegos, figuras de anime y componentes de hardware en Chile llamado OmniCollector.
@@ -1326,9 +1339,9 @@ ${hardwareInstructions}
 
 Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código tipo \`\`\`json) con esta estructura exacta:
 {
-  "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o HW-RTX5070-01",
+  "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o HW-RTX5070-01 o CON-PS5SLIM-01",
   "name": "Nombre comercial oficial completo identificado",
-  "type": "${selectedType || "FIGURE"}",
+  "type": ${selectedType ? `"${selectedType}"` : '"FIGURE" | "VIDEO_GAME" | "COLLECTIBLE" | "CONSOLE" | "HARDWARE" | "GAMING_ACCESSORY" | "APPAREL" | "BOOK" | "MERCH" | "AUDIO" | "OTHER"'},
   "customCategoryLabel": "${customCategoryLabel || ""}",
   "description": "Descripción comercial y técnica detallada en español para coleccionistas en Chile (2 párrafos)",
   "price": precio_en_pesos_chilenos_CLP_entero,

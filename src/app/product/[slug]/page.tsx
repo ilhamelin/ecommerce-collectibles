@@ -39,6 +39,42 @@ import { generateDigitalPassport } from "@/lib/utils/passport";
 import { generateTcgMarketPriceGuide } from "@/lib/utils/priceTracker";
 import type { ProductDomainEntity } from "@/lib/types/domain";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { ProductContentGallery } from "@/components/product/ProductContentGallery";
+
+function formatFigureScale(scale?: string): string {
+  if (!scale) return "";
+  const map: Record<string, string> = {
+    SCALE_1_7: "Escala 1/7 (Estándar Coleccionista)",
+    SCALE_1_4: "Escala 1/4 (Gran Formato Premium)",
+    SCALE_1_6: "Escala 1/6",
+    SCALE_1_8: "Escala 1/8",
+    SCALE_1_12: "Escala 1/12",
+    NON_SCALE: "Sin Escala (Non-Scale / Prize)",
+    NENDOROID: "Nendoroid (Chibi Articulado)",
+    POP_UP_PARADE: "Pop Up Parade",
+    ACTION_FIGURE: "Figura de Acción Articulada",
+  };
+  return map[scale] || scale.replace(/_/g, " ");
+}
+
+function formatFigureManufacturer(mfg?: string): string {
+  if (!mfg) return "";
+  const map: Record<string, string> = {
+    GOOD_SMILE_COMPANY: "Good Smile Company",
+    BANDAI_SPIRITS: "Bandai Spirits / Tamashii Nations",
+    BANPRESTO: "Banpresto",
+    KOTOBUKIYA: "Kotobukiya",
+    ALTER: "Alter",
+    MEGAHOUSE: "Megahouse",
+    MAX_FACTORY: "Max Factory",
+    FREEING: "FREEing",
+    ANIPLEX: "Aniplex",
+    SEGA: "Sega",
+    TAITO: "Taito",
+    FURYU: "FuRyu",
+  };
+  return map[mfg] || mfg.replace(/_/g, " ");
+}
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -303,18 +339,89 @@ export default function ProductDetailPage() {
       ? [{ label: "Almacenamiento PC", value: product.gameMetadata.pcStorage }]
       : []),
 
-    // Figuras de Colección
-    ...(isFigure && product.figureMetadata?.material
-      ? [{ label: "Materiales", value: product.figureMetadata.material }]
+    // Figuras de Colección (1. Información General)
+    ...(isFigure && (product.figureMetadata?.productName || product.name)
+      ? [{ label: "Nombre Oficial", value: product.figureMetadata?.productName || product.name }]
       : []),
-    ...(isFigure && product.figureMetadata?.dimensions
-      ? [{ label: "Dimensiones", value: product.figureMetadata.dimensions }]
+    ...(isFigure && product.figureMetadata?.franchise
+      ? [{ label: "Franquicia / Anime / Manga", value: product.figureMetadata.franchise }]
+      : []),
+    ...(isFigure && product.figureMetadata?.scale
+      ? [{ label: "Escala de la Figura", value: formatFigureScale(product.figureMetadata.scale) }]
+      : []),
+    ...(isFigure && product.figureMetadata?.manufacturer
+      ? [{ label: "Fabricante Oficial", value: formatFigureManufacturer(product.figureMetadata.manufacturer) }]
+      : []),
+    ...(isFigure && product.figureMetadata?.productLine
+      ? [{ label: "Línea de Producto", value: product.figureMetadata.productLine }]
       : []),
     ...(isFigure && product.figureMetadata?.sculptor
-      ? [{ label: "Escultor / Diseñador", value: product.figureMetadata.sculptor }]
+      ? [{ label: "Escultor / Diseñador Original", value: product.figureMetadata.sculptor }]
+      : []),
+    ...(isFigure && product.figureMetadata?.releaseDate
+      ? [{ label: "Fecha Lanzamiento Japón", value: product.figureMetadata.releaseDate }]
+      : []),
+    ...(isFigure && product.figureMetadata?.estimatedArrivalDate
+      ? [{ label: "Fecha Estimada de Llegada", value: product.figureMetadata.estimatedArrivalDate }]
+      : []),
+    ...(isFigure && product.figureMetadata?.licenseStatus
+      ? [{ label: "Estado de Licencia", value: product.figureMetadata.licenseStatus }]
+      : []),
+
+    // Figuras de Colección (2. Especificaciones Físicas y Dimensiones)
+    ...(isFigure && product.figureMetadata?.height
+      ? [{ label: "Altura", value: product.figureMetadata.height }]
+      : []),
+    ...(isFigure && product.figureMetadata?.width
+      ? [{ label: "Ancho / Profundidad", value: product.figureMetadata.width }]
+      : []),
+    ...(isFigure && product.figureMetadata?.weight
+      ? [{ label: "Peso Neto de la Figura", value: product.figureMetadata.weight }]
+      : []),
+    ...(isFigure && product.figureMetadata?.dimensions
+      ? [{ label: "Dimensiones Totales", value: product.figureMetadata.dimensions }]
+      : []),
+    ...(isFigure && product.figureMetadata?.base
+      ? [{ label: "Base y Soporte", value: product.figureMetadata.base }]
+      : []),
+
+    // Figuras de Colección (3. Materiales y Fabricación)
+    ...(isFigure && (product.figureMetadata?.materials || product.figureMetadata?.material)
+      ? [{ label: "Materiales Principales", value: product.figureMetadata?.materials || product.figureMetadata?.material }]
+      : []),
+    ...(isFigure && product.figureMetadata?.paintTechnique
+      ? [{ label: "Técnica de Pintura y Acabado", value: product.figureMetadata.paintTechnique }]
+      : []),
+    ...(isFigure && product.figureMetadata?.articulation
+      ? [{ label: "Tipo de Articulación / Estatua", value: product.figureMetadata.articulation }]
+      : []),
+
+    // Figuras de Colección (4. Contenido de la Caja y Accesorios)
+    ...(isFigure && product.figureMetadata?.interchangeableParts
+      ? [{ label: "Piezas Intercambiables", value: product.figureMetadata.interchangeableParts }]
+      : []),
+    ...(isFigure && product.figureMetadata?.accessories
+      ? [{ label: "Accesorios Incluidos", value: product.figureMetadata.accessories }]
+      : []),
+    ...(isFigure && product.figureMetadata?.certificate
+      ? [{ label: "Certificado y Sellos", value: product.figureMetadata.certificate }]
+      : []),
+
+    // Figuras de Colección (5. Seguridad, Empaque y Logística)
+    ...(isFigure && product.figureMetadata?.ageRecommendation
+      ? [{ label: "Edad Recomendada", value: product.figureMetadata.ageRecommendation }]
       : []),
     ...(isFigure && product.figureMetadata?.boxCondition
       ? [{ label: "Estado del Empaque", value: product.figureMetadata.boxCondition }]
+      : []),
+    ...(isFigure && product.figureMetadata?.boxDimensions
+      ? [{ label: "Dimensiones de la Caja", value: product.figureMetadata.boxDimensions }]
+      : []),
+    ...(isFigure && product.figureMetadata?.shippingWeight
+      ? [{ label: "Peso de Envío", value: product.figureMetadata.shippingWeight }]
+      : []),
+    ...(isFigure && isPreOrder && product.figureMetadata?.minimumDepositPercent
+      ? [{ label: "Pie Mínimo Preventa", value: `${Math.round(product.figureMetadata.minimumDepositPercent * 100)}% del total` }]
       : []),
 
     // TCG / Cartas Coleccionables
@@ -1006,27 +1113,41 @@ export default function ProductDetailPage() {
               />
             </HolographicCard>
 
-            {/* Sub-thumbnails */}
+            {/* Sub-thumbnails with smooth scrolling */}
             {productImages.length > 1 && (
-              <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1">
-                {productImages.map((img: string, idx: number) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition shrink-0 bg-[#F7F7F5] ${
-                      selectedImageIndex === idx
-                        ? "border-[#FF6B35] shadow-md shadow-[#FF6B35]/20 scale-105"
-                        : "border-[#E5E5E5] opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} - Miniatura ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+              <div className="relative pt-2 pb-1">
+                <div
+                  className="flex items-center gap-2 overflow-x-auto py-1 scroll-smooth"
+                  style={{ scrollbarWidth: "thin" }}
+                >
+                  {productImages.map((img: string, idx: number) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition shrink-0 bg-[#F7F7F5] cursor-pointer ${
+                        selectedImageIndex === idx
+                          ? "border-[#FF6B35] ring-2 ring-[#FF6B35]/30 shadow-md shadow-[#FF6B35]/20 scale-105"
+                          : "border-[#E5E5E5] opacity-70 hover:opacity-100 hover:border-[#FF6B35]"
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`${product.name} - Miniatura ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-0.5 right-0.5 text-[8px] font-mono px-1 rounded bg-black/60 text-white font-bold">
+                        {idx + 1}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {productImages.length > 4 && (
+                  <div className="flex items-center justify-between text-[10px] text-[#666666] pt-1 px-1 font-mono">
+                    <span>Foto {selectedImageIndex + 1} de {productImages.length}</span>
+                    <span className="text-[#FF6B35]">Desliza para ver más &rarr;</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1232,39 +1353,41 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Official YouTube Trailer Player */}
-          <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] shadow-sm space-y-2 p-3">
-            <div className="flex items-center justify-between px-2 pt-1 pb-2">
-              <span className="text-xs font-bold text-[#1A1A1A] uppercase tracking-wider flex items-center gap-2">
-                <Tv className="w-4 h-4 text-[#D64545]" />
-                Trailer Oficial de Presentación
-              </span>
-              <span className="text-[10px] font-mono text-[#666666]">YouTube 1080p 60fps</span>
-            </div>
+          {product.showTrailerSection !== false && (
+            <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] shadow-sm space-y-2 p-3">
+              <div className="flex items-center justify-between px-2 pt-1 pb-2">
+                <span className="text-xs font-bold text-[#1A1A1A] uppercase tracking-wider flex items-center gap-2">
+                  <Tv className="w-4 h-4 text-[#D64545]" />
+                  Trailer Oficial de Presentación
+                </span>
+                <span className="text-[10px] font-mono text-[#666666]">YouTube 1080p 60fps</span>
+              </div>
 
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-[#E5E5E5] shadow-inner">
-              {embedTrailerUrl ? (
-                <iframe
-                  src={embedTrailerUrl}
-                  title={`Trailer oficial de ${product.name}`}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 space-y-3 bg-[#F7F7F5]">
-                  <Play className="w-12 h-12 text-[#FF6B35] opacity-70" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-[#1A1A1A]">
-                      Trailer en Sincronización Oficial
-                    </p>
-                    <p className="text-xs text-[#666666] max-w-sm">
-                      Puedes configurar la URL del trailer de YouTube de este producto en el panel de administración.
-                    </p>
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-[#E5E5E5] shadow-inner">
+                {embedTrailerUrl ? (
+                  <iframe
+                    src={embedTrailerUrl}
+                    title={`Trailer oficial de ${product.name}`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 space-y-3 bg-[#F7F7F5]">
+                    <Play className="w-12 h-12 text-[#FF6B35] opacity-70" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-[#1A1A1A]">
+                        Trailer en Sincronización Oficial
+                      </p>
+                      <p className="text-xs text-[#666666] max-w-sm">
+                        Puedes configurar la URL del trailer de YouTube de este producto en el panel de administración.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Technical Specifications Table */}
           <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] shadow-sm">
@@ -1327,102 +1450,13 @@ export default function ProductDetailPage() {
           />
         )}
 
-        {/* In-Game Screenshots / Content Gallery with Interactive Viewer */}
+        {/* Modern Interactive Content Gallery with Accessible Thumbnails & Lightbox */}
         {contentGallery.length > 0 && (
-          <div className="p-6 sm:p-8 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-[#1A1A1A] tracking-tight">
-                  Galería de Capturas de Contenido & Gameplay
-                </h3>
-                <p className="text-xs text-[#666666]">
-                  Haz clic en las miniaturas inferiores para explorar en alta resolución el entorno y detalles.
-                </p>
-              </div>
-              <span className="text-xs font-mono text-[#FF6B35] font-semibold">
-                Captura {selectedGalleryIndex + 1} de {contentGallery.length}
-              </span>
-            </div>
-
-            {/* Large Active Screenshot Viewer - Uncropped 100% Full View */}
-            <div className="relative w-full aspect-[16/9] max-h-[580px] rounded-2xl overflow-hidden bg-[#0A0F17] border-2 border-[#E5E5E5] shadow-xl group flex items-center justify-center select-none">
-              {/* Ambient Blurred Backdrop to fill margins with harmonious color */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <img
-                  src={contentGallery[selectedGalleryIndex] || contentGallery[0]}
-                  alt=""
-                  aria-hidden="true"
-                  className="w-full h-full object-cover blur-2xl opacity-35 scale-110"
-                />
-                <div className="absolute inset-0 bg-[#0A0F17]/50" />
-              </div>
-
-              {/* Main Full Screenshot - 100% visible, zero cropping */}
-              <img
-                src={contentGallery[selectedGalleryIndex] || contentGallery[0]}
-                alt={`Captura interactiva ${selectedGalleryIndex + 1}`}
-                className="relative z-10 max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-              />
-
-              {/* Navigation Arrows */}
-              {contentGallery.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedGalleryIndex((prev) => (prev > 0 ? prev - 1 : contentGallery.length - 1));
-                    }}
-                    className="absolute left-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#FF6B35] text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer"
-                    aria-label="Captura anterior"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedGalleryIndex((prev) => (prev < contentGallery.length - 1 ? prev + 1 : 0));
-                    }}
-                    className="absolute right-3 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-[#FF6B35] text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-lg cursor-pointer"
-                    aria-label="Siguiente captura"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </>
-              )}
-
-              {/* Caption & SKU Tag */}
-              <div className="absolute bottom-3 left-3 z-20 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-xs font-mono text-white pointer-events-none shadow-md">
-                Captura #{selectedGalleryIndex + 1} • {product.name}
-              </div>
-            </div>
-
-            {/* Thumbnails Navigation Strip */}
-            <div className="flex items-center justify-center gap-3 overflow-x-auto py-2">
-              {contentGallery.map((img: string, idx: number) => {
-                const isActive = selectedGalleryIndex === idx;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedGalleryIndex(idx)}
-                    className={`relative w-20 sm:w-28 h-14 sm:h-18 rounded-lg overflow-hidden transition-all duration-200 shrink-0 bg-[#F7F7F5] ${
-                      isActive
-                        ? "border-2 border-[#FF6B35] ring-2 ring-[#FF6B35]/30 scale-105 shadow-md"
-                        : "border border-[#E5E5E5] opacity-70 hover:opacity-100 hover:border-[#FF6B35]"
-                    }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`Miniatura ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <ProductContentGallery
+            images={contentGallery}
+            productName={product.name}
+            sku={product.sku}
+          />
         )}
 
         {/* Suggested Related Products Slider */}

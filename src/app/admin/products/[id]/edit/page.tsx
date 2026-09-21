@@ -35,6 +35,10 @@ import {
   Tv,
   Cpu,
   HardDrive,
+  Info,
+  Ruler,
+  Paintbrush,
+  Box,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { GoogleDriveImportModal } from "@/components/admin/GoogleDriveImportModal";
@@ -106,6 +110,7 @@ export default function EditProductAdminPage() {
 
   // Multimedia & Badges
   const [trailerUrl, setTrailerUrl] = useState("");
+  const [showTrailerSection, setShowTrailerSection] = useState(true);
   const [ageRating, setAgeRating] = useState("TE");
   const [customAgeRating, setCustomAgeRating] = useState("");
   const [genresInput, setGenresInput] = useState("");
@@ -189,13 +194,48 @@ export default function EditProductAdminPage() {
   const [figureDimensions, setFigureDimensions] = useState("");
   const [figureSculptor, setFigureSculptor] = useState("");
   const [figureBoxCondition, setFigureBoxCondition] = useState("");
+  const [figureProductName, setFigureProductName] = useState("");
+  const [figureFranchise, setFigureFranchise] = useState("");
+  const [figureProductLine, setFigureProductLine] = useState("");
+  const [figureReleaseDate, setFigureReleaseDate] = useState("");
+  const [figureLicenseStatus, setFigureLicenseStatus] = useState("");
+  const [figureHeight, setFigureHeight] = useState("");
+  const [figureWidth, setFigureWidth] = useState("");
+  const [figureWeight, setFigureWeight] = useState("");
+  const [figureBase, setFigureBase] = useState("");
+  const [figureMaterials, setFigureMaterials] = useState("");
+  const [figurePaintTechnique, setFigurePaintTechnique] = useState("");
+  const [figureArticulation, setFigureArticulation] = useState("");
+  const [figureInterchangeableParts, setFigureInterchangeableParts] = useState("");
+  const [figureAccessories, setFigureAccessories] = useState("");
+  const [figureCertificate, setFigureCertificate] = useState("");
+  const [figureAgeRecommendation, setFigureAgeRecommendation] = useState("");
+  const [figureBoxDimensions, setFigureBoxDimensions] = useState("");
+  const [figureShippingWeight, setFigureShippingWeight] = useState("");
 
-  // Dynamic: Collectible
+  // Dynamic: Collectible / TCG
+  const [tcgProductName, setTcgProductName] = useState("");
+  const [tcgFranchise, setTcgFranchise] = useState("");
+  const [tcgGameSystem, setTcgGameSystem] = useState("Pokémon TCG");
+  const [tcgLanguage, setTcgLanguage] = useState("Japonés");
+  const [tcgSetExpansion, setTcgSetExpansion] = useState("");
+  const [tcgReleaseYear, setTcgReleaseYear] = useState("");
+  const [tcgCardNumber, setTcgCardNumber] = useState("");
+  const [tcgRarity, setTcgRarity] = useState("");
+  const [tcgFinishVariant, setTcgFinishVariant] = useState("");
+  const [tcgGradingCondition, setTcgGradingCondition] = useState<CollectibleCondition | string>("GEM_MINT_10");
+  const [tcgWearDetails, setTcgWearDetails] = useState("");
+  const [tcgCertification, setTcgCertification] = useState<Authenticator | string>("PSA");
+  const [tcgSerial, setTcgSerial] = useState("");
+  const [tcgProductType, setTcgProductType] = useState("Carta Individual Graduada (Slab Acrílico)");
+  const [tcgItemQuantity, setTcgItemQuantity] = useState("1 Carta en Slab Certificado");
+  const [tcgIncludesProtection, setTcgIncludesProtection] = useState("Sí - Slab Acrílico Hermético con Filtro UV 99%");
+
   const [collectibleCategory, setCollectibleCategory] = useState<CollectibleCategory>("TCG");
-  const [collectibleCondition, setCollectibleCondition] = useState<CollectibleCondition>("MINT_9");
-  const [collectibleLanguage, setCollectibleLanguage] = useState("English");
-  const [collectibleAuth, setCollectibleAuth] = useState<Authenticator>("PSA");
-  const [collectibleSerial, setCollectibleSerial] = useState("");
+  const collectibleCondition = (tcgGradingCondition as CollectibleCondition) || "GEM_MINT_10";
+  const collectibleLanguage = tcgLanguage;
+  const collectibleAuth = (tcgCertification as Authenticator) || "PSA";
+  const collectibleSerial = tcgSerial;
 
   // Auto-fill state
   const [isAutoFilling, setIsAutoFilling] = useState(false);
@@ -579,6 +619,7 @@ export default function EditProductAdminPage() {
           setIsPreOrder(Boolean(p.isPreOrder));
           setPreOrderState(p.preOrderState || "PREORDER_OPEN");
           setTrailerUrl(p.trailerUrl || "");
+          setShowTrailerSection(p.showTrailerSection !== false);
 
           // Check if age rating is in WORLDWIDE_AGE_RATINGS or custom
           const existingRating = p.ageRating || "TE";
@@ -625,21 +666,55 @@ export default function EditProductAdminPage() {
             setGamePcStorage(p.gameMetadata.pcStorage || "");
           }
           if (p.figureMetadata) {
-            setFigureScale(p.figureMetadata.scale as any);
-            setFigureManufacturer(p.figureMetadata.manufacturer as any);
+            setFigureScale((p.figureMetadata.scale as any) || "SCALE_1_7");
+            setFigureManufacturer((p.figureMetadata.manufacturer as any) || "GOOD_SMILE_COMPANY");
             setFigureArrivalDate(p.figureMetadata.estimatedArrivalDate || "Noviembre 2026");
             setFigureDepositPercent(p.figureMetadata.minimumDepositPercent ?? 0.2);
-            setFigureMaterial(p.figureMetadata.material || "");
+            setFigureMaterial(p.figureMetadata.material || p.figureMetadata.materials || "");
+            setFigureMaterials(p.figureMetadata.materials || p.figureMetadata.material || "");
             setFigureDimensions(p.figureMetadata.dimensions || "");
             setFigureSculptor(p.figureMetadata.sculptor || "");
             setFigureBoxCondition(p.figureMetadata.boxCondition || "");
+            setFigureProductName(p.figureMetadata.productName || "");
+            setFigureFranchise(p.figureMetadata.franchise || "");
+            setFigureProductLine(p.figureMetadata.productLine || "");
+            setFigureReleaseDate(p.figureMetadata.releaseDate || "");
+            setFigureLicenseStatus(p.figureMetadata.licenseStatus || "");
+            setFigureHeight(p.figureMetadata.height || "");
+            setFigureWidth(p.figureMetadata.width || "");
+            setFigureWeight(p.figureMetadata.weight || "");
+            setFigureBase(p.figureMetadata.baseAndSupport || "");
+            setFigurePaintTechnique(p.figureMetadata.paintTechnique || "");
+            setFigureArticulation(p.figureMetadata.articulationType || "");
+            setFigureInterchangeableParts(p.figureMetadata.interchangeableParts || "");
+            setFigureAccessories(p.figureMetadata.accessoriesIncluded || "");
+            setFigureCertificate(p.figureMetadata.certificateOfAuthenticity || "");
+            setFigureAgeRecommendation(p.figureMetadata.ageRecommendation || "");
+            setFigureBoxDimensions(p.figureMetadata.boxDimensions || "");
+            setFigureShippingWeight(p.figureMetadata.shippingWeight || "");
           }
           if (p.collectibleMetadata) {
-            setCollectibleCategory(p.collectibleMetadata.category as any);
-            setCollectibleCondition(p.collectibleMetadata.condition as any);
+            setCollectibleCategory((p.collectibleMetadata.category as any) || "TCG");
+            setCollectibleCondition((p.collectibleMetadata.condition as any) || "GEM_MINT_10");
             setCollectibleLanguage(p.collectibleMetadata.cardLanguage || "English");
-            setCollectibleAuth(p.collectibleMetadata.authenticationBody as any);
+            setCollectibleAuth((p.collectibleMetadata.authenticationBody as any) || "PSA");
             setCollectibleSerial(p.collectibleMetadata.serialNumber || "");
+            setTcgProductName(p.collectibleMetadata.productName || "");
+            setTcgFranchise(p.collectibleMetadata.franchise || "");
+            setTcgGameSystem(p.collectibleMetadata.gameSystem || "Pokémon TCG");
+            setTcgLanguage(p.collectibleMetadata.cardLanguage || "Japonés");
+            setTcgSetExpansion(p.collectibleMetadata.setExpansion || "");
+            setTcgReleaseYear(p.collectibleMetadata.releaseYear || "");
+            setTcgCardNumber(p.collectibleMetadata.cardNumber || "");
+            setTcgRarity(p.collectibleMetadata.rarity || "");
+            setTcgFinishVariant(p.collectibleMetadata.finishVariant || "");
+            setTcgGradingCondition(p.collectibleMetadata.condition || "GEM_MINT_10");
+            setTcgWearDetails(p.collectibleMetadata.wearDetails || "");
+            setTcgCertification((p.collectibleMetadata.authenticationBody as any) || "PSA");
+            setTcgSerial(p.collectibleMetadata.serialNumber || "");
+            setTcgProductType(p.collectibleMetadata.productType || "Carta Individual Graduada (Slab Acrílico)");
+            setTcgItemQuantity(p.collectibleMetadata.itemQuantity || "1 Carta en Slab Certificado");
+            setTcgIncludesProtection(p.collectibleMetadata.includesProtection || "Sí - Slab Acrílico Hermético con Filtro UV 99%");
           }
           if (p.customSpecifications) {
             setCustomSpecifications(p.customSpecifications);
@@ -760,6 +835,12 @@ export default function EditProductAdminPage() {
     return false;
   }, [type, customCategoryLabel]);
 
+  // Live Calculations
+  const grossProfitCLP = Math.max(0, price - costPrice);
+  const marginPercent = price > 0 ? ((grossProfitCLP / price) * 100).toFixed(1) : "0";
+  const depositCLP = isPreOrder ? Math.round(price * figureDepositPercent) : price;
+  const remainingCLP = Math.round(price - depositCLP);
+
   // Preview Domain Entity
   const previewProduct: ProductDomainEntity = useMemo(() => {
     const genresList = shouldShowGenres
@@ -792,6 +873,7 @@ export default function EditProductAdminPage() {
       images,
       imageUrl: images.length > 0 ? images[0] : undefined,
       trailerUrl: trailerUrl.trim() || undefined,
+      showTrailerSection: Boolean(showTrailerSection),
       ageRating: resolvedAgeRating || undefined,
       genres: genresList.length > 0 ? genresList : undefined,
       contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
@@ -838,10 +920,28 @@ export default function EditProductAdminPage() {
               estimatedArrivalDate: figureArrivalDate,
               allowsPartialDeposit: isPreOrder,
               minimumDepositPercent: figureDepositPercent,
-              material: figureMaterial,
+              material: figureMaterials || figureMaterial,
               dimensions: figureDimensions,
               sculptor: figureSculptor,
               boxCondition: figureBoxCondition,
+              productName: figureProductName || name,
+              franchise: figureFranchise,
+              productLine: figureProductLine,
+              releaseDate: figureReleaseDate,
+              licenseStatus: figureLicenseStatus,
+              height: figureHeight,
+              width: figureWidth,
+              weight: figureWeight,
+              baseAndSupport: figureBase,
+              materials: figureMaterials || figureMaterial,
+              paintTechnique: figurePaintTechnique,
+              articulationType: figureArticulation,
+              interchangeableParts: figureInterchangeableParts,
+              accessoriesIncluded: figureAccessories,
+              certificateOfAuthenticity: figureCertificate,
+              ageRecommendation: figureAgeRecommendation,
+              boxDimensions: figureBoxDimensions,
+              shippingWeight: figureShippingWeight,
             }
           : undefined,
       collectibleMetadata:
@@ -854,6 +954,18 @@ export default function EditProductAdminPage() {
               cardLanguage: collectibleLanguage,
               authenticationBody: collectibleAuth,
               serialNumber: collectibleSerial,
+              productName: tcgProductName || name,
+              franchise: tcgFranchise,
+              gameSystem: tcgGameSystem,
+              setExpansion: tcgSetExpansion,
+              releaseYear: tcgReleaseYear,
+              cardNumber: tcgCardNumber,
+              rarity: tcgRarity,
+              finishVariant: tcgFinishVariant,
+              wearDetails: tcgWearDetails,
+              productType: tcgProductType,
+              itemQuantity: tcgItemQuantity,
+              includesProtection: tcgIncludesProtection,
             }
           : undefined,
       customSpecifications: type === "OTHER" ? customSpecifications : undefined,
@@ -875,6 +987,7 @@ export default function EditProductAdminPage() {
     preOrderState,
     images,
     trailerUrl,
+    showTrailerSection,
     ageRating,
     customAgeRating,
     genresInput,
@@ -908,14 +1021,44 @@ export default function EditProductAdminPage() {
     figureArrivalDate,
     figureDepositPercent,
     figureMaterial,
+    figureMaterials,
     figureDimensions,
     figureSculptor,
     figureBoxCondition,
+    figureProductName,
+    figureFranchise,
+    figureProductLine,
+    figureReleaseDate,
+    figureLicenseStatus,
+    figureHeight,
+    figureWidth,
+    figureWeight,
+    figureBase,
+    figurePaintTechnique,
+    figureArticulation,
+    figureInterchangeableParts,
+    figureAccessories,
+    figureCertificate,
+    figureAgeRecommendation,
+    figureBoxDimensions,
+    figureShippingWeight,
     collectibleCategory,
     collectibleCondition,
     collectibleLanguage,
     collectibleAuth,
     collectibleSerial,
+    tcgProductName,
+    tcgFranchise,
+    tcgGameSystem,
+    tcgSetExpansion,
+    tcgReleaseYear,
+    tcgCardNumber,
+    tcgRarity,
+    tcgFinishVariant,
+    tcgWearDetails,
+    tcgProductType,
+    tcgItemQuantity,
+    tcgIncludesProtection,
     customSpecifications,
   ]);
 
@@ -970,6 +1113,7 @@ export default function EditProductAdminPage() {
         images,
         imageUrl: images.length > 0 ? images[0] : undefined,
         trailerUrl: trailerUrl.trim() || undefined,
+        showTrailerSection: Boolean(showTrailerSection),
         ageRating: resolvedAgeRating || undefined,
         genres: genresList.length > 0 ? genresList : undefined,
         contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
@@ -1011,10 +1155,28 @@ export default function EditProductAdminPage() {
           estimatedArrivalDate: figureArrivalDate,
           allowsPartialDeposit: true,
           minimumDepositPercent: figureDepositPercent,
-          material: figureMaterial || undefined,
+          material: figureMaterials || figureMaterial || undefined,
           dimensions: figureDimensions || undefined,
           sculptor: figureSculptor || undefined,
           boxCondition: figureBoxCondition || undefined,
+          productName: figureProductName || name || undefined,
+          franchise: figureFranchise || undefined,
+          productLine: figureProductLine || undefined,
+          releaseDate: figureReleaseDate || undefined,
+          licenseStatus: figureLicenseStatus || undefined,
+          height: figureHeight || undefined,
+          width: figureWidth || undefined,
+          weight: figureWeight || undefined,
+          baseAndSupport: figureBase || undefined,
+          materials: figureMaterials || figureMaterial || undefined,
+          paintTechnique: figurePaintTechnique || undefined,
+          articulationType: figureArticulation || undefined,
+          interchangeableParts: figureInterchangeableParts || undefined,
+          accessoriesIncluded: figureAccessories || undefined,
+          certificateOfAuthenticity: figureCertificate || undefined,
+          ageRecommendation: figureAgeRecommendation || undefined,
+          boxDimensions: figureBoxDimensions || undefined,
+          shippingWeight: figureShippingWeight || undefined,
         };
       } else if (type === "COLLECTIBLE") {
         payload.collectibleMetadata = {
@@ -1023,6 +1185,18 @@ export default function EditProductAdminPage() {
           cardLanguage: collectibleLanguage,
           authenticationBody: collectibleAuth,
           serialNumber: collectibleSerial || undefined,
+          productName: tcgProductName || name || undefined,
+          franchise: tcgFranchise || undefined,
+          gameSystem: tcgGameSystem || undefined,
+          setExpansion: tcgSetExpansion || undefined,
+          releaseYear: tcgReleaseYear || undefined,
+          cardNumber: tcgCardNumber || undefined,
+          rarity: tcgRarity || undefined,
+          finishVariant: tcgFinishVariant || undefined,
+          wearDetails: tcgWearDetails || undefined,
+          productType: tcgProductType || undefined,
+          itemQuantity: tcgItemQuantity || undefined,
+          includesProtection: tcgIncludesProtection || undefined,
         };
       } else if (isCustomOrSpecializedCategory) {
         payload.customSpecifications = customSpecifications;
@@ -1407,10 +1581,49 @@ export default function EditProductAdminPage() {
 
           {/* Section 1.5: Trailer Oficial, Clasificación & Etiquetas */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-xl">
-            <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2 border-b border-[#004E72]/40 pb-3">
-              <Sparkles className="w-4 h-4 text-[#FF6E42]" />
-              Trailer de YouTube, Clasificación & Etiquetas
-            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#004E72]/40 pb-3">
+              <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#FF6E42]" />
+                Trailer de YouTube, Clasificación & Etiquetas
+              </h2>
+              <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border transition ${
+                showTrailerSection
+                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                  : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
+              }`}>
+                {showTrailerSection ? "Sección Visible en Tienda" : "Sección Oculta en Tienda"}
+              </span>
+            </div>
+
+            {/* Control de visibilidad del trailer */}
+            <div className="p-3.5 rounded-xl bg-[#05161f] border border-[#004E72]/50 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-bold text-[#F9F9F9] flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${showTrailerSection ? "bg-emerald-400" : "bg-zinc-500"}`} />
+                  Mostrar Sección de Trailer en Ficha Pública del Producto
+                </div>
+                <div className="text-[11px] text-[#9bb5c2]">
+                  {showTrailerSection
+                    ? "Activado: El bloque multimedia de YouTube será visible para los compradores en la tienda."
+                    : "Desactivado: El bloque de trailer permanecerá oculto en la vista del producto."}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTrailerSection((prev) => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  showTrailerSection ? "bg-[#FF6E42]" : "bg-zinc-700"
+                }`}
+                role="switch"
+                aria-checked={showTrailerSection}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    showTrailerSection ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2 space-y-1">
@@ -1799,100 +2012,346 @@ export default function EditProductAdminPage() {
 
           {/* Section 4: Category Specific Metadata */}
           {type === "FIGURE" && (
-            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-xl">
-              <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2 border-b border-[#004E72]/40 pb-3">
-                <Sparkles className="w-4 h-4 text-[#FF6E42]" />
-                Detalles Técnicos & Escala (Figuras)
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Escala</label>
-                  <select
-                    value={figureScale}
-                    onChange={(e) => setFigureScale(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  >
-                    <option value="SCALE_1_7">Escala 1/7</option>
-                    <option value="SCALE_1_4">Escala 1/4</option>
-                    <option value="SCALE_1_6">Escala 1/6</option>
-                    <option value="SCALE_1_8">Escala 1/8</option>
-                    <option value="SCALE_1_12">Escala 1/12</option>
-                    <option value="NON_SCALE">Non-Scale (Sin Escala / Myth Cloth / Prize)</option>
-                    <option value="NENDOROID">Nendoroid</option>
-                    <option value="POP_UP_PARADE">Pop Up Parade</option>
-                    <option value="ACTION_FIGURE">Figura Articulada</option>
-                  </select>
+            <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-6 shadow-xl animate-in fade-in duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#004E72]/40 pb-4">
+                <h2 className="text-base font-bold text-[#F9F9F9] flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#FF6E42]" />
+                  Ficha Técnica de Figura Japonesa & Preventa
+                </h2>
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6E42]/10 text-[#FF6E42] border border-[#FF6E42]/30 font-medium">
+                  5 Categorías Oficiales
+                </span>
+              </div>
+
+              {/* Categoría 1: Información General del Producto */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Info className="w-4 h-4 text-[#FF6E42]" />
+                  <span>1. Información General del Producto</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Fabricante</label>
-                  <select
-                    value={figureManufacturer}
-                    onChange={(e) => setFigureManufacturer(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  >
-                    <option value="GOOD_SMILE_COMPANY">Good Smile Company</option>
-                    <option value="BANDAI_SPIRITS">Bandai Spirits / Tamashii Nations</option>
-                    <option value="BANPRESTO">Banpresto</option>
-                    <option value="KOTOBUKIYA">Kotobukiya</option>
-                    <option value="ALTER">Alter</option>
-                    <option value="MEGAHOUSE">Megahouse</option>
-                    <option value="MAX_FACTORY">Max Factory</option>
-                    <option value="FREEING">FREEing</option>
-                    <option value="ANIPLEX">Aniplex</option>
-                    <option value="SEGA">Sega</option>
-                    <option value="TAITO">Taito</option>
-                    <option value="FURYU">FuRyu</option>
-                    <option value="OTHER">Otro Fabricante</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Nombre Oficial de la Figura</label>
+                    <input
+                      type="text"
+                      value={figureProductName}
+                      onChange={(e) => setFigureProductName(e.target.value)}
+                      placeholder="Ej: Hatsune Miku - Cantarella Ver. 1/7 Scale Figure"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Franquicia / Anime / Manga</label>
+                    <input
+                      type="text"
+                      value={figureFranchise}
+                      onChange={(e) => setFigureFranchise(e.target.value)}
+                      placeholder="Ej: Vocaloid / Fate Grand Order / Spy x Family"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Escala de la Figura</label>
+                    <select
+                      value={figureScale}
+                      onChange={(e) => setFigureScale(e.target.value as FigureScale)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="SCALE_1_7">Escala 1/7 (Estándar Coleccionista)</option>
+                      <option value="SCALE_1_4">Escala 1/4 (Gran Formato Premium)</option>
+                      <option value="SCALE_1_6">Escala 1/6</option>
+                      <option value="SCALE_1_8">Escala 1/8</option>
+                      <option value="SCALE_1_12">Escala 1/12</option>
+                      <option value="NON_SCALE">Non-Scale (Sin Escala / Myth Cloth / Prize)</option>
+                      <option value="NENDOROID">Nendoroid (Chibi Articulado)</option>
+                      <option value="POP_UP_PARADE">Pop Up Parade</option>
+                      <option value="ACTION_FIGURE">Figura de Acción Articulada</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Fabricante Oficial</label>
+                    <select
+                      value={figureManufacturer}
+                      onChange={(e) => setFigureManufacturer(e.target.value as FigureManufacturer)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    >
+                      <option value="GOOD_SMILE_COMPANY">Good Smile Company</option>
+                      <option value="BANDAI_SPIRITS">Bandai Spirits / Tamashii Nations</option>
+                      <option value="BANPRESTO">Banpresto</option>
+                      <option value="KOTOBUKIYA">Kotobukiya</option>
+                      <option value="ALTER">Alter</option>
+                      <option value="MEGAHOUSE">Megahouse</option>
+                      <option value="MAX_FACTORY">Max Factory</option>
+                      <option value="FREEING">FREEing</option>
+                      <option value="ANIPLEX">Aniplex</option>
+                      <option value="SEGA">Sega</option>
+                      <option value="TAITO">Taito</option>
+                      <option value="FURYU">FuRyu</option>
+                      <option value="OTHER">Otro Fabricante</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Línea de Producto</label>
+                    <input
+                      type="text"
+                      value={figureProductLine}
+                      onChange={(e) => setFigureProductLine(e.target.value)}
+                      placeholder="Ej: Pop Up Parade / F:NEX / S.H.Figuarts"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Escultor / Diseñador Original</label>
+                    <input
+                      type="text"
+                      value={figureSculptor}
+                      onChange={(e) => setFigureSculptor(e.target.value)}
+                      placeholder="Ej: Design COCO / eStream / Good Smile Arts"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Fecha Estimada de Llegada</label>
+                    <input
+                      type="text"
+                      value={figureArrivalDate}
+                      onChange={(e) => setFigureArrivalDate(e.target.value)}
+                      placeholder="Ej: Diciembre 2026"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Fecha Lanzamiento Japón</label>
+                    <input
+                      type="text"
+                      value={figureReleaseDate}
+                      onChange={(e) => setFigureReleaseDate(e.target.value)}
+                      placeholder="Ej: Noviembre 2026"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Estado de Licencia</label>
+                    <input
+                      type="text"
+                      value={figureLicenseStatus}
+                      onChange={(e) => setFigureLicenseStatus(e.target.value)}
+                      placeholder="Ej: 100% Original con Licencia Oficial"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Llegada Estimada</label>
-                  <input
-                    type="text"
-                    value={figureArrivalDate}
-                    onChange={(e) => setFigureArrivalDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
+              </div>
+
+              {/* Categoría 2: Especificaciones Físicas y Dimensiones */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Ruler className="w-4 h-4 text-[#FF6E42]" />
+                  <span>2. Especificaciones Físicas y Dimensiones</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Materiales</label>
-                  <input
-                    type="text"
-                    value={figureMaterial}
-                    onChange={(e) => setFigureMaterial(e.target.value)}
-                    placeholder="PVC & ABS pintado a mano"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Altura</label>
+                    <input
+                      type="text"
+                      value={figureHeight}
+                      onChange={(e) => setFigureHeight(e.target.value)}
+                      placeholder="Ej: 24 cm aprox."
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Ancho / Profundidad</label>
+                    <input
+                      type="text"
+                      value={figureWidth}
+                      onChange={(e) => setFigureWidth(e.target.value)}
+                      placeholder="Ej: 18 cm x 15 cm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Peso Neto de la Figura</label>
+                    <input
+                      type="text"
+                      value={figureWeight}
+                      onChange={(e) => setFigureWeight(e.target.value)}
+                      placeholder="Ej: 650 g"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Dimensiones Totales</label>
+                    <input
+                      type="text"
+                      value={figureDimensions}
+                      onChange={(e) => setFigureDimensions(e.target.value)}
+                      placeholder="Ej: 24 x 18 x 15 cm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Base y Soporte</label>
+                    <input
+                      type="text"
+                      value={figureBase}
+                      onChange={(e) => setFigureBase(e.target.value)}
+                      placeholder="Ej: Base temática dedicada incluida"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Dimensiones</label>
-                  <input
-                    type="text"
-                    value={figureDimensions}
-                    onChange={(e) => setFigureDimensions(e.target.value)}
-                    placeholder="28 cm de alto x 20 cm ancho"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
+              </div>
+
+              {/* Categoría 3: Materiales y Fabricación */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Paintbrush className="w-4 h-4 text-[#FF6E42]" />
+                  <span>3. Materiales y Fabricación</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Escultor</label>
-                  <input
-                    type="text"
-                    value={figureSculptor}
-                    onChange={(e) => setFigureSculptor(e.target.value)}
-                    placeholder="Design COCO / eStream"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Materiales Principales</label>
+                    <input
+                      type="text"
+                      value={figureMaterials || figureMaterial}
+                      onChange={(e) => {
+                        setFigureMaterials(e.target.value);
+                        setFigureMaterial(e.target.value);
+                      }}
+                      placeholder="Ej: PVC, ABS & Polystone"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Técnica de Pintura y Acabado</label>
+                    <input
+                      type="text"
+                      value={figurePaintTechnique}
+                      onChange={(e) => setFigurePaintTechnique(e.target.value)}
+                      placeholder="Ej: Pintura artesanal de alta precisión con sombreado y barniz mate"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Tipo de Articulación / Estatua</label>
+                    <input
+                      type="text"
+                      value={figureArticulation}
+                      onChange={(e) => setFigureArticulation(e.target.value)}
+                      placeholder="Ej: Estatua fija estática de alta fidelidad"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
                 </div>
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Condición del Empaque</label>
-                  <input
-                    type="text"
-                    value={figureBoxCondition}
-                    onChange={(e) => setFigureBoxCondition(e.target.value)}
-                    placeholder="Caja sellada impecable de fábrica (Mint in Box)"
-                    className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none"
-                  />
+              </div>
+
+              {/* Categoría 4: Contenido de la Caja y Accesorios */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <Box className="w-4 h-4 text-[#FF6E42]" />
+                  <span>4. Contenido de la Caja y Accesorios</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Piezas Intercambiables</label>
+                    <input
+                      type="text"
+                      value={figureInterchangeableParts}
+                      onChange={(e) => setFigureInterchangeableParts(e.target.value)}
+                      placeholder="Ej: 2 rostros con expresiones, manos opcionales"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Accesorios Incluidos</label>
+                    <input
+                      type="text"
+                      value={figureAccessories}
+                      onChange={(e) => setFigureAccessories(e.target.value)}
+                      placeholder="Ej: Efectos de energía traslúcidos, arma y peana"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Certificado y Sellos</label>
+                    <input
+                      type="text"
+                      value={figureCertificate}
+                      onChange={(e) => setFigureCertificate(e.target.value)}
+                      placeholder="Ej: Sello holográfico de autenticidad en caja"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Categoría 5: Seguridad, Empaque y Logística */}
+              <div className="p-4 rounded-xl bg-[#004E72]/15 border border-[#004E72]/40 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#F9F9F9]">
+                  <ShieldCheck className="w-4 h-4 text-[#FF6E42]" />
+                  <span>5. Seguridad, Empaque y Logística</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Edad Recomendada</label>
+                    <input
+                      type="text"
+                      value={figureAgeRecommendation}
+                      onChange={(e) => setFigureAgeRecommendation(e.target.value)}
+                      placeholder="Ej: +15 años (Coleccionismo adulto)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Estado del Empaque</label>
+                    <input
+                      type="text"
+                      value={figureBoxCondition}
+                      onChange={(e) => setFigureBoxCondition(e.target.value)}
+                      placeholder="Ej: Mint in Box (Sellada de fábrica)"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Dimensiones de la Caja</label>
+                    <input
+                      type="text"
+                      value={figureBoxDimensions}
+                      onChange={(e) => setFigureBoxDimensions(e.target.value)}
+                      placeholder="Ej: 30 x 22 x 18 cm"
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-[#9bb5c2]">Peso de Envío</label>
+                    <input
+                      type="text"
+                      value={figureShippingWeight}
+                      onChange={(e) => setFigureShippingWeight(e.target.value)}
+                      placeholder="Ej: 1.1 kg aprox."
+                      className="w-full px-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

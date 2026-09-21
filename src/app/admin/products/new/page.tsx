@@ -123,6 +123,7 @@ export default function NewProductAdminPage() {
 
   // Multimedia & Badges
   const [trailerUrl, setTrailerUrl] = useState("");
+  const [showTrailerSection, setShowTrailerSection] = useState(true);
   const [ageRating, setAgeRating] = useState("TE");
   const [customAgeRating, setCustomAgeRating] = useState("");
   const [genresInput, setGenresInput] = useState("Acción, Aventuras");
@@ -343,6 +344,7 @@ export default function NewProductAdminPage() {
     setIsPreOrder(true);
     setPreOrderState("PREORDER_OPEN");
     setTrailerUrl("");
+    setShowTrailerSection(true);
     setAgeRating("TE");
     setCustomAgeRating("");
     setGenresInput("Acción, Aventuras");
@@ -873,6 +875,7 @@ export default function NewProductAdminPage() {
       images,
       imageUrl: images.length > 0 ? images[0] : undefined,
       trailerUrl: trailerUrl.trim() || undefined,
+      showTrailerSection: Boolean(showTrailerSection),
       ageRating: resolvedAgeRating || undefined,
       genres: genresList.length > 0 ? genresList : undefined,
       contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
@@ -998,6 +1001,7 @@ export default function NewProductAdminPage() {
     preOrderState,
     images,
     trailerUrl,
+    showTrailerSection,
     ageRating,
     customAgeRating,
     genresInput,
@@ -1124,6 +1128,7 @@ export default function NewProductAdminPage() {
       images: images.length > 0 ? images : undefined,
       imageUrl: images.length > 0 ? images[0] : undefined,
       trailerUrl: trailerUrl.trim() || undefined,
+      showTrailerSection: Boolean(showTrailerSection),
       ageRating: resolvedAgeRating || undefined,
       genres: genresList.length > 0 ? genresList : undefined,
       contentGallery: contentGallery.length > 0 ? contentGallery : undefined,
@@ -1651,6 +1656,36 @@ export default function NewProductAdminPage() {
               <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
               3. Trailer de YouTube, Clasificación & Etiquetas
             </h2>
+
+            {/* Toggle para apagar o encender el bloque de trailer en la tienda */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#004E72]/20 border border-[#004E72]/50">
+              <div className="space-y-0.5 pr-4">
+                <div className="text-xs font-bold text-[#F9F9F9] flex items-center gap-2">
+                  <Tv className="w-4 h-4 text-[#FF6E42]" />
+                  <span>Mostrar Sección de Trailer / Video en la Tienda</span>
+                </div>
+                <p className="text-[11px] text-[#9bb5c2]">
+                  {showTrailerSection
+                    ? "Activado: Se mostrará el reproductor de video en la ficha del producto."
+                    : "Desactivado: La sección de trailer permanecerá oculta y no ocupará espacio en la ficha."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTrailerSection(!showTrailerSection)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  showTrailerSection ? "bg-[#FF6E42]" : "bg-slate-700"
+                }`}
+                role="switch"
+                aria-checked={showTrailerSection}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    showTrailerSection ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2 space-y-1.5">

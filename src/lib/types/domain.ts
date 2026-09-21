@@ -194,6 +194,7 @@ export interface ProductDomainEntity {
   images?: string[];
   imageUrl?: string;
   trailerUrl?: string;
+  showTrailerSection?: boolean;
   ageRating?: string;
   genres?: string[];
   contentGallery?: string[];

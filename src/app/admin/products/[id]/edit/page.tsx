@@ -341,10 +341,10 @@ export default function EditProductAdminPage() {
       if (d.gameSpecs.pcStorage) setGamePcStorage(d.gameSpecs.pcStorage);
     } else if (targetCategoryType === "COLLECTIBLE" && d.collectibleSpecs) {
       if (d.collectibleSpecs.category) setCollectibleCategory(d.collectibleSpecs.category as any);
-      if (d.collectibleSpecs.condition) setCollectibleCondition(d.collectibleSpecs.condition as any);
-      if (d.collectibleSpecs.authBody) setCollectibleAuth(d.collectibleSpecs.authBody as any);
-      if (d.collectibleSpecs.language) setCollectibleLanguage(d.collectibleSpecs.language);
-      if (d.collectibleSpecs.serial) setCollectibleSerial(d.collectibleSpecs.serial);
+      if (d.collectibleSpecs.condition) setTcgGradingCondition(d.collectibleSpecs.condition as any);
+      if (d.collectibleSpecs.authBody) setTcgCertification(d.collectibleSpecs.authBody as any);
+      if (d.collectibleSpecs.language) setTcgLanguage(d.collectibleSpecs.language);
+      if (d.collectibleSpecs.serial) setTcgSerial(d.collectibleSpecs.serial);
     }
 
     if (d.customSpecifications) {
@@ -695,10 +695,6 @@ export default function EditProductAdminPage() {
           }
           if (p.collectibleMetadata) {
             setCollectibleCategory((p.collectibleMetadata.category as any) || "TCG");
-            setCollectibleCondition((p.collectibleMetadata.condition as any) || "GEM_MINT_10");
-            setCollectibleLanguage(p.collectibleMetadata.cardLanguage || "English");
-            setCollectibleAuth((p.collectibleMetadata.authenticationBody as any) || "PSA");
-            setCollectibleSerial(p.collectibleMetadata.serialNumber || "");
             setTcgProductName(p.collectibleMetadata.productName || "");
             setTcgFranchise(p.collectibleMetadata.franchise || "");
             setTcgGameSystem(p.collectibleMetadata.gameSystem || "Pokémon TCG");
@@ -3018,7 +3014,7 @@ export default function EditProductAdminPage() {
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Entidad Certificadora</label>
                   <select
                     value={collectibleAuth}
-                    onChange={(e) => setCollectibleAuth(e.target.value as any)}
+                    onChange={(e) => setTcgCertification(e.target.value as any)}
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                   >
                     <option value="PSA">PSA (Professional Sports Authenticator)</option>
@@ -3031,7 +3027,7 @@ export default function EditProductAdminPage() {
                   <label className="block text-xs font-semibold text-[#9bb5c2] mb-1">Condición / Nota</label>
                   <select
                     value={collectibleCondition}
-                    onChange={(e) => setCollectibleCondition(e.target.value as any)}
+                    onChange={(e) => setTcgGradingCondition(e.target.value as any)}
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer"
                   >
                     <option value="GEM_MINT_10">Gem Mint 10</option>
@@ -3045,7 +3041,7 @@ export default function EditProductAdminPage() {
                   <input
                     type="text"
                     value={collectibleSerial}
-                    onChange={(e) => setCollectibleSerial(e.target.value)}
+                    onChange={(e) => setTcgSerial(e.target.value)}
                     placeholder="ej: PSA-88492019"
                     className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] font-mono focus:border-[#FF6E42] focus:outline-none"
                   />

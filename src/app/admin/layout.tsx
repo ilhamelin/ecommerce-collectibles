@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Radio,
   TrendingUp,
+  Megaphone,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -302,7 +303,7 @@ export default function AdminLayout({
                   aria-expanded={isVisualMenuOpen}
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span className="hidden md:inline">Slider Portada</span>
+                  <span className="hidden md:inline">Personalización Visual</span>
                   <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
                       isVisualMenuOpen ? "rotate-180" : ""
@@ -313,7 +314,7 @@ export default function AdminLayout({
                 {isVisualMenuOpen && (
                   <div
                     onMouseLeave={() => setIsVisualMenuOpen(false)}
-                    className="absolute left-0 mt-1.5 w-64 rounded-2xl bg-white text-[#1A1A1A] border border-[#E5E5E5] shadow-xl p-2 space-y-1 z-50 animate-in fade-in-50 zoom-in-95 duration-150"
+                    className="absolute left-0 mt-1.5 w-72 rounded-2xl bg-white text-[#1A1A1A] border border-[#E5E5E5] shadow-xl p-2 space-y-1 z-50 animate-in fade-in-50 zoom-in-95 duration-150"
                   >
                     <div className="px-3 py-1.5 border-b border-[#F0F0F0]">
                       <span className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
@@ -361,6 +362,28 @@ export default function AdminLayout({
                         </span>
                         <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
                           Modificar imagen/icono, título y subtítulo
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/announcement"
+                      onClick={() => setIsVisualMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/announcement"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 shrink-0 mt-0.5">
+                        <Megaphone className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Barra Superior de Avisos
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Modificar envíos, cuotas, garantías y WhatsApp
                         </span>
                       </div>
                     </Link>

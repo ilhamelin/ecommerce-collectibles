@@ -928,3 +928,62 @@ export async function saveBrandingSettingsToFirestore(branding: any): Promise<bo
   }
 }
 
+/**
+ * ============================================================================
+ * TOP ANNOUNCEMENT BAR SETTINGS (Shipping, Payment, Guarantee, WhatsApp)
+ * ============================================================================
+ */
+export async function getAnnouncementSettingsFromFirestore(): Promise<any | null> {
+  try {
+    if (typeof window === "undefined" && adminDb) {
+      const docSnap = await adminDb.collection(COLLECTIONS.ANNOUNCEMENT_SETTINGS).doc("main_bar").get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data && data.announcement) {
+          return data.announcement;
+        }
+      }
+    }
+
+    if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.ANNOUNCEMENT_SETTINGS, "main_bar"));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && data.announcement) {
+          return data.announcement;
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("[Firestore] Error fetching announcement settings:", err);
+    return null;
+  }
+}
+
+export async function saveAnnouncementSettingsToFirestore(announcement: any): Promise<boolean> {
+  try {
+    const payload = {
+      announcement: cleanFirestoreData(announcement),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb.collection(COLLECTIONS.ANNOUNCEMENT_SETTINGS).doc("main_bar").set(payload, { merge: true });
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.ANNOUNCEMENT_SETTINGS, "main_bar"), payload, { merge: true });
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.warn("[Firestore] Error saving announcement settings:", err);
+    return false;
+  }
+}
+
+

@@ -34,11 +34,13 @@ import {
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
+import { DEFAULT_ANNOUNCEMENT_DATA, StoreAnnouncementData } from "@/lib/constants/announcementDefaults";
 import { getProductCategoryInfo } from "@/lib/utils/category";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { formatCLP } from "@/lib/utils/currency";
 
 let cachedBranding: StoreBrandingData | null = null;
+let cachedAnnouncement: StoreAnnouncementData | null = null;
 
 function StoreNavbarContent() {
   const pathname = usePathname();
@@ -58,6 +60,9 @@ function StoreNavbarContent() {
     : 0;
 
   const [branding, setBranding] = useState<StoreBrandingData>(DEFAULT_BRANDING_DATA);
+  const [announcement, setAnnouncement] = useState<StoreAnnouncementData>(
+    cachedAnnouncement || DEFAULT_ANNOUNCEMENT_DATA
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -137,25 +142,55 @@ function StoreNavbarContent() {
     // Reuse in-memory branding if already retrieved
     if (cachedBranding) {
       setBranding(cachedBranding);
-      return;
+    } else {
+      // Fetch live branding settings once
+      fetch("/api/admin/branding")
+        .then((res) => {
+          if (!res.ok) throw new Error("Branding fetch failed");
+          return res.json();
+        })
+        .then((data) => {
+          const brand = data?.data?.branding || data?.branding;
+          if (brand) {
+            cachedBranding = brand;
+            setBranding(brand);
+          }
+        })
+        .catch(() => {});
     }
 
-    // Fetch live branding settings once
-    fetch("/api/admin/branding")
-      .then((res) => {
-        if (!res.ok) throw new Error("Branding fetch failed");
-        return res.json();
-      })
-      .then((data) => {
-        const brand = data?.data?.branding || data?.branding;
-        if (brand) {
-          cachedBranding = brand;
-          setBranding(brand);
-        }
-      })
-      .catch(() => {
-        // Fallback to default
-      });
+    // Reuse in-memory announcement if already retrieved
+    if (cachedAnnouncement) {
+      setAnnouncement(cachedAnnouncement);
+    } else {
+      // Fetch live announcement settings once
+      fetch("/api/announcement")
+        .then((res) => {
+          if (!res.ok) throw new Error("Announcement fetch failed");
+          return res.json();
+        })
+        .then((json) => {
+          if (json?.data) {
+            cachedAnnouncement = json.data;
+            setAnnouncement(json.data);
+          }
+        })
+        .catch(() => {});
+    }
+
+    // Listen for realtime visual changes saved in admin panel
+    const handleAnnouncementUpdated = (e: Event) => {
+      const detail = (e as CustomEvent<StoreAnnouncementData>).detail;
+      if (detail) {
+        cachedAnnouncement = detail;
+        setAnnouncement(detail);
+      }
+    };
+    window.addEventListener("store_announcement_updated", handleAnnouncementUpdated);
+
+    return () => {
+      window.removeEventListener("store_announcement_updated", handleAnnouncementUpdated);
+    };
   }, []);
 
   if (pathname?.startsWith("/admin")) {
@@ -177,28 +212,78 @@ function StoreNavbarContent() {
   return (
     <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/95 border-b border-[#E5E5E5] shadow-sm">
       {/* Top Friendly Announcement Bar */}
-      <div className="bg-[#1F3A5F] border-b border-[#152842] px-4 py-1.5 text-xs text-white/90">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3 text-[11px]">
-            <span className="flex items-center gap-1.5 text-[#FF6B35] font-bold">
-              <Truck className="w-3.5 h-3.5" /> Envíos a todo Chile (Starken / Chilexpress)
-            </span>
-            <span className="hidden md:inline text-white/30">|</span>
-            <span className="hidden md:flex items-center gap-1 text-white/90">
-              <CreditCard className="w-3 h-3 text-[#FF6B35]" /> Hasta 12 cuotas sin interés con Webpay & Mercado Pago
-            </span>
-            <span className="hidden lg:inline text-white/30">|</span>
-            <span className="hidden lg:flex items-center gap-1 text-white/90">
-              <Sparkles className="w-3 h-3 text-amber-300" /> Figuras 100% Originales & Licenciadas
-            </span>
-          </div>
+      {announcement.enabled && (
+        <div
+          style={{
+            backgroundColor: announcement.backgroundColor || "#1F3A5F",
+            color: announcement.textColor || "#F9F9F9",
+          }}
+          className="border-b border-black/20 px-4 py-1.5 text-xs transition-colors duration-200"
+        >
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3 text-[11px] flex-wrap">
+              {announcement.shippingEnabled && (
+                <Link
+                  href={announcement.shippingLink || "/tracking"}
+                  className="flex items-center gap-1.5 font-bold transition hover:brightness-110"
+                  style={{ color: announcement.accentColor || "#FF6B35" }}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>{announcement.shippingText}</span>
+                  {announcement.shippingHighlight && (
+                    <span className="opacity-95 font-semibold"> {announcement.shippingHighlight}</span>
+                  )}
+                </Link>
+              )}
 
-          {/* Right Side: WhatsApp + Regístrate | Mi cuenta */}
-          <div className="flex items-center gap-2.5 text-[11px]">
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-white/90 font-medium">
-              <span className="w-2 h-2 rounded-full bg-[#2E9E5B] animate-pulse" />
-              WhatsApp Atención: <strong className="text-[#FF6B35] font-mono">+56 9 5824 3917</strong>
-            </span>
+              {announcement.shippingEnabled && (announcement.paymentEnabled || announcement.guaranteeEnabled) && (
+                <span className="hidden md:inline text-white/30">|</span>
+              )}
+
+              {announcement.paymentEnabled && (
+                <span className="hidden md:flex items-center gap-1 opacity-90">
+                  <CreditCard className="w-3 h-3" style={{ color: announcement.accentColor || "#FF6B35" }} />
+                  <span>{announcement.paymentText}</span>
+                  <strong style={{ color: announcement.accentColor || "#FF6B35" }}>
+                    {" "}{announcement.paymentHighlight}
+                  </strong>
+                </span>
+              )}
+
+              {announcement.paymentEnabled && announcement.guaranteeEnabled && (
+                <span className="hidden lg:inline text-white/30">|</span>
+              )}
+
+              {announcement.guaranteeEnabled && (
+                <span className="hidden lg:flex items-center gap-1 opacity-90">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>{announcement.guaranteeText}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Right Side: WhatsApp + Regístrate | Mi cuenta */}
+            <div className="flex items-center gap-2.5 text-[11px]">
+              {announcement.whatsappEnabled && (
+                <a
+                  href={
+                    announcement.whatsappLink ||
+                    `https://wa.me/${announcement.whatsappPhone.replace(/\D/g, "")}?text=Hola%2C%20tengo%20una%20consulta%20sobre%20un%20producto`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex items-center gap-1.5 opacity-90 font-medium hover:opacity-100 hover:brightness-125 transition"
+                  title="Contactar atención por WhatsApp"
+                >
+                  {announcement.whatsappPulse && (
+                    <span className="w-2 h-2 rounded-full bg-[#2E9E5B] animate-pulse" />
+                  )}
+                  <span>{announcement.whatsappLabel}</span>
+                  <strong className="font-mono" style={{ color: announcement.accentColor || "#FF6B35" }}>
+                    {announcement.whatsappPhone}
+                  </strong>
+                </a>
+              )}
 
             {mounted && isAuthenticated && currentUser ? (
               <>

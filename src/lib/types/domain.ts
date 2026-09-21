@@ -112,16 +112,20 @@ export interface FigureMetadata {
   width?: string;
   weight?: string;
   base?: string;
+  baseAndSupport?: string;
 
   // Materiales y Fabricación
   materials?: string;
   paintTechnique?: string;
   articulation?: string;
+  articulationType?: string;
 
   // Contenido de la Caja y Accesorio
   interchangeableParts?: string;
   accessories?: string;
+  accessoriesIncluded?: string;
   certificate?: string;
+  certificateOfAuthenticity?: string;
 
   // Seguridad y Logística
   ageRecommendation?: string;

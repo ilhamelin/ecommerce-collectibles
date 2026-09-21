@@ -683,12 +683,12 @@ export default function EditProductAdminPage() {
             setFigureHeight(p.figureMetadata.height || "");
             setFigureWidth(p.figureMetadata.width || "");
             setFigureWeight(p.figureMetadata.weight || "");
-            setFigureBase(p.figureMetadata.baseAndSupport || "");
+            setFigureBase(p.figureMetadata.baseAndSupport || p.figureMetadata.base || "");
             setFigurePaintTechnique(p.figureMetadata.paintTechnique || "");
-            setFigureArticulation(p.figureMetadata.articulationType || "");
+            setFigureArticulation(p.figureMetadata.articulationType || p.figureMetadata.articulation || "");
             setFigureInterchangeableParts(p.figureMetadata.interchangeableParts || "");
-            setFigureAccessories(p.figureMetadata.accessoriesIncluded || "");
-            setFigureCertificate(p.figureMetadata.certificateOfAuthenticity || "");
+            setFigureAccessories(p.figureMetadata.accessoriesIncluded || p.figureMetadata.accessories || "");
+            setFigureCertificate(p.figureMetadata.certificateOfAuthenticity || p.figureMetadata.certificate || "");
             setFigureAgeRecommendation(p.figureMetadata.ageRecommendation || "");
             setFigureBoxDimensions(p.figureMetadata.boxDimensions || "");
             setFigureShippingWeight(p.figureMetadata.shippingWeight || "");
@@ -928,12 +928,16 @@ export default function EditProductAdminPage() {
               height: figureHeight,
               width: figureWidth,
               weight: figureWeight,
+              base: figureBase,
               baseAndSupport: figureBase,
               materials: figureMaterials || figureMaterial,
               paintTechnique: figurePaintTechnique,
+              articulation: figureArticulation,
               articulationType: figureArticulation,
               interchangeableParts: figureInterchangeableParts,
+              accessories: figureAccessories,
               accessoriesIncluded: figureAccessories,
+              certificate: figureCertificate,
               certificateOfAuthenticity: figureCertificate,
               ageRecommendation: figureAgeRecommendation,
               boxDimensions: figureBoxDimensions,
@@ -1163,12 +1167,16 @@ export default function EditProductAdminPage() {
           height: figureHeight || undefined,
           width: figureWidth || undefined,
           weight: figureWeight || undefined,
+          base: figureBase || undefined,
           baseAndSupport: figureBase || undefined,
           materials: figureMaterials || figureMaterial || undefined,
           paintTechnique: figurePaintTechnique || undefined,
+          articulation: figureArticulation || undefined,
           articulationType: figureArticulation || undefined,
           interchangeableParts: figureInterchangeableParts || undefined,
+          accessories: figureAccessories || undefined,
           accessoriesIncluded: figureAccessories || undefined,
+          certificate: figureCertificate || undefined,
           certificateOfAuthenticity: figureCertificate || undefined,
           ageRecommendation: figureAgeRecommendation || undefined,
           boxDimensions: figureBoxDimensions || undefined,

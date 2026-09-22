@@ -989,34 +989,38 @@ export default function AdminSliderPage() {
           </div>
 
           {/* Render Preview Card matching Home Slider exact aesthetics */}
-          <div className="bg-[#F7F7F5] rounded-3xl p-6 border border-[#E5E5E5] shadow-lg relative overflow-hidden space-y-5">
-            {/* Top Tag */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#1F3A5F] text-[10px] font-bold border border-[#E5E5E5] shadow-xs">
-              <Sparkles className="w-3 h-3 text-[#FF6B35]" />
-              <span>{activeSlide.tag || "ETIQUETA PROMOCIONAL"}</span>
-            </div>
-
-            {/* Titles */}
-            <div className="space-y-1">
-              <h3 className="text-xl font-black text-[#1A1A1A] leading-tight">
-                {activeSlide.title || "Título del Slide"}
-              </h3>
-              <div className="text-xl font-black text-[#FF6B35] leading-tight">
-                {activeSlide.titleHighlight || "Texto Destacado Naranja"}
+          <div className="bg-[#F7F7F5] rounded-3xl p-6 border border-[#E5E5E5] shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[580px] space-y-4">
+            {/* Top Tag (Fixed: 28px) */}
+            <div className="h-7 flex items-center">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#1F3A5F] text-[10px] font-bold border border-[#E5E5E5] shadow-xs">
+                <Sparkles className="w-3 h-3 text-[#FF6B35]" />
+                <span className="truncate">{activeSlide.tag || "ETIQUETA PROMOCIONAL"}</span>
               </div>
             </div>
 
-            {/* Description */}
-            <p className="text-xs text-[#555555] line-clamp-3 leading-relaxed">
-              {activeSlide.description || "Descripción de la oferta visible en la página principal..."}
-            </p>
+            {/* Titles with Fixed Height Budget (Fixed: 56px) */}
+            <div className="h-14 flex items-center overflow-hidden">
+              <h3 className="text-lg font-black text-[#1A1A1A] leading-tight line-clamp-2">
+                {activeSlide.title || "Título del Slide"}{" "}
+                <span className="text-[#FF6B35]">
+                  {activeSlide.titleHighlight || "Texto Destacado Naranja"}
+                </span>
+              </h3>
+            </div>
 
-            {/* Bullets */}
-            <div className="space-y-1.5">
-              {(activeSlide.highlights || []).slice(0, 3).map((hl, i) => (
+            {/* Description with Fixed Height (Fixed: 36px) */}
+            <div className="h-9 flex items-center overflow-hidden">
+              <p className="text-xs text-[#555555] line-clamp-2 leading-relaxed">
+                {activeSlide.description || "Descripción de la oferta visible en la página principal..."}
+              </p>
+            </div>
+
+            {/* Bullets with Fixed Height (Fixed: 48px) */}
+            <div className="h-12 overflow-hidden space-y-1.5">
+              {(activeSlide.highlights || []).slice(0, 2).map((hl, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs text-[#333333]">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="line-clamp-1">{hl}</span>
+                  <span className="truncate">{hl}</span>
                 </div>
               ))}
             </div>

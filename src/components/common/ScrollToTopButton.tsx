@@ -33,7 +33,8 @@ export function ScrollToTopButton() {
       type="button"
       onClick={scrollToTop}
       aria-label="Volver arriba"
-      className="fixed bottom-20 sm:bottom-8 right-5 sm:right-8 z-40 p-3 rounded-full bg-[#1F3A5F] hover:bg-[#FF6B35] text-white shadow-xl hover:shadow-[#FF6B35]/30 border border-white/20 transition-all duration-200 active:scale-95 animate-fade-in flex items-center justify-center cursor-pointer group"
+      title="Volver arriba"
+      className="fixed bottom-20 sm:bottom-8 left-5 sm:left-8 z-40 p-3 rounded-full bg-[#1F3A5F] hover:bg-[#FF6B35] text-white shadow-xl hover:shadow-[#FF6B35]/30 border border-white/20 transition-all duration-200 active:scale-95 animate-fade-in flex items-center justify-center cursor-pointer group"
     >
       <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform duration-200" />
       <span className="sr-only">Volver arriba</span>

@@ -53,7 +53,11 @@ export default function AdminLayout({
 
   const isMetricsActive = pathname === "/admin" || pathname.startsWith("/admin/predictive-stock");
   const isInventoryActive = pathname.startsWith("/admin/products") || pathname.startsWith("/admin/orders");
-  const isVisualActive = pathname.startsWith("/admin/slider") || pathname.startsWith("/admin/branding");
+  const isVisualActive =
+    pathname.startsWith("/admin/slider") ||
+    pathname.startsWith("/admin/branding") ||
+    pathname.startsWith("/admin/announcement") ||
+    pathname.startsWith("/admin/side-banners");
 
   const otherNavItems = [
     {
@@ -384,6 +388,28 @@ export default function AdminLayout({
                         </span>
                         <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
                           Modificar envíos, cuotas, garantías y WhatsApp
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/side-banners"
+                      onClick={() => setIsVisualMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/side-banners"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-orange-50 text-[#FF6B35] shrink-0 mt-0.5">
+                        <Layers className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                          Banners Laterales (Skins)
+                        </span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Promociones verticales fijadas en los costados de la tienda
                         </span>
                       </div>
                     </Link>

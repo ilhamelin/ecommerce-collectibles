@@ -986,4 +986,62 @@ export async function saveAnnouncementSettingsToFirestore(announcement: any): Pr
   }
 }
 
+/**
+ * ============================================================================
+ * SIDE PROMOTIONAL BANNERS SETTINGS (Left & Right Flanking Skins)
+ * ============================================================================
+ */
+export async function getSideBannersSettingsFromFirestore(): Promise<any | null> {
+  try {
+    if (typeof window === "undefined" && adminDb) {
+      const docSnap = await adminDb.collection(COLLECTIONS.SIDE_BANNERS_SETTINGS).doc("main_skins").get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data && data.sideBanners) {
+          return data.sideBanners;
+        }
+      }
+    }
+
+    if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.SIDE_BANNERS_SETTINGS, "main_skins"));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && data.sideBanners) {
+          return data.sideBanners;
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("[Firestore] Error fetching side banners settings:", err);
+    return null;
+  }
+}
+
+export async function saveSideBannersSettingsToFirestore(sideBanners: any): Promise<boolean> {
+  try {
+    const payload = {
+      sideBanners: cleanFirestoreData(sideBanners),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb.collection(COLLECTIONS.SIDE_BANNERS_SETTINGS).doc("main_skins").set(payload, { merge: true });
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.SIDE_BANNERS_SETTINGS, "main_skins"), payload, { merge: true });
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.warn("[Firestore] Error saving side banners settings:", err);
+    return false;
+  }
+}
+
 

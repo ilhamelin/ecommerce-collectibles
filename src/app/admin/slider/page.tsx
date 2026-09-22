@@ -31,7 +31,13 @@ import {
   ChevronDown,
   SlidersHorizontal,
 } from "lucide-react";
-import { DEFAULT_PROMO_SLIDES, PromoSlideData } from "@/lib/constants/sliderDefaults";
+import {
+  DEFAULT_PROMO_SLIDES,
+  PromoSlideData,
+  SlideImageFit,
+  SlideImagePosition,
+  SlideImageBg,
+} from "@/lib/constants/sliderDefaults";
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 
@@ -160,11 +166,22 @@ export default function AdminSliderPage() {
     const ctaHref = `/product/${(prod.sku || prod.id).toLowerCase()}`;
     const imgUrl = prod.imageUrl || (Array.isArray(prod.images) && prod.images[0]) || "";
 
+    // Smart auto-configuration based on product type:
+    // TCG and Figures need "contain" + "top/center" so certification labels and heads are never cropped
+    const isTcgOrFigure = prod.type === "COLLECTIBLE" || prod.type === "FIGURE";
+    const recommendedFit: SlideImageFit = isTcgOrFigure ? "contain" : "showcase";
+    const recommendedPosition: SlideImagePosition = prod.type === "COLLECTIBLE" ? "top" : "center";
+    const recommendedBg: SlideImageBg = "ambient-radial";
+
     setSlides((prev) => {
       const updated = [...prev];
       updated[activeSlideIndex] = {
         ...updated[activeSlideIndex],
         image: imgUrl || updated[activeSlideIndex].image,
+        imageFit: updated[activeSlideIndex].imageFit || recommendedFit,
+        imagePosition: updated[activeSlideIndex].imagePosition || recommendedPosition,
+        imageBg: updated[activeSlideIndex].imageBg || recommendedBg,
+        imageScale: updated[activeSlideIndex].imageScale || 95,
         productBadge: prod.name,
         productPrice: formattedPrice,
         primaryCtaText: ctaText,
@@ -652,6 +669,155 @@ export default function AdminSliderPage() {
                 </div>
               )}
 
+              {/* Controles Especializados de Encuadre & Vitrina de Imagen (Showcase 3D) */}
+              <div className="pt-3 border-t border-[#CBD5E1]/70 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-[#1F3A5F]">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF6B35]" />
+                    <span>Encuadre & Vitrina Visual del Producto</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FF6B35]/10 text-[#FF6B35]">
+                    Estilo Showcase 3D
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Modo de Ajuste */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-[#334155] flex items-center justify-between">
+                      <span>Modo de Ajuste (Fit)</span>
+                      <span className="text-[10px] text-emerald-600 font-semibold">
+                        {activeSlide.imageFit === "contain"
+                          ? "Sin cortes"
+                          : activeSlide.imageFit === "showcase"
+                          ? "Vitrina Flotante"
+                          : "Llenar"}
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => updateActiveSlide("imageFit", "contain")}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition ${
+                          (activeSlide.imageFit || "contain") === "contain"
+                            ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-xs"
+                            : "bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50"
+                        }`}
+                        title="La imagen completa se visualiza sin cortar cabeza ni bordes (Ideal TCG y Figuras)"
+                      >
+                        Completa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateActiveSlide("imageFit", "showcase")}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition ${
+                          activeSlide.imageFit === "showcase"
+                            ? "bg-[#FF6B35] text-white border-[#FF6B35] shadow-xs"
+                            : "bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50"
+                        }`}
+                        title="Vitrina flotante con sombra 3D de estudio"
+                      >
+                        Vitrina 3D
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateActiveSlide("imageFit", "cover")}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition ${
+                          activeSlide.imageFit === "cover"
+                            ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-xs"
+                            : "bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50"
+                        }`}
+                        title="Llenar todo el recuadro (zoom inmersivo)"
+                      >
+                        Llenar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Punto de Enfoque */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-[#334155] flex items-center justify-between">
+                      <span>Punto de Enfoque (Focal Point)</span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {activeSlide.imagePosition || "center"}
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => updateActiveSlide("imagePosition", "top")}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition ${
+                          activeSlide.imagePosition === "top"
+                            ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-xs"
+                            : "bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50"
+                        }`}
+                        title="Focalizar parte superior (etiquetas de cartas PSA y rostros de figuras)"
+                      >
+                        Arriba (PSA)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateActiveSlide("imagePosition", "center")}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition ${
+                          (activeSlide.imagePosition || "center") === "center"
+                            ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-xs"
+                            : "bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50"
+                        }`}
+                      >
+                        Centro
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateActiveSlide("imagePosition", "bottom")}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition ${
+                          activeSlide.imagePosition === "bottom"
+                            ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-xs"
+                            : "bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50"
+                        }`}
+                      >
+                        Abajo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Estilo de Fondo de Vitrina */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-[#334155]">
+                      Fondo de Vitrina / Iluminación
+                    </label>
+                    <select
+                      value={activeSlide.imageBg || "ambient-radial"}
+                      onChange={(e) => updateActiveSlide("imageBg", e.target.value as SlideImageBg)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] text-[11px] font-bold text-[#1E293B] bg-white focus:outline-none focus:border-[#FF6B35]"
+                    >
+                      <option value="ambient-radial">Luz Radial Focal (Recomendado)</option>
+                      <option value="dark-studio">Estudio Oscuro de Lujo (#0F172A)</option>
+                      <option value="light-clean">Galería Clara Neutra (#F8FAFC)</option>
+                      <option value="transparent">Transparente / Fondo Plano</option>
+                    </select>
+                  </div>
+
+                  {/* Escala / Margen */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-[#334155]">
+                      <span>Escala del Producto</span>
+                      <span className="font-mono text-[#FF6B35]">{activeSlide.imageScale || 95}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="75"
+                        max="115"
+                        step="5"
+                        value={activeSlide.imageScale || 95}
+                        onChange={(e) => updateActiveSlide("imageScale", Number(e.target.value))}
+                        className="w-full accent-[#FF6B35] cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Botones de Llamado a la Acción (CTA) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#E2E8F0]">
                 <div className="space-y-1.5">
@@ -855,17 +1021,46 @@ export default function AdminSliderPage() {
               ))}
             </div>
 
-            {/* Visual Media Card */}
+            {/* Visual Media Card matching Showcase 3D Framing */}
             <div className="relative rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] shadow-sm">
-              <div className="relative h-44 w-full bg-gray-100 overflow-hidden">
-                <img
-                  src={activeSlide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1000&auto=format&fit=crop&q=80"}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1000&auto=format&fit=crop&q=80";
+              <div
+                className={`relative h-52 w-full overflow-hidden flex items-center justify-center transition-colors duration-300 ${
+                  activeSlide.imageBg === "dark-studio"
+                    ? "bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-[#020617] border border-slate-800"
+                    : activeSlide.imageBg === "light-clean"
+                    ? "bg-gradient-to-b from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0] border border-slate-200"
+                    : activeSlide.imageBg === "transparent"
+                    ? "bg-transparent border border-slate-200/40"
+                    : "bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-[#1E293B]/70 to-[#0B1120] border border-slate-700/40"
+                }`}
+              >
+                <div
+                  className="relative w-full h-full flex items-center justify-center overflow-hidden"
+                  style={{
+                    transform: `scale(${(activeSlide.imageScale || 95) / 100})`,
                   }}
-                />
+                >
+                  <img
+                    src={activeSlide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1000&auto=format&fit=crop&q=80"}
+                    alt=""
+                    className={`w-full h-full ${
+                      activeSlide.imageFit === "cover"
+                        ? "object-cover"
+                        : activeSlide.imageFit === "showcase"
+                        ? "object-contain p-2 drop-shadow-[0_15px_15px_rgba(0,0,0,0.4)]"
+                        : "object-contain p-2 drop-shadow-sm"
+                    } ${
+                      activeSlide.imagePosition === "top"
+                        ? "object-top"
+                        : activeSlide.imagePosition === "bottom"
+                        ? "object-bottom"
+                        : "object-center"
+                    }`}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1000&auto=format&fit=crop&q=80";
+                    }}
+                  />
+                </div>
                 <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-[#FF6B35] text-white text-[10px] font-bold shadow">
                   CHILE
                 </div>

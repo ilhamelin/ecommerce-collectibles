@@ -1,3 +1,7 @@
+export type SlideImageFit = "contain" | "cover" | "showcase";
+export type SlideImagePosition = "center" | "top" | "bottom";
+export type SlideImageBg = "ambient-radial" | "dark-studio" | "light-clean" | "transparent";
+
 export interface PromoSlideData {
   id: string;
   tag: string;
@@ -12,6 +16,10 @@ export interface PromoSlideData {
   productBadge: string;
   productPrice?: string;
   image: string;
+  imageFit?: SlideImageFit;
+  imagePosition?: SlideImagePosition;
+  imageBg?: SlideImageBg;
+  imageScale?: number;
   highlights: string[];
   gradient?: string;
   linkedProductSku?: string;

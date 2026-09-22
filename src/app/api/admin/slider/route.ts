@@ -99,8 +99,13 @@ export async function POST(request: NextRequest) {
       productBadge: slide.productBadge || "",
       productPrice: slide.productPrice || "",
       image: slide.image || "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1000&auto=format&fit=crop&q=80",
+      imageFit: slide.imageFit === "cover" || slide.imageFit === "showcase" ? slide.imageFit : "contain",
+      imagePosition: slide.imagePosition === "top" || slide.imagePosition === "bottom" ? slide.imagePosition : "center",
+      imageBg: slide.imageBg || "ambient-radial",
+      imageScale: typeof slide.imageScale === "number" ? Math.min(115, Math.max(75, slide.imageScale)) : 95,
       highlights: Array.isArray(slide.highlights) ? slide.highlights.filter(Boolean) : [],
       gradient: slide.gradient || "from-[#FF6B35]/20 via-[#1F3A5F]/20 to-[#1F3A5F]",
+      linkedProductSku: slide.linkedProductSku || undefined,
     }));
 
     inMemorySlides = sanitizedSlides;

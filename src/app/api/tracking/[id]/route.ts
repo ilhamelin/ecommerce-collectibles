@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { afterShipService } from "@/lib/services/aftershipService";
-import { getOrderById } from "@/lib/firebase/firestore";
+import { getOrderByIdFromFirestore } from "@/lib/firebase/firestore";
+import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { formatTrackingNumber } from "@/lib/tracking/chilean-couriers";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +24,16 @@ export async function GET(
       );
     }
 
-    // 1. Intentar consultar si el parámetro corresponde a una orden existente en Firestore
+    // 1. Intentar consultar si el parámetro corresponde a una orden existente en Firestore o en Memoria
     let resolvedOT = rawId;
     let courierName = "Starken";
     let orderNumber = rawId;
 
     try {
-      const order = await getOrderById(rawId);
+      const order =
+        (await getOrderByIdFromFirestore(rawId)) ||
+        MemoryTransactionalStore.getInstance().orders.get(rawId);
+
       if (order) {
         resolvedOT = formatTrackingNumber(
           order.shippingMethod?.trackingNumber,
@@ -40,7 +44,7 @@ export async function GET(
       }
     } catch (orderLookupError) {
       // Si la búsqueda por ID de orden falla o no existe, asumimos que rawId es directamente un número de tracking OT
-      console.info(`[API Tracking] No se encontró orden por ID ${rawId}, consultando como OT directa.`);
+      console.info(`[API Tracking] Consulta por OT directa o identificador: ${rawId}`);
     }
 
     // 2. Consultar el servicio AfterShip

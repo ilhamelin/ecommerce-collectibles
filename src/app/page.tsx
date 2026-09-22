@@ -22,7 +22,6 @@ import {
   Puzzle,
 } from "lucide-react";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
-import { SidePromotionalBanners } from "@/components/home/SidePromotionalBanners";
 import { InteractiveCatalogSection } from "@/components/home/InteractiveCatalogSection";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { CatalogRepository } from "@/lib/services/CatalogRepository";
@@ -172,13 +171,9 @@ export default async function StorefrontHomePage() {
   }
 
   return (
-    <>
-      {/* 0. PROMOTIONAL SIDE FLANKING BANNERS (SKINS / ADS) */}
-      <SidePromotionalBanners />
-
-      <div className="space-y-12 sm:space-y-16 pb-20 relative">
-        {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
-        <PromotionalSlider />
+    <div className="space-y-12 sm:space-y-16 pb-20 relative">
+      {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
+      <PromotionalSlider />
 
       {/* 2. VISUAL CATEGORY EXPLORER BAR */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -494,6 +489,5 @@ export default async function StorefrontHomePage() {
         </div>
       </section>
     </div>
-    </>
   );
 }

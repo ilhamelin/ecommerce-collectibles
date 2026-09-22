@@ -47,7 +47,25 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
 
-    // 4. Bloqueo de cualquier otra colección no declarada
+    // 4. Ajustes Visuales de la Tienda (Banners Laterales, Slider, Portada, Avisos)
+    match /side_banners_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /slider_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /branding_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /announcement_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Bloqueo de cualquier otra colección no declarada
     match /{document=**} {
       allow read, write: if false;
     }

@@ -7,12 +7,12 @@ import {
 } from "../src/lib/constants/sideBannersDefaults";
 
 describe("Promotional Side Banners (Skins & Ads) Suite", () => {
-  it("should have valid default configuration with both left and right banners", () => {
-    expect(DEFAULT_SIDE_BANNERS.enabled).toBe(true);
-    expect(DEFAULT_SIDE_BANNERS.leftBanner.enabled).toBe(true);
-    expect(DEFAULT_SIDE_BANNERS.leftBanner.title).toBe("ELDEN RING");
-    expect(DEFAULT_SIDE_BANNERS.rightBanner.enabled).toBe(true);
-    expect(DEFAULT_SIDE_BANNERS.rightBanner.title).toBe("POKÉMON TCG");
+  it("should have valid clean default configuration with both banners disabled until configured", () => {
+    expect(DEFAULT_SIDE_BANNERS.enabled).toBe(false);
+    expect(DEFAULT_SIDE_BANNERS.leftBanner.enabled).toBe(false);
+    expect(DEFAULT_SIDE_BANNERS.leftBanner.imageUrl).toBe("");
+    expect(DEFAULT_SIDE_BANNERS.rightBanner.enabled).toBe(false);
+    expect(DEFAULT_SIDE_BANNERS.rightBanner.imageUrl).toBe("");
     expect(POPULAR_SIDE_PRESETS.length).toBeGreaterThanOrEqual(4);
   });
 

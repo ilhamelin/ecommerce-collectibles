@@ -10,19 +10,16 @@ import {
   CheckCircle,
   AlertCircle,
   Layers,
-  ArrowRight,
   Image as ImageIcon,
   Link2,
-  Sparkles,
   Layout,
-  UploadCloud,
-  Check,
+  Trash2,
+  Database,
 } from "lucide-react";
 import {
   DEFAULT_SIDE_BANNERS,
   SideBannersConfig,
   SideBannerItem,
-  POPULAR_SIDE_PRESETS,
 } from "@/lib/constants/sideBannersDefaults";
 import { getAdminHeaders } from "@/lib/auth/security";
 
@@ -40,7 +37,10 @@ export default function AdminSideBannersPage() {
     async function loadSettings() {
       try {
         setLoading(true);
-        const res = await fetch("/api/admin/side-banners");
+        // Direct cache-busting fetch from public API
+        const res = await fetch(`/api/side-banners?t=${Date.now()}`, {
+          cache: "no-store",
+        });
         const json = await res.json();
         if (json.success && json.data?.config) {
           setConfig(json.data.config);
@@ -73,22 +73,8 @@ export default function AdminSideBannersPage() {
     setFeedback(null);
   };
 
-  const applyPreset = (
-    side: "leftBanner" | "rightBanner",
-    preset: (typeof POPULAR_SIDE_PRESETS)[0]
-  ) => {
-    setConfig((prev) => ({
-      ...prev,
-      [side]: {
-        ...prev[side],
-        imageUrl: preset.imageUrl,
-        targetUrl: preset.targetUrl,
-        altText: preset.altText,
-        title: preset.title,
-      },
-    }));
-    setHasChanges(true);
-    setFeedback(null);
+  const handleClearImage = (side: "leftBanner" | "rightBanner") => {
+    updateBanner(side, "imageUrl", "");
   };
 
   const handleSave = async () => {
@@ -107,9 +93,12 @@ export default function AdminSideBannersPage() {
 
       const json = await res.json();
       if (json.success) {
+        const persisted = json.data?.persistedInFirestore;
         setFeedback({
           type: "success",
-          message: "¡Imágenes de banners laterales guardadas exitosamente en la tienda!",
+          message: persisted
+            ? "¡Imágenes guardadas exitosamente en la base de datos Firestore!"
+            : "¡Imágenes guardadas exitosamente en memoria local de la tienda!",
         });
         setHasChanges(false);
 
@@ -121,14 +110,14 @@ export default function AdminSideBannersPage() {
       } else {
         setFeedback({
           type: "error",
-          message: json.error || "No se pudieron guardar las imágenes.",
+          message: json.error || "No se pudieron guardar las imágenes en la base de datos.",
         });
       }
     } catch (err) {
       console.error("Error al guardar banners:", err);
       setFeedback({
         type: "error",
-        message: "Error de conexión al guardar los banners.",
+        message: "Error de conexión al conectar con la base de datos.",
       });
     } finally {
       setSaving(false);
@@ -138,7 +127,7 @@ export default function AdminSideBannersPage() {
   const handleReset = async () => {
     if (
       !confirm(
-        "¿Deseas restablecer las imágenes de los banners laterales a los valores originales?"
+        "¿Deseas limpiar y restablecer las imágenes de los banners laterales?"
       )
     ) {
       return;
@@ -160,7 +149,7 @@ export default function AdminSideBannersPage() {
         setConfig(json.data.config);
         setFeedback({
           type: "success",
-          message: "Imágenes restablecidas a los valores predeterminados.",
+          message: "Configuración restablecida y guardada en base de datos.",
         });
         setHasChanges(false);
         if (typeof window !== "undefined") {
@@ -190,7 +179,7 @@ export default function AdminSideBannersPage() {
               Personalización Visual
             </span>
             <span className="text-xs font-bold text-slate-500">
-              Imágenes Laterales Flanqueantes (Skins de Videojuegos)
+              Gestión en Base de Datos
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-[#1A1A1A] tracking-tight mt-1 flex items-center gap-2.5">
@@ -198,7 +187,7 @@ export default function AdminSideBannersPage() {
             Imágenes de Banners Laterales
           </h1>
           <p className="text-sm text-[#666666] mt-1 max-w-2xl">
-            Configura las imágenes estáticas verticales que cubren los márgenes laterales visibles de la tienda estilo webs de videojuegos y productos geeks.
+            Sube o cambia las imágenes estáticas reales que flanquean la tienda en todas las vistas de productos y categorías. Los cambios se guardan directamente en Firestore.
           </p>
         </div>
 
@@ -228,7 +217,7 @@ export default function AdminSideBannersPage() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85D25] text-white text-xs font-black transition shadow-md shadow-orange-500/20 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? "Guardando..." : "Guardar Cambios"}</span>
+            <span>{saving ? "Guardando en BD..." : "Guardar en Base de Datos"}</span>
           </button>
         </div>
       </div>
@@ -262,7 +251,7 @@ export default function AdminSideBannersPage() {
               Mostrar Banners Laterales en la Tienda
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Cubre todo el largo de la pantalla y el ancho visible de los costados en resoluciones &ge; 1420px sin tapar el contenido central.
+              Se muestran en la portada y en todas las vistas de categorías y catálogo en pantallas &ge; 1420px, deteniéndose automáticamente al llegar al footer.
             </p>
           </div>
         </div>
@@ -298,7 +287,7 @@ export default function AdminSideBannersPage() {
                   Imagen Lateral Izquierda
                 </h3>
                 <span className="text-[11px] text-slate-500">
-                  Cubre el costado izquierdo de la tienda
+                  Flanco izquierdo visible en la tienda
                 </span>
               </div>
             </div>
@@ -316,26 +305,37 @@ export default function AdminSideBannersPage() {
             </label>
           </div>
 
-          {/* Image Preview & URL Input */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-[#FF6B35]" />
-                URL de la Imagen (Póster Estático)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#FF6B35]" />
+                  URL de la Imagen
+                </label>
+                {config.leftBanner.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleClearImage("leftBanner")}
+                    className="text-[10px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Quitar imagen</span>
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={config.leftBanner.imageUrl}
                 onChange={(e) =>
                   updateBanner("leftBanner", "imageUrl", e.target.value)
                 }
-                placeholder="https://images.unsplash.com/photo-... o URL de imagen"
+                placeholder="Pega aquí la URL directa de la imagen (ej: https://...)"
                 className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-[#FF6B35] focus:outline-none"
               />
             </div>
 
-            {/* Visual Thumbnail */}
-            <div className="relative w-full h-56 rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group">
+            {/* Visual Preview */}
+            <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center">
               {config.leftBanner.imageUrl ? (
                 <img
                   src={config.leftBanner.imageUrl}
@@ -343,36 +343,20 @@ export default function AdminSideBannersPage() {
                   className="w-full h-full object-cover object-top"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                  <ImageIcon className="w-8 h-8 mb-1" />
-                  <span className="text-xs">Sin imagen configurada</span>
+                <div className="text-center p-6 text-slate-400">
+                  <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs font-bold text-slate-300">Sin imagen configurada</p>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Ingresa una URL de imagen arriba para activarla
+                  </p>
                 </div>
               )}
               <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md backdrop-blur-sm">
-                Costado Izquierdo
+                Lado Izquierdo
               </div>
             </div>
 
-            {/* Quick Game Artwork Presets */}
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                Pósters de Videojuegos Populares (Clic para aplicar):
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {POPULAR_SIDE_PRESETS.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => applyPreset("leftBanner", preset)}
-                    className="px-2.5 py-1 rounded-lg border border-gray-200 bg-gray-50 hover:bg-orange-50 hover:border-orange-300 text-[10px] font-bold text-slate-700 transition flex items-center gap-1"
-                  >
-                    <span>{preset.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Target Destination Link */}
+            {/* Target Link */}
             <div>
               <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
                 <Link2 className="w-3.5 h-3.5 text-[#FF6B35]" />
@@ -403,7 +387,7 @@ export default function AdminSideBannersPage() {
                   Imagen Lateral Derecha
                 </h3>
                 <span className="text-[11px] text-slate-500">
-                  Cubre el costado derecho (con Asistente IA superpuesto)
+                  Flanco derecho visible (con Asistente IA superpuesto)
                 </span>
               </div>
             </div>
@@ -421,26 +405,37 @@ export default function AdminSideBannersPage() {
             </label>
           </div>
 
-          {/* Image Preview & URL Input */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-[#FF6B35]" />
-                URL de la Imagen (Póster Estático)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#FF6B35]" />
+                  URL de la Imagen
+                </label>
+                {config.rightBanner.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleClearImage("rightBanner")}
+                    className="text-[10px] font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Quitar imagen</span>
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={config.rightBanner.imageUrl}
                 onChange={(e) =>
                   updateBanner("rightBanner", "imageUrl", e.target.value)
                 }
-                placeholder="https://images.unsplash.com/photo-... o URL de imagen"
+                placeholder="Pega aquí la URL directa de la imagen (ej: https://...)"
                 className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-[#FF6B35] focus:outline-none"
               />
             </div>
 
-            {/* Visual Thumbnail */}
-            <div className="relative w-full h-56 rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 group">
+            {/* Visual Preview */}
+            <div className="relative w-full h-64 rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center">
               {config.rightBanner.imageUrl ? (
                 <img
                   src={config.rightBanner.imageUrl}
@@ -448,42 +443,26 @@ export default function AdminSideBannersPage() {
                   className="w-full h-full object-cover object-top"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                  <ImageIcon className="w-8 h-8 mb-1" />
-                  <span className="text-xs">Sin imagen configurada</span>
+                <div className="text-center p-6 text-slate-400">
+                  <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs font-bold text-slate-300">Sin imagen configurada</p>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Ingresa una URL de imagen arriba para activarla
+                  </p>
                 </div>
               )}
               <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md backdrop-blur-sm">
-                Costado Derecho
+                Lado Derecho
               </div>
 
               {/* Indicator of AI superimposition */}
-              <div className="absolute bottom-2 right-2 bg-gradient-to-r from-[#0F1D30] to-[#1E293B] text-white px-2 py-1 rounded-full border border-[#FF6B35]/60 text-[9px] font-bold flex items-center gap-1 shadow-lg">
+              <div className="absolute bottom-2 right-2 bg-gradient-to-r from-[#0F1D30] to-[#1E293B] text-white px-2.5 py-1 rounded-full border border-[#FF6B35]/70 text-[9px] font-bold flex items-center gap-1 shadow-lg">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Asistente IA aquí</span>
+                <span>Asistente IA</span>
               </div>
             </div>
 
-            {/* Quick Game Artwork Presets */}
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                Pósters de Videojuegos Populares (Clic para aplicar):
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {POPULAR_SIDE_PRESETS.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => applyPreset("rightBanner", preset)}
-                    className="px-2.5 py-1 rounded-lg border border-gray-200 bg-gray-50 hover:bg-blue-50 hover:border-blue-300 text-[10px] font-bold text-slate-700 transition flex items-center gap-1"
-                  >
-                    <span>{preset.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Target Destination Link */}
+            {/* Target Link */}
             <div>
               <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
                 <Link2 className="w-3.5 h-3.5 text-[#FF6B35]" />
@@ -498,123 +477,6 @@ export default function AdminSideBannersPage() {
                 placeholder="/catalog?category=COLLECTIBLE"
                 className="w-full text-xs font-mono px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-[#FF6B35] focus:outline-none"
               />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* LIVE STOREFRONT SIMULATION PREVIEW */}
-      <div className="bg-white rounded-3xl p-6 border border-[#E5E5E5] shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-[#FF6B35]" />
-            <h3 className="text-sm font-black text-[#1A1A1A]">
-              Vista Previa de la Tienda con Imágenes Estáticas y Asistente IA Superpuesto
-            </h3>
-          </div>
-          <span className="text-[11px] text-slate-500 font-medium">
-            Simulación de pantalla de escritorio (&ge; 1420px)
-          </span>
-        </div>
-
-        {/* Browser Mock Stage */}
-        <div className="relative w-full bg-[#E5E7EB] rounded-2xl border border-slate-300 p-3 sm:p-6 flex items-stretch justify-between gap-3 sm:gap-4 overflow-hidden min-h-[460px]">
-          {/* Left Static Skin Poster */}
-          <div
-            className={`w-32 sm:w-40 rounded-2xl overflow-hidden shadow-xl border border-slate-300 relative transition-all ${
-              config.leftBanner.enabled && config.enabled
-                ? "opacity-100"
-                : "opacity-25 grayscale"
-            }`}
-          >
-            {config.leftBanner.imageUrl ? (
-              <img
-                src={config.leftBanner.imageUrl}
-                alt="Banner izquierdo"
-                className="w-full h-full object-cover object-top"
-              />
-            ) : (
-              <div className="w-full h-full bg-slate-800" />
-            )}
-            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/60 text-white/80 flex items-center justify-center text-[10px]">
-              ✕
-            </div>
-          </div>
-
-          {/* Center Storefront Content */}
-          <div className="flex-1 max-w-xl bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-[#FF6B35] text-white flex items-center justify-center text-[9px] font-black">
-                  OC
-                </div>
-                <span className="text-[11px] font-black text-slate-800">
-                  OMNICOLLECTOR STOREFRONT
-                </span>
-              </div>
-              <div className="flex gap-1.5">
-                <div className="w-10 h-2 bg-slate-200 rounded-full" />
-                <div className="w-14 h-2 bg-slate-200 rounded-full" />
-              </div>
-            </div>
-
-            {/* Slider Mock */}
-            <div className="h-40 bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-3.5 text-white flex flex-col justify-between">
-              <div>
-                <span className="text-[8px] font-bold text-orange-400 bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-800/40">
-                  VITRINA SHOWCASE
-                </span>
-                <h4 className="text-xs font-black mt-1">
-                  Videojuegos, Figuras & Coleccionables
-                </h4>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-orange-400">
-                  $ 69.900 CLP
-                </span>
-                <div className="px-2.5 py-1 bg-[#FF6B35] text-white text-[8px] font-bold rounded-lg">
-                  Ver Catálogo
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="h-8 bg-slate-100 rounded-lg" />
-              <div className="h-8 bg-slate-100 rounded-lg" />
-              <div className="h-8 bg-slate-100 rounded-lg" />
-            </div>
-          </div>
-
-          {/* Right Static Skin Poster with Superimposed Sommelier IA */}
-          <div className="relative w-32 sm:w-40">
-            <div
-              className={`w-full h-full rounded-2xl overflow-hidden shadow-xl border border-slate-300 relative transition-all ${
-                config.rightBanner.enabled && config.enabled
-                  ? "opacity-100"
-                  : "opacity-25 grayscale"
-              }`}
-            >
-              {config.rightBanner.imageUrl ? (
-                <img
-                  src={config.rightBanner.imageUrl}
-                  alt="Banner derecho"
-                  className="w-full h-full object-cover object-top"
-                />
-              ) : (
-                <div className="w-full h-full bg-slate-800" />
-              )}
-              <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/60 text-white/80 flex items-center justify-center text-[10px]">
-                ✕
-              </div>
-            </div>
-
-            {/* SOMMELIER IA FLOATING BUTTON SUPERIMPOSED ON BOTTOM-RIGHT */}
-            <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1.5 bg-gradient-to-r from-[#0F1D30] to-[#1E293B] text-white px-2.5 py-1.5 rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.5)] border border-[#FF6B35]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[9px] font-bold">Sommelier IA</span>
-              <span className="bg-[#FF6B35] text-white text-[7px] font-black px-1 rounded-full uppercase">
-                En vivo
-              </span>
             </div>
           </div>
         </div>

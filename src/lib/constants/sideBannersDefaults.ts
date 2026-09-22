@@ -16,87 +16,70 @@ export interface SideBannersConfig {
   rightBanner: SideBannerItem;
 }
 
+/**
+ * Clean default state without fake/reference placeholder images.
+ * Banners remain inactive until the administrator configures their real images.
+ */
 export const DEFAULT_SIDE_BANNERS: SideBannersConfig = {
-  enabled: true,
+  enabled: false,
   leftBanner: {
-    enabled: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
-    targetUrl: "/catalog?category=VIDEO_GAME",
-    altText: "Póster promocional Videojuegos - OmniCollector",
-    title: "ELDEN RING",
-    subtitle: "Shadow of the Erdtree",
-    badge: "DESTACADO",
-    ctaText: "Ver Videojuegos",
-    accentColor: "#EAB308",
+    enabled: false,
+    imageUrl: "",
+    targetUrl: "/catalog",
+    altText: "Banner Lateral Izquierdo",
+    title: "",
+    subtitle: "",
+    badge: "",
+    ctaText: "Ver Catálogo",
+    accentColor: "#FF6B35",
   },
   rightBanner: {
-    enabled: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
-    targetUrl: "/catalog?category=COLLECTIBLE",
-    altText: "Póster promocional TCG & Rarezas - OmniCollector",
-    title: "POKÉMON TCG",
-    subtitle: "Cartas Graduadas PSA Mint",
-    badge: "MINT 10",
-    ctaText: "Ver Cartas PSA",
+    enabled: false,
+    imageUrl: "",
+    targetUrl: "/catalog",
+    altText: "Banner Lateral Derecho",
+    title: "",
+    subtitle: "",
+    badge: "",
+    ctaText: "Ver Catálogo",
     accentColor: "#FF6B35",
   },
 };
 
+/**
+ * Suggestions for quick routing only - without fake/unrelated placeholder photos.
+ */
 export const POPULAR_SIDE_PRESETS = [
   {
-    name: "Elden Ring: Shadow of the Erdtree",
-    title: "ELDEN RING",
-    imageUrl:
-      "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&auto=format&fit=crop&q=80",
+    name: "Videojuegos & Consolas",
+    title: "VIDEOJUEGOS",
+    imageUrl: "",
     targetUrl: "/catalog?category=VIDEO_GAME",
-    altText: "Elden Ring Shadow of the Erdtree",
-    accentColor: "#EAB308",
+    altText: "Póster de Videojuegos",
+    accentColor: "#3B82F6",
   },
   {
-    name: "Final Fantasy VII Rebirth",
-    title: "FINAL FANTASY VII",
-    imageUrl:
-      "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
-    targetUrl: "/catalog?category=VIDEO_GAME",
-    altText: "Final Fantasy VII Rebirth Deluxe",
-    accentColor: "#06B6D4",
-  },
-  {
-    name: "Figuras Japonesas de Escala 1/7",
+    name: "Figuras Japonesas Originales",
     title: "FIGURAS JAPÓN",
-    imageUrl:
-      "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "",
     targetUrl: "/catalog?category=FIGURE",
-    altText: "Figuras Japonesas Importación",
+    altText: "Póster de Figuras Japonesas",
     accentColor: "#EC4899",
   },
   {
-    name: "Pokémon TCG & Cartas PSA",
-    title: "POKÉMON TCG",
-    imageUrl:
-      "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80",
+    name: "TCG & Cartas Graduadas PSA",
+    title: "TCG & CARTAS",
+    imageUrl: "",
     targetUrl: "/catalog?category=COLLECTIBLE",
-    altText: "Pokémon TCG Slabs PSA 10",
+    altText: "Póster de Cartas TCG",
+    accentColor: "#EAB308",
+  },
+  {
+    name: "Bundles & Ofertas Especiales",
+    title: "BUNDLES",
+    imageUrl: "",
+    targetUrl: "/catalog?category=BUNDLE",
+    altText: "Póster de Bundles y Packs",
     accentColor: "#FF6B35",
-  },
-  {
-    name: "The Legend of Zelda: TotK",
-    title: "ZELDA TOTK",
-    imageUrl:
-      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80",
-    targetUrl: "/catalog?category=VIDEO_GAME",
-    altText: "The Legend of Zelda Tears of the Kingdom",
-    accentColor: "#10B981",
-  },
-  {
-    name: "Cyberpunk 2077 Night City",
-    title: "CYBERPUNK",
-    imageUrl:
-      "https://images.unsplash.com/photo-1563089145-599997674d42?w=800&auto=format&fit=crop&q=80",
-    targetUrl: "/catalog?category=VIDEO_GAME",
-    altText: "Cyberpunk 2077 Night City",
-    accentColor: "#F59E0B",
   },
 ];

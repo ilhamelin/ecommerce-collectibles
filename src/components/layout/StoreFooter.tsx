@@ -13,7 +13,7 @@ export function StoreFooter() {
   }
 
   return (
-    <footer className="mt-20">
+    <footer id="store-main-footer" className="mt-20">
       {/* Trust & Guarantee Strip */}
       <div className="bg-[#F7F7F5] border-t border-b border-[#E5E5E5] py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -10,10 +10,14 @@ import {
 } from "@/lib/firebase/firestore";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 let inMemoryConfig: SideBannersConfig = { ...DEFAULT_SIDE_BANNERS };
 
 /**
  * Sanitizes a side banner item to ensure valid safe properties.
+ * Does NOT force fake images when empty string is provided.
  */
 function sanitizeBannerItem(
   item: Partial<SideBannerItem> | undefined,
@@ -24,11 +28,12 @@ function sanitizeBannerItem(
   }
   return {
     enabled: typeof item.enabled === "boolean" ? item.enabled : fallback.enabled,
+    imageUrl: typeof item.imageUrl === "string" ? item.imageUrl.trim() : "",
+    targetUrl: typeof item.targetUrl === "string" && item.targetUrl.trim() ? item.targetUrl.trim() : "/catalog",
+    altText: typeof item.altText === "string" ? item.altText.trim() : fallback.altText,
     title: typeof item.title === "string" ? item.title.trim().slice(0, 50) : fallback.title,
     subtitle: typeof item.subtitle === "string" ? item.subtitle.trim().slice(0, 100) : fallback.subtitle,
     badge: typeof item.badge === "string" ? item.badge.trim().slice(0, 30) : fallback.badge,
-    imageUrl: typeof item.imageUrl === "string" && item.imageUrl.trim() ? item.imageUrl.trim() : fallback.imageUrl,
-    targetUrl: typeof item.targetUrl === "string" && item.targetUrl.trim() ? item.targetUrl.trim() : fallback.targetUrl,
     ctaText: typeof item.ctaText === "string" ? item.ctaText.trim().slice(0, 40) : fallback.ctaText,
     accentColor: typeof item.accentColor === "string" && item.accentColor.trim() ? item.accentColor.trim() : fallback.accentColor,
   };
@@ -40,31 +45,52 @@ export async function GET(request: NextRequest) {
 
     if (firestoreConfig && typeof firestoreConfig === "object" && "leftBanner" in firestoreConfig) {
       inMemoryConfig = firestoreConfig as SideBannersConfig;
-      return NextResponse.json({
-        success: true,
-        data: {
-          config: firestoreConfig,
-          source: "FIRESTORE",
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            config: firestoreConfig,
+            source: "FIRESTORE",
+          },
         },
-      });
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+        }
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        config: inMemoryConfig,
-        source: "DEFAULT_FALLBACK",
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          config: inMemoryConfig,
+          source: "DEFAULT_FALLBACK",
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error("[SIDE_BANNERS_GET_ERROR]", error);
-    return NextResponse.json({
-      success: true,
-      data: {
-        config: inMemoryConfig,
-        source: "IN_MEMORY_FALLBACK",
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          config: inMemoryConfig,
+          source: "IN_MEMORY_FALLBACK",
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   }
 }
 
@@ -86,12 +112,13 @@ export async function POST(request: NextRequest) {
 
     if (body.action === "RESET") {
       inMemoryConfig = { ...DEFAULT_SIDE_BANNERS };
-      await saveSideBannersSettingsToFirestore(DEFAULT_SIDE_BANNERS);
+      const firestoreSuccess = await saveSideBannersSettingsToFirestore(DEFAULT_SIDE_BANNERS);
       return NextResponse.json({
         success: true,
         message: "Banners laterales restablecidos a los valores por defecto.",
         data: {
           config: DEFAULT_SIDE_BANNERS,
+          persistedInFirestore: firestoreSuccess,
         },
       });
     }
@@ -119,7 +146,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Configuración de banners laterales guardada exitosamente.",
+      message: firestoreSuccess
+        ? "Configuración de banners laterales guardada exitosamente en Firestore."
+        : "Configuración guardada en memoria local.",
       data: {
         config: sanitizedConfig,
         persistedInFirestore: firestoreSuccess,

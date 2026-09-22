@@ -8,6 +8,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { CookieConsentBanner } from "@/components/common/CookieConsentBanner";
 
 import { SommelierChatWidget } from "@/components/chat/SommelierChatWidget";
+import { SidePromotionalBanners } from "@/components/home/SidePromotionalBanners";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -39,6 +40,7 @@ export default function RootLayout({
           <CartDrawer />
           <main className="flex-1">{children}</main>
         </div>
+        <SidePromotionalBanners />
         <SommelierChatWidget />
         <ScrollToTopButton />
         <MobileBottomNav />

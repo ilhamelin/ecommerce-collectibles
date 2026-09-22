@@ -23,11 +23,11 @@ function StaticBannerCard({ banner, position, onDismiss }: StaticBannerProps) {
   return (
     <aside
       aria-label={`Banner estático lateral ${isLeft ? "izquierdo" : "derecho"}`}
-      className={`fixed top-[92px] bottom-3 ${
-        isLeft ? "left-2 2xl:left-3.5" : "right-2 2xl:right-3.5"
-      } z-30 hidden min-[1420px]:flex flex-col w-[calc((100vw-1280px)/2-18px)] max-w-[280px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 bg-[#0B131E] group select-none transition-all duration-300`}
+      className={`fixed top-[112px] bottom-4 ${
+        isLeft ? "left-2 2xl:left-4" : "right-2 2xl:right-4"
+      } !mt-0 !mb-0 m-0 z-30 hidden min-[1420px]:flex flex-col w-[calc((100vw-1280px)/2-24px)] max-w-[280px] rounded-2xl 2xl:rounded-3xl overflow-hidden shadow-xl border border-slate-200/90 bg-[#0B131E] group select-none transition-all duration-300`}
     >
-      {/* Clickable Static Poster Link covering full area */}
+      {/* Clickable Static Poster Link covering 100% of the banner */}
       <Link
         href={banner.targetUrl || "/catalog"}
         className="relative w-full h-full block overflow-hidden group cursor-pointer"

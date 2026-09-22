@@ -172,12 +172,13 @@ export default async function StorefrontHomePage() {
   }
 
   return (
-    <div className="space-y-16 pb-20 relative">
+    <>
       {/* 0. PROMOTIONAL SIDE FLANKING BANNERS (SKINS / ADS) */}
       <SidePromotionalBanners />
 
-      {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
-      <PromotionalSlider />
+      <div className="space-y-12 sm:space-y-16 pb-20 relative">
+        {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
+        <PromotionalSlider />
 
       {/* 2. VISUAL CATEGORY EXPLORER BAR */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -493,5 +494,6 @@ export default async function StorefrontHomePage() {
         </div>
       </section>
     </div>
+    </>
   );
 }

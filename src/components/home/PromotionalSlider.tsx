@@ -181,7 +181,7 @@ export function PromotionalSlider() {
 
   return (
     <section
-      className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8 select-none"
+      className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-8 select-none"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
@@ -191,7 +191,7 @@ export function PromotionalSlider() {
       aria-roledescription="carousel"
     >
       {/* 3D Showcase Stage with LOCKED FIXED HEIGHT to completely prevent layout jumps */}
-      <div className="relative w-full overflow-hidden rounded-3xl py-2">
+      <div className="relative w-full overflow-hidden rounded-3xl py-1">
         {/* Ambient atmospheric backdrop */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/5 via-transparent to-[#0F172A]/5 rounded-3xl pointer-events-none" />
 

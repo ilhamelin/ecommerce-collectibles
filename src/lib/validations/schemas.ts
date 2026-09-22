@@ -149,6 +149,7 @@ export const CreateProductSchema = z.object({
   isPreOrder: z.boolean().default(false),
   preOrderState: PreOrderStateEnum.optional(),
   trailerUrl: z.string().optional(),
+  showTrailerSection: z.boolean().optional(),
   ageRating: z.string().optional(),
   genres: z.array(z.string()).optional(),
   contentGallery: z.array(z.string()).optional(),

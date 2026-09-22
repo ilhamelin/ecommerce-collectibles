@@ -112,6 +112,7 @@ export class CatalogRepository {
       figureMetadata,
       collectibleMetadata,
       customCategoryLabel: categoryLabel,
+      showTrailerSection: productData.showTrailerSection !== undefined ? productData.showTrailerSection : true,
       sku: productData.sku.toUpperCase().trim(),
       stockReserved: 0,
       price: Math.round(productData.price),
@@ -149,6 +150,7 @@ export class CatalogRepository {
       ...updates,
       id: existing.id,
       customCategoryLabel: categoryLabel,
+      showTrailerSection: updates.showTrailerSection !== undefined ? updates.showTrailerSection : existing.showTrailerSection,
       gameMetadata: updates.gameMetadata
         ? { ...updates.gameMetadata, productId: existing.id }
         : existing.gameMetadata,

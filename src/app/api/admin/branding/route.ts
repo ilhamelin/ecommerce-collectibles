@@ -76,10 +76,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sanitizar SVG en caso de icono generado por IA
+    let cleanSvg: string | undefined = undefined;
+    if (incoming.customSvgIcon && typeof incoming.customSvgIcon === "string") {
+      const rawSvg = incoming.customSvgIcon.trim();
+      if (rawSvg.includes("<svg") && rawSvg.includes("</svg>")) {
+        // Remover tags de script, handlers on* y javascript:
+        cleanSvg = rawSvg
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+          .replace(/\bon\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, "")
+          .replace(/javascript:/gi, "");
+      }
+    }
+
     const updatedBranding: StoreBrandingData = {
       logoMode: incoming.logoMode === "image" ? "image" : "icon",
       logoImageUrl: incoming.logoImageUrl ? String(incoming.logoImageUrl).trim() : "",
       logoIcon: incoming.logoIcon ? String(incoming.logoIcon).trim() : "Sparkles",
+      customSvgIcon: cleanSvg || (incoming.customSvgIcon ? String(incoming.customSvgIcon).trim() : undefined),
       logoBgGradient: incoming.logoBgGradient ? String(incoming.logoBgGradient).trim() : "from-[#FF6B35] to-[#1F3A5F]",
       titlePrefix: incoming.titlePrefix ? String(incoming.titlePrefix).trim() : "OMNI",
       titleHighlight: incoming.titleHighlight ? String(incoming.titleHighlight).trim() : "COLLECTOR",

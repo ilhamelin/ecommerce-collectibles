@@ -363,7 +363,12 @@ function StoreNavbarContent() {
                   branding.logoBgGradient || "from-[#FF6B35] to-[#1F3A5F]"
                 } flex items-center justify-center shadow-md shadow-[#1F3A5F]/20 group-hover:scale-105 transition`}
               >
-                {branding.logoIcon === "Flame" ? (
+                {branding.logoIcon === "AI_GENERATED" && branding.customSvgIcon ? (
+                  <div
+                    className="w-5 h-5 text-white flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5"
+                    dangerouslySetInnerHTML={{ __html: branding.customSvgIcon }}
+                  />
+                ) : branding.logoIcon === "Flame" ? (
                   <Flame className="w-5 h-5 text-white" />
                 ) : branding.logoIcon === "Gamepad2" ? (
                   <Gamepad2 className="w-5 h-5 text-white" />

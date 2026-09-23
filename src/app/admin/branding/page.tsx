@@ -23,11 +23,17 @@ import {
   Type,
   Layout,
   Layers,
+  Wand2,
+  Bot,
+  Loader2,
+  Check,
+  RefreshCw,
 } from "lucide-react";
 import {
   DEFAULT_BRANDING_DATA,
   LOGO_GRADIENT_OPTIONS,
   LOGO_ICON_OPTIONS,
+  AI_ICON_PRESETS,
   StoreBrandingData,
 } from "@/lib/constants/brandingDefaults";
 import { getAdminHeaders } from "@/lib/auth/security";
@@ -41,6 +47,7 @@ const ICON_COMPONENTS: Record<string, React.ElementType> = {
   Crown,
   Zap,
   Star,
+  AI_GENERATED: Wand2,
 };
 
 export default function AdminBrandingPage() {
@@ -49,6 +56,16 @@ export default function AdminBrandingPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
+
+  // Estados para Generador de Iconos con IA
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState<boolean>(false);
+  const [aiPrompt, setAiPrompt] = useState<string>("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string>("mando_retro");
+  const [isGeneratingIcon, setIsGeneratingIcon] = useState<boolean>(false);
+  const [generatedAiSvg, setGeneratedAiSvg] = useState<string | null>(null);
+  const [generatedAiTitle, setGeneratedAiTitle] = useState<string>("");
+  const [aiSource, setAiSource] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchBranding() {
@@ -123,6 +140,64 @@ export default function AdminBrandingPage() {
       setHasChanges(true);
       setFeedback(null);
     }
+  };
+
+  /**
+   * Genera un icono vectorial con IA utilizando Gemini o los presets vectoriales.
+   */
+  const handleGenerateAiIcon = async (presetId?: string, customPromptText?: string) => {
+    try {
+      setIsGeneratingIcon(true);
+      setAiError(null);
+
+      const targetPreset = presetId || selectedPresetId;
+      const targetPrompt = customPromptText !== undefined ? customPromptText : aiPrompt;
+
+      const res = await fetch("/api/admin/branding/generate-icon", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAdminHeaders(),
+        },
+        body: JSON.stringify({
+          presetId: targetPreset,
+          prompt: targetPrompt,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success && json.data?.svg) {
+        setGeneratedAiSvg(json.data.svg);
+        setGeneratedAiTitle(json.data.title || "Icono Vectorial Generado");
+        setAiSource(json.data.source || "AI_GEMINI");
+        // Si el usuario aún no tenía seleccionado AI_GENERATED, sugerir aplicarlo
+      } else {
+        setAiError(json.error || "No se pudo generar el icono con IA.");
+      }
+    } catch (err: unknown) {
+      console.error("Error al generar icono con IA:", err);
+      setAiError("Error de comunicación al generar el icono.");
+    } finally {
+      setIsGeneratingIcon(false);
+    }
+  };
+
+  /**
+   * Aplica el icono generado con IA a la configuración actual del branding.
+   */
+  const handleApplyAiIcon = () => {
+    if (!generatedAiSvg) return;
+    setBranding((prev) => ({
+      ...prev,
+      logoMode: "icon",
+      logoIcon: "AI_GENERATED",
+      customSvgIcon: generatedAiSvg,
+    }));
+    setHasChanges(true);
+    setFeedback({
+      type: "success",
+      message: "¡Icono generado con IA aplicado al logotipo! Haz clic en 'GUARDAR CAMBIOS' para publicarlo.",
+    });
   };
 
   const CurrentIcon = ICON_COMPONENTS[branding.logoIcon] || Sparkles;
@@ -269,36 +344,220 @@ export default function AdminBrandingPage() {
             {/* Mode: Vector Icon + Gradient */}
             {branding.logoMode === "icon" && (
               <div className="space-y-5">
-                {/* Select Icon */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-[#1A1A1A] block">
-                    Selecciona el Icono Símbolo
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* Select Icon Header & AI Trigger */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#1A1A1A] block">
+                      Selecciona el Icono Símbolo
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAiPanelOpen(!isAiPanelOpen)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black transition shadow-xs cursor-pointer ${
+                        isAiPanelOpen || branding.logoIcon === "AI_GENERATED"
+                          ? "bg-gradient-to-r from-[#FF6B35] to-[#1F3A5F] text-white ring-2 ring-[#FF6B35]/40"
+                          : "bg-orange-50 hover:bg-orange-100 text-[#FF6B35] border border-orange-200"
+                      }`}
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>{isAiPanelOpen ? "Cerrar Creador IA" : "Generar con IA ✨"}</span>
+                    </button>
+                  </div>
+
+                  {/* Grid de Iconos disponibles */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {LOGO_ICON_OPTIONS.map((item) => {
-                      const IconComponent = ICON_COMPONENTS[item.id] || Sparkles;
                       const isSelected = branding.logoIcon === item.id;
+                      const isAiItem = item.id === "AI_GENERATED";
+
                       return (
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => updateField("logoIcon", item.id)}
-                          className={`p-3 rounded-xl border text-center flex flex-col items-center gap-1.5 transition ${
+                          onClick={() => {
+                            updateField("logoIcon", item.id);
+                            if (isAiItem) {
+                              setIsAiPanelOpen(true);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border text-center flex flex-col items-center gap-1.5 transition relative overflow-hidden ${
                             isSelected
                               ? "bg-[#1F3A5F] border-[#FF6B35] text-white shadow-sm ring-2 ring-[#FF6B35]"
+                              : isAiItem
+                              ? "bg-gradient-to-b from-orange-50/80 to-white border-orange-200 text-[#1F3A5F] hover:border-orange-400"
                               : "bg-[#FAFAFA] border-[#E5E5E5] text-[#333333] hover:bg-gray-100 hover:border-[#1F3A5F]/30"
                           }`}
                         >
-                          <IconComponent className={`w-5 h-5 ${isSelected ? "text-[#FF6B35]" : "text-[#1F3A5F]"}`} />
-                          <span className="text-[11px] font-bold">{item.label.split("/")[0].trim()}</span>
+                          {isAiItem && (
+                            <span className="absolute top-1.5 right-1.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-[#FF6B35] text-white">
+                              IA
+                            </span>
+                          )}
+
+                          {isAiItem && branding.customSvgIcon ? (
+                            <div
+                              className="w-5 h-5 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5"
+                              style={{ color: isSelected ? "#FF6B35" : "#1F3A5F" }}
+                              dangerouslySetInnerHTML={{ __html: branding.customSvgIcon }}
+                            />
+                          ) : (
+                            React.createElement(ICON_COMPONENTS[item.id] || Sparkles, {
+                              className: `w-5 h-5 ${isSelected ? "text-[#FF6B35]" : isAiItem ? "text-[#FF6B35]" : "text-[#1F3A5F]"}`,
+                            })
+                          )}
+                          <span className="text-[11px] font-bold truncate max-w-full">
+                            {item.label.split("/")[0].trim()}
+                          </span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
+                {/* PANEL GENERADOR DE ICONOS CON IA */}
+                {(isAiPanelOpen || branding.logoIcon === "AI_GENERATED") && (
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-[#1F3A5F] text-white border border-[#1F3A5F] shadow-md space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-[#FF6B35] text-[11px] font-black">
+                          <Bot className="w-3.5 h-3.5" />
+                          Generador de Isotipos con Inteligencia Artificial
+                        </div>
+                        <h4 className="text-sm font-black text-white mt-1">
+                          Crea un Símbolo Vectorial acorde al Contexto de OmniCollector
+                        </h4>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          Diseña un isotipo minimalista y nítido para la cabecera inspirado en videojuegos, figuras de colección, anime japonés o cartas TCG graduadas.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Presets Temáticos Rápidos (1 clic) */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] uppercase tracking-wider font-bold text-slate-300 block">
+                        Ideas Temáticas del Nicho Coleccionista
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {AI_ICON_PRESETS.map((preset) => {
+                          const isPresetSelected = selectedPresetId === preset.id;
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPresetId(preset.id);
+                                setAiPrompt(preset.title);
+                                handleGenerateAiIcon(preset.id, preset.title);
+                              }}
+                              className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                                isPresetSelected
+                                  ? "bg-white/20 border-[#FF6B35] text-white shadow-xs"
+                                  : "bg-white/5 border-white/10 text-slate-200 hover:bg-white/10 hover:border-white/30"
+                              }`}
+                            >
+                              <span className="text-xs font-black text-white block">
+                                {preset.title}
+                              </span>
+                              <span className="text-[10px] text-slate-300 line-clamp-2 mt-1">
+                                {preset.description}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Campo de prompt libre */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] uppercase tracking-wider font-bold text-slate-300 block">
+                        O Describe tu Propio Icono Personalizado
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          placeholder="ej: Un casco de samurai futurista, una carta TCG brillante, un Nendoroid chibi..."
+                          className="flex-1 px-3.5 py-2 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#FF6B35] transition"
+                        />
+                        <button
+                          type="button"
+                          disabled={isGeneratingIcon}
+                          onClick={() => handleGenerateAiIcon(selectedPresetId, aiPrompt)}
+                          className="px-4 py-2 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] text-white text-xs font-black transition flex items-center gap-1.5 shrink-0 disabled:opacity-50 cursor-pointer shadow-xs"
+                        >
+                          {isGeneratingIcon ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Generando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-4 h-4" />
+                              <span>Generar con IA</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mensaje de Error en caso de falla */}
+                    {aiError && (
+                      <div className="p-3 rounded-xl bg-red-900/60 border border-red-500/50 text-red-200 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                        <span>{aiError}</span>
+                      </div>
+                    )}
+
+                    {/* Previsualización del Icono Generado */}
+                    {generatedAiSvg && (
+                      <div className="p-4 rounded-xl bg-white/10 border border-white/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-12 h-12 rounded-xl bg-gradient-to-br ${branding.logoBgGradient} flex items-center justify-center p-2.5 text-white shadow-md shrink-0 [&>svg]:w-full [&>svg]:h-full`}
+                            dangerouslySetInnerHTML={{ __html: generatedAiSvg }}
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-white">{generatedAiTitle}</span>
+                              <span className="px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                                ✓ Generado
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-300 block mt-0.5">
+                              {aiSource ? `Origen: ${aiSource}` : "Vector SVG Nítido y Escalable"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateAiIcon(selectedPresetId, aiPrompt)}
+                            disabled={isGeneratingIcon}
+                            className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                            title="Regenerar otra variante"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingIcon ? "animate-spin" : ""}`} />
+                            <span>Variante</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleApplyAiIcon}
+                            className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Usar este Icono</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Select Background Gradient */}
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2">
                   <label className="text-xs font-bold text-[#1A1A1A] block">
                     Estilo de Gradiente de Fondo
                   </label>
@@ -417,6 +676,11 @@ export default function AdminBrandingPage() {
                       }}
                     />
                   </div>
+                ) : branding.logoIcon === "AI_GENERATED" && branding.customSvgIcon ? (
+                  <div
+                    className={`w-10 h-10 rounded-xl bg-gradient-to-br ${branding.logoBgGradient} flex items-center justify-center p-2 text-white shadow-md shrink-0 [&>svg]:w-full [&>svg]:h-full`}
+                    dangerouslySetInnerHTML={{ __html: branding.customSvgIcon }}
+                  />
                 ) : (
                   <div
                     className={`w-10 h-10 rounded-xl bg-gradient-to-br ${branding.logoBgGradient} flex items-center justify-center shadow-md shrink-0`}
@@ -466,6 +730,11 @@ export default function AdminBrandingPage() {
                     className="w-full h-full object-contain"
                   />
                 </div>
+              ) : branding.logoIcon === "AI_GENERATED" && branding.customSvgIcon ? (
+                <div
+                  className={`w-9 h-9 rounded-xl bg-gradient-to-br ${branding.logoBgGradient} flex items-center justify-center p-1.5 text-white shadow shrink-0 [&>svg]:w-full [&>svg]:h-full`}
+                  dangerouslySetInnerHTML={{ __html: branding.customSvgIcon }}
+                />
               ) : (
                 <div
                   className={`w-9 h-9 rounded-xl bg-gradient-to-br ${branding.logoBgGradient} flex items-center justify-center shadow shrink-0`}

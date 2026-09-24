@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { formatCLP } from "@/lib/utils/currency";
+import { toast } from "@/lib/store/toastStore";
 
 export function CartDrawer() {
   const router = useRouter();
@@ -85,7 +86,20 @@ export function CartDrawer() {
     setCouponFeedback(res);
     if (res.success) {
       setCouponInput("");
+      toast.success("¡Cupón Aplicado!", res.message);
+    } else {
+      toast.error("Cupón no válido", res.message);
     }
+  };
+
+  const handleRemoveItem = (id: string, name: string) => {
+    removeItem(id);
+    toast.info("Producto retirado", `${name} fue eliminado del carro.`);
+  };
+
+  const handleMoveToWishlist = (id: string, name: string) => {
+    moveToWishlist(id);
+    toast.collector("Guardado para más tarde", `${name} se guardó en tu lista.`);
   };
 
   const handleGoToCheckout = () => {
@@ -277,6 +291,35 @@ export function CartDrawer() {
               </div>
             )}
 
+            {/* Free Shipping Progress Indicator */}
+            {items.length > 0 && (
+              <div className="p-3.5 rounded-2xl bg-white border border-[#E5E5E5] space-y-2 shadow-2xs">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold flex items-center gap-1.5 text-[#1A1A1A]">
+                    <Truck className="w-4 h-4 text-[#FF6B35]" />
+                    {totals.subtotal >= 80000 ? (
+                      <span className="text-[#2E9E5B] font-extrabold">¡Despacho 100% Bonificado a todo Chile! 🎉</span>
+                    ) : (
+                      <span>
+                        Faltan <strong className="text-[#FF6B35] font-mono">{formatCLP(80000 - totals.subtotal)}</strong> para envío gratis
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-mono text-[10px] text-[#666666]">
+                    Meta: $80.000
+                  </span>
+                </div>
+                <div className="w-full bg-[#E5E5E5] h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      totals.subtotal >= 80000 ? "bg-[#2E9E5B]" : "bg-gradient-to-r from-[#FF6B35] to-[#FFA07A]"
+                    }`}
+                    style={{ width: `${Math.min(100, Math.round((totals.subtotal / 80000) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Active Items */}
             {items.map((item) => (
               <div
@@ -302,14 +345,14 @@ export function CartDrawer() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
-                      onClick={() => moveToWishlist(item.id)}
+                      onClick={() => handleMoveToWishlist(item.id, item.name)}
                       className="text-[#666666] hover:text-[#FF6B35] transition p-1"
                       title="Guardar para después"
                     >
                       <Bookmark className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => handleRemoveItem(item.id, item.name)}
                       className="text-[#666666] hover:text-[#D64545] transition p-1"
                       title="Remover"
                     >

@@ -37,6 +37,7 @@ import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { useAuthStore } from "@/lib/store/authStore";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { toast } from "@/lib/store/toastStore";
 
 export default function AdminProductsListPage() {
   const { currentUser, login } = useAuthStore();
@@ -75,15 +76,16 @@ export default function AdminProductsListPage() {
       const data = await res.json();
       if (data.success) {
         setDeleteMsg(`¡Producto ${targetSku} eliminado con éxito de Cloud Firestore y del catálogo!`);
+        toast.success("Producto eliminado", `SKU ${targetSku} eliminado de Cloud Firestore.`);
         setTimeout(() => setDeleteMsg(null), 5000);
         // Refresh with fresh database query to ensure absolute sync
         loadProducts(false);
       } else {
-        alert(data.error || "No se pudo eliminar el producto de Firestore.");
+        toast.error("Error al eliminar", data.error || "No se pudo eliminar el producto de Firestore.");
         loadProducts(true);
       }
     } catch (err) {
-      alert("Error de conexión al eliminar el producto de Firestore.");
+      toast.error("Error de conexión", "No se pudo eliminar el producto de Firestore.");
       loadProducts(true);
     } finally {
       setDeletingId(null);

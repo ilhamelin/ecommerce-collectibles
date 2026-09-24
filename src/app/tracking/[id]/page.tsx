@@ -35,6 +35,7 @@ import {
   CourierInfo,
 } from "@/lib/tracking/chilean-couriers";
 import { TrackingResult } from "@/lib/types/tracking";
+import { toast } from "@/lib/store/toastStore";
 
 // Dynamically import Leaflet map with ssr: false
 const LiveTrackingMap = dynamic(
@@ -171,6 +172,7 @@ export default function OrderTrackingPage() {
   const handleCopyOT = () => {
     navigator.clipboard.writeText(rawOT);
     setCopiedOT(true);
+    toast.success("N° de seguimiento copiado", rawOT);
     setTimeout(() => setCopiedOT(false), 2000);
   };
 

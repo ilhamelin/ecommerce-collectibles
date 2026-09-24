@@ -36,6 +36,7 @@ import {
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { ConfirmedOrderEntity, ProductDomainEntity } from "@/lib/types/domain";
+import { toast } from "@/lib/store/toastStore";
 
 type PeriodFilter = "ALL" | "MONTH" | "WEEK" | "TODAY";
 
@@ -281,7 +282,7 @@ export default function AdminDashboardPage() {
   // Export orders to CSV (ordered chronologically descending)
   const handleExportCSV = () => {
     if (orders.length === 0) {
-      alert("No hay pedidos registrados para exportar.");
+      toast.warning("Sin pedidos", "No hay pedidos registrados para exportar.");
       return;
     }
 
@@ -345,6 +346,7 @@ export default function AdminDashboardPage() {
       `Respaldo cronológico de ${sortedOrders.length} pedidos por un total de $${totalCollected.toLocaleString("es-CL")} CLP.`,
       csvContent
     );
+    toast.success("CSV Exportado", `${sortedOrders.length} pedidos exportados exitosamente.`);
   };
 
   // Slow-moving / Unsold Products Audit Logic
@@ -426,7 +428,7 @@ export default function AdminDashboardPage() {
 
   const handleExportStagnantCSV = () => {
     if (filteredStagnantProducts.length === 0) {
-      alert("No hay productos en el reporte de rotación para exportar.");
+      toast.warning("Sin datos", "No hay productos en el reporte de rotación para exportar.");
       return;
     }
 
@@ -475,6 +477,7 @@ export default function AdminDashboardPage() {
       `Auditoría de rotación con ${filteredStagnantProducts.length} productos sin vender por un valor de $${totalCapitalTiedUp.toLocaleString("es-CL")} CLP.`,
       csvContent
     );
+    toast.success("Auditoría exportada", `${filteredStagnantProducts.length} productos exportados a CSV.`);
   };
 
   return (
@@ -633,7 +636,7 @@ export default function AdminDashboardPage() {
                           a.click();
                           document.body.removeChild(a);
                         } else {
-                          alert("Descargando respaldo desde base de datos...");
+                          toast.info("Descarga iniciada", "Obteniendo respaldo de base de datos...");
                         }
                       }}
                       className="px-3 py-1.5 rounded-xl bg-white border border-[#E5E5E5] hover:bg-[#1F3A5F] hover:text-white text-[#1A1A1A] font-bold text-xs transition flex items-center gap-1.5 shrink-0 shadow-xs"

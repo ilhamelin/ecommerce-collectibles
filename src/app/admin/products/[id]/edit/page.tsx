@@ -61,6 +61,7 @@ import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
+import { toast } from "@/lib/store/toastStore";
 
 const CUSTOM_CATEGORY_PRESETS = [
   "Consolas",
@@ -479,10 +480,11 @@ export default function EditProductAdminPage() {
         deleteProductFromFirestoreClient(productId).catch((e) =>
           console.warn("[Client Delete Sync]", e)
         );
-        alert(`¡Producto ${sku} eliminado con éxito de Cloud Firestore!`);
+        toast.success("Producto eliminado", `SKU ${sku} eliminado con éxito de Cloud Firestore.`);
         router.push("/admin/products");
       } else {
         setErrorMsg(data.error || "No se pudo eliminar el producto.");
+        toast.error("Error al eliminar", data.error || "No se pudo eliminar el producto.");
       }
     } catch {
       setErrorMsg("Error de red al intentar eliminar el producto.");

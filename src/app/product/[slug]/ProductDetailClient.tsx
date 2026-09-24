@@ -17,13 +17,16 @@ import {
   Tag,
   CheckCircle2,
   Tv,
-  Layers,
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Share2,
+  Flame,
+  Copy,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
+import { toast } from "@/lib/store/toastStore";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { RelatedProductsSlider } from "@/components/catalog/RelatedProductsSlider";
 import { analytics } from "@/lib/services/AnalyticsTracker";
@@ -1060,12 +1063,59 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
     });
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2200);
+
+    toast.success(
+      "¡Agregado al Carro!",
+      isPreOrder
+        ? `Reserva registrada para ${product.name}.`
+        : `${product.name} listo para finalizar compra.`
+    );
   };
 
   const handleToggleWishlist = () => {
-    toggleWishlist(product.id);
+    const res = toggleWishlist(product.id);
     setWishlistToast(isLiked ? "Removido de favoritos" : "Guardado en favoritos");
     setTimeout(() => setWishlistToast(null), 1800);
+
+    if (isLiked) {
+      toast.info("Removido de Favoritos", product.name);
+    } else {
+      toast.collector("¡Guardado en Favoritos!", product.name);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Mira ${product.name} en OmniCollector Chile`,
+          url,
+        });
+        toast.info("Compartido con éxito");
+        return;
+      } catch {
+        // user cancelled or share failed, fallback to clipboard
+      }
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("¡Enlace copiado al portapapeles!", "Listo para compartir por WhatsApp o redes.");
+      } catch {
+        toast.info("Enlace copiado", url);
+      }
+    }
+  };
+
+  const handleCopySku = async () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(product.sku);
+        toast.info("SKU copiado al portapapeles", product.sku);
+      } catch {}
+    }
   };
 
   const whatsappMessage = encodeURIComponent(
@@ -1093,9 +1143,15 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
 
       {/* Product SKU Top Pill & H1 Title */}
       <div className="space-y-1.5">
-        <div className="inline-block px-2.5 py-0.5 rounded border border-[#E5E5E5] bg-white text-[11px] font-mono text-[#666666] tracking-wider shadow-sm">
-          {product.sku}
-        </div>
+        <button
+          type="button"
+          onClick={handleCopySku}
+          title="Copiar SKU al portapapeles"
+          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border border-[#E5E5E5] bg-white hover:border-[#FF6B35] text-[11px] font-mono text-[#666666] hover:text-[#FF6B35] tracking-wider shadow-xs transition group cursor-pointer"
+        >
+          <span>{product.sku}</span>
+          <Copy className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+        </button>
         <h1 className="text-2xl sm:text-4xl font-extrabold text-[#1A1A1A] tracking-tight">
           {product.name}
           {!product.name.includes("[") && (
@@ -1283,7 +1339,7 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
                   onClick={handleToggleWishlist}
                   aria-label="Favoritos"
                   title="Guardar en lista de deseos"
-                  className={`p-3.5 rounded-xl border transition flex items-center justify-center ${
+                  className={`p-3.5 rounded-xl border transition flex items-center justify-center cursor-pointer ${
                     isLiked
                       ? "bg-[#FF6B35] border-[#FF6B35] text-white"
                       : "bg-white border-[#E5E5E5] text-[#666666] hover:text-[#FF6B35]"
@@ -1291,8 +1347,30 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
                 >
                   <Heart className={`w-5 h-5 ${isLiked ? "fill-white" : ""}`} />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Compartir producto"
+                  title="Compartir enlace"
+                  className="p-3.5 rounded-xl border border-[#E5E5E5] bg-white text-[#666666] hover:text-[#1F3A5F] hover:border-[#1F3A5F]/40 transition flex items-center justify-center cursor-pointer"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
               </div>
             </div>
+
+            {/* Low Stock Live Urgency Badge */}
+            {product.stockAvailable <= 3 && product.stockAvailable > 0 && !isPreOrder && (
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold animate-pulse">
+                <Flame className="w-4 h-4 text-[#FF6B35] shrink-0" />
+                <span>
+                  ¡Alta demanda de coleccionistas! Quedan solo{" "}
+                  <strong className="text-[#FF6B35]">{product.stockAvailable} {product.stockAvailable === 1 ? "unidad" : "unidades"}</strong>{" "}
+                  en bodega Santiago.
+                </span>
+              </div>
+            )}
 
             {/* In-Store & Web Availability Check */}
             <div className="flex items-center gap-2 text-xs font-semibold text-[#2E9E5B] pt-1 border-t border-[#E5E5E5]">
@@ -1303,6 +1381,22 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
                   (Despacho prioritario a todo Chile • Stock: {product.stockAvailable} un.)
                 </span>
               </span>
+            </div>
+
+            {/* Collector Trust Micro-Signals */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#E5E5E5] text-[11px] text-[#666666]">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F7F7F5]">
+                <span className="text-base">🇯🇵</span>
+                <span className="font-medium text-[#1A1A1A]">100% Original Japón</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F7F7F5]">
+                <Package className="w-4 h-4 text-[#1F3A5F] shrink-0" />
+                <span className="font-medium text-[#1A1A1A]">Embalaje Blindado</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F7F7F5]">
+                <ShieldCheck className="w-4 h-4 text-[#2E9E5B] shrink-0" />
+                <span className="font-medium text-[#1A1A1A]">Garantía Anti-Bootleg</span>
+              </div>
             </div>
 
             {/* Pre-order partial deposit selector if applicable */}

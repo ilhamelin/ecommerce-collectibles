@@ -40,6 +40,7 @@ import {
 } from "@/lib/constants/sliderDefaults";
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
+import { toast } from "@/lib/store/toastStore";
 
 function getCategoryLabel(type: string) {
   switch (type) {
@@ -254,12 +255,15 @@ export default function AdminSliderPage() {
           type: "success",
           message: "¡Cambios guardados con éxito! El slider del inicio ya está actualizado.",
         });
+        toast.success("Slider guardado", "El carrusel de inicio se actualizó en Firestore.");
         setHasChanges(false);
       } else {
+        const errorMsg = json.error || "No se pudieron guardar los cambios en el servidor.";
         setFeedback({
           type: "error",
-          message: json.error || "No se pudieron guardar los cambios en el servidor.",
+          message: errorMsg,
         });
+        toast.error("Error al guardar", errorMsg);
       }
     } catch (err) {
       console.error("Save error:", err);
@@ -267,6 +271,7 @@ export default function AdminSliderPage() {
         type: "error",
         message: "Ocurrió un error de red al intentar guardar los cambios.",
       });
+      toast.error("Error de conexión", "No se pudo guardar la configuración.");
     } finally {
       setSaving(false);
     }
@@ -299,6 +304,7 @@ export default function AdminSliderPage() {
           type: "success",
           message: "El slider se ha restablecido a los valores por defecto.",
         });
+        toast.info("Slider restablecido", "Se cargaron los slides por defecto.");
       }
     } catch (err) {
       console.error("Reset error:", err);
@@ -306,6 +312,7 @@ export default function AdminSliderPage() {
         type: "error",
         message: "No se pudo restablecer el slider.",
       });
+      toast.error("Error", "No se pudo restablecer el slider.");
     } finally {
       setSaving(false);
     }
@@ -337,11 +344,12 @@ export default function AdminSliderPage() {
     setSlides((prev) => [...prev, newSlide]);
     setActiveSlideIndex(slides.length);
     setHasChanges(true);
+    toast.success("Nuevo slide agregado", "Edita los campos y presiona Guardar.");
   };
 
   const removeSlide = (index: number) => {
     if (slides.length <= 1) {
-      alert("Debe existir al menos un slide en el carrusel.");
+      toast.warning("Acción no permitida", "Debe existir al menos un slide en el carrusel.");
       return;
     }
     if (!window.confirm("¿Eliminar este slide del carrusel?")) return;
@@ -349,6 +357,7 @@ export default function AdminSliderPage() {
     setSlides((prev) => prev.filter((_, i) => i !== index));
     setActiveSlideIndex(Math.max(0, index - 1));
     setHasChanges(true);
+    toast.info("Slide eliminado");
   };
 
   if (loading) {

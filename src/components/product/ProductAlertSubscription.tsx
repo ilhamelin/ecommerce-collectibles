@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, BellRing, Check, Mail, Loader2, ArrowUpRight } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
+import { toast } from "@/lib/store/toastStore";
 
 interface ProductAlertSubscriptionProps {
   productId: string;
@@ -130,11 +131,15 @@ export function ProductAlertSubscription({
         if (data.data?.previewUrl) {
           setPreviewUrl(data.data.previewUrl);
         }
+        toast.success("¡Alerta activada!", `Te avisaremos a ${targetEmail} ante novedades de stock o precio.`);
       } else {
-        setFeedbackMessage(data.error || "Ocurrió un problema al activar la alerta.");
+        const errorMsg = data.error || "Ocurrió un problema al activar la alerta.";
+        setFeedbackMessage(errorMsg);
+        toast.error("No se pudo activar la alerta", errorMsg);
       }
     } catch (err) {
       setFeedbackMessage("Error de conexión al activar la alerta.");
+      toast.error("Error de conexión", "Inténtalo nuevamente en unos momentos.");
     } finally {
       setIsLoading(false);
     }
@@ -155,11 +160,13 @@ export function ProductAlertSubscription({
         setIsSubscribed(false);
         setActiveAlertId(null);
         setFeedbackMessage(null);
+        toast.info("Alerta cancelada", "Ya no recibirás avisos para este producto.");
       } else {
-        alert(data.error || "No se pudo cancelar el aviso");
+        toast.error("Error al cancelar alerta", data.error || "No se pudo cancelar el aviso");
       }
     } catch (err) {
       console.error("[ProductAlertSubscription] Error cancelling alert:", err);
+      toast.error("Error de red", "No se pudo conectar con el servidor.");
     } finally {
       setIsLoading(false);
     }

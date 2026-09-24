@@ -44,6 +44,7 @@ import { useAuthStore, UserAddress, SavedPaymentMethod } from "@/lib/store/authS
 import { useCartStore } from "@/lib/store/cartStore";
 import { formatCLP } from "@/lib/utils/currency";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
+import { toast } from "@/lib/store/toastStore";
 
 const CHILEAN_REGIONS = [
   "Región Metropolitana de Santiago",
@@ -207,12 +208,14 @@ function AccountContent() {
       if (data.success) {
         setUserAlerts((prev) => prev.filter((a) => a.id !== alertId));
         setAlertSuccessMsg("Aviso cancelado correctamente.");
+        toast.info("Aviso cancelado", "Se eliminó la alerta de stock de tu perfil.");
         setTimeout(() => setAlertSuccessMsg(null), 3000);
       } else {
-        alert(data.error || "No se pudo cancelar el aviso");
+        toast.error("Error al cancelar aviso", data.error || "No se pudo cancelar el aviso");
       }
     } catch (err) {
       console.error("Error al cancelar alerta:", err);
+      toast.error("Error de red", "No se pudo conectar con el servidor.");
     } finally {
       setCancellingAlertId(null);
     }
@@ -222,6 +225,7 @@ function AccountContent() {
     await fetchUserOrders();
     await fetchUserAlerts();
     setRefreshSuccessMsg(true);
+    toast.success("Datos sincronizados", "Órdenes y avisos actualizados desde Firestore.");
     setTimeout(() => setRefreshSuccessMsg(false), 2500);
   };
 
@@ -230,6 +234,7 @@ function AccountContent() {
     if (!code) return;
     navigator.clipboard.writeText(code);
     setCopiedTracking(code);
+    toast.success("Código copiado al portapapeles", code);
     setTimeout(() => setCopiedTracking(null), 2000);
   };
 
@@ -280,9 +285,11 @@ function AccountContent() {
     try {
       await updateProfile({ fullName, email, phone, rut });
       setProfileMsg("¡Datos actualizados y sincronizados en Cloud Firestore!");
+      toast.success("Perfil actualizado", "Tus datos se guardaron con éxito en Firestore.");
       setTimeout(() => setProfileMsg(null), 4000);
     } catch {
       setProfileMsg("Error al actualizar datos.");
+      toast.error("Error", "No se pudo actualizar los datos del perfil.");
     } finally {
       setSavingProfile(false);
     }
@@ -292,10 +299,10 @@ function AccountContent() {
     setDeletingAccount(true);
     try {
       const res = await deleteAccount();
-      alert(res.message || "Tu cuenta ha sido eliminada permanentemente.");
+      toast.info("Cuenta eliminada", res.message || "Tu cuenta ha sido eliminada permanentemente.");
       router.push("/");
     } catch {
-      alert("Hubo un error al eliminar la cuenta de Cloud Firestore.");
+      toast.error("Error", "Hubo un error al eliminar la cuenta de Cloud Firestore.");
     } finally {
       setDeletingAccount(false);
       setShowDeleteModal(false);

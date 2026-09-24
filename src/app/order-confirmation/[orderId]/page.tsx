@@ -18,9 +18,11 @@ import {
   MessageCircle,
   Sparkles,
   AlertCircle,
+  Copy,
 } from "lucide-react";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
+import { toast } from "@/lib/store/toastStore";
 
 function OrderConfirmationContent() {
   const params = useParams();
@@ -106,10 +108,21 @@ function OrderConfirmationContent() {
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof navigator !== "undefined" && navigator.clipboard) {
+              navigator.clipboard.writeText(displayOrder.orderNumber);
+              toast.success("N° de orden copiado al portapapeles", displayOrder.orderNumber);
+            }
+          }}
+          title="Copiar N° de Orden"
+          className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white hover:border-[#FF6B35] border border-[#E5E5E5] shadow-sm transition group cursor-pointer"
+        >
           <span className="text-xs text-[#666666]">Número de Orden:</span>
           <span className="font-mono font-black text-[#FF6B35] text-sm">{displayOrder.orderNumber}</span>
-        </div>
+          <Copy className="w-3.5 h-3.5 text-[#666666] group-hover:text-[#FF6B35] transition" />
+        </button>
       </div>
 
       {/* 2. Stepper de Seguimiento Logístico & Preparación */}
@@ -121,10 +134,21 @@ function OrderConfirmationContent() {
               Transportista: <strong className="text-[#1A1A1A]">{displayOrder.shippingMethod.name}</strong>
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-[#F7F7F5] px-3 py-1.5 rounded-xl border border-[#E5E5E5] text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof navigator !== "undefined" && navigator.clipboard) {
+                navigator.clipboard.writeText(trackingNumber);
+                toast.success("N° de seguimiento copiado", trackingNumber);
+              }
+            }}
+            title="Copiar seguimiento"
+            className="flex items-center gap-2 bg-[#F7F7F5] hover:bg-white hover:border-[#FF6B35] px-3 py-1.5 rounded-xl border border-[#E5E5E5] text-xs transition group cursor-pointer"
+          >
             <span className="text-[#666666]">N° de Seguimiento:</span>
             <span className="font-mono font-bold text-[#FF6B35]">{trackingNumber}</span>
-          </div>
+            <Copy className="w-3 h-3 text-[#666666] group-hover:text-[#FF6B35] transition" />
+          </button>
         </div>
 
         {/* 4 Steps */}

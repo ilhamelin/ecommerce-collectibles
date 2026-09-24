@@ -37,6 +37,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { useAuthStore, UserAccount } from "@/lib/store/authStore";
+import { toast } from "@/lib/store/toastStore";
 
 interface ProductAlertRecord {
   id: string;
@@ -244,12 +245,14 @@ export default function AdminUsersAnalyticsPage() {
         setAlerts((prev) => prev.filter((item) => item.id !== id));
         setToastMessage("El registro de notificación de stock & ofertas se borró con éxito de la base de datos.");
         setToastType("SUCCESS");
+        toast.success("Alerta eliminada", "Registro borrado de la base de datos.");
         setTimeout(() => setToastMessage(null), 4500);
       } else {
-        alert(data.error || "No se pudo eliminar la alerta");
+        toast.error("Error al eliminar alerta", data.error || "No se pudo eliminar la alerta");
       }
     } catch (err) {
       console.error("Error al eliminar alerta:", err);
+      toast.error("Error de conexión", "No se pudo conectar con el servidor.");
     } finally {
       setDeletingAlertId(null);
     }
@@ -271,10 +274,12 @@ export default function AdminUsersAnalyticsPage() {
         );
         setToastMessage(`Estado de solicitud actualizado a: ${newStatus}`);
         setToastType("SUCCESS");
+        toast.success("Solicitud actualizada", `Estado cambiado a ${newStatus}`);
         setTimeout(() => setToastMessage(null), 3500);
       }
     } catch (err) {
       console.error("Error al actualizar estado:", err);
+      toast.error("Error al actualizar", "No se pudo actualizar el estado.");
     } finally {
       setUpdatingRequestId(null);
     }
@@ -290,12 +295,14 @@ export default function AdminUsersAnalyticsPage() {
         setProductRequests((prev) => prev.filter((r) => r.id !== id));
         setToastMessage("La solicitud de coleccionable se eliminó con éxito.");
         setToastType("SUCCESS");
+        toast.info("Solicitud eliminada", "La solicitud fue removida.");
         setTimeout(() => setToastMessage(null), 4500);
       } else {
-        alert(data.error || "No se pudo eliminar la solicitud");
+        toast.error("Error al eliminar solicitud", data.error || "No se pudo eliminar la solicitud");
       }
     } catch (err) {
       console.error("Error al eliminar solicitud:", err);
+      toast.error("Error de conexión", "No se pudo conectar con el servidor.");
     } finally {
       setDeletingRequestId(null);
     }

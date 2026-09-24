@@ -18,6 +18,7 @@ import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { analytics } from "@/lib/services/AnalyticsTracker";
+import { toast } from "@/lib/store/toastStore";
 
 interface ProductCardProps {
   product: ProductDomainEntity & {
@@ -95,6 +96,12 @@ export function ProductCard({ product }: ProductCardProps) {
     const res = toggleWishlist(product.id);
     setWishlistToast(res.message);
     setTimeout(() => setWishlistToast(null), 1800);
+
+    if (res.isWishlisted) {
+      toast.collector("¡Guardado en Favoritos!", product.name);
+    } else {
+      toast.info("Removido de Favoritos", product.name);
+    }
   };
 
   const handleQuickAdd = (e: React.MouseEvent) => {
@@ -120,6 +127,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
+
+    toast.success("¡Agregado al Carro!", product.name);
   };
 
   return (

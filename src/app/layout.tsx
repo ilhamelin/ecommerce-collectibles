@@ -9,6 +9,7 @@ import { CookieConsentBanner } from "@/components/common/CookieConsentBanner";
 
 import { SommelierChatWidget } from "@/components/chat/SommelierChatWidget";
 import { SidePromotionalBanners } from "@/components/home/SidePromotionalBanners";
+import { ToastContainer } from "@/components/common/ToastContainer";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -45,6 +46,7 @@ export default function RootLayout({
         <ScrollToTopButton />
         <MobileBottomNav />
         <CookieConsentBanner />
+        <ToastContainer />
         <StoreFooter />
       </body>
     </html>

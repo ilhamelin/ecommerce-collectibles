@@ -2,6 +2,7 @@ import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 
 import { getFirebaseAuth, auth, isFirebaseConfigured } from "./config";
 import { getUserFromFirestoreClient, syncUserProfileToFirestoreClient } from "./client-firestore";
 import type { UserAccount } from "../store/authStore";
+import { isConfiguredAdminEmail } from "../auth/adminRoles";
 
 export interface GoogleAuthResult {
   success: boolean;
@@ -89,7 +90,7 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
 
     if (!userAccount) {
       isNewUser = true;
-      const isAdminEmail = email === "admin@omnicollector.cl";
+      const isAdminEmail = isConfiguredAdminEmail(email);
 
       userAccount = {
         id: fbUser.uid,
@@ -107,10 +108,14 @@ export async function signInWithGoogle(): Promise<GoogleAuthResult> {
       // Save initial profile in Firestore
       await syncUserProfileToFirestoreClient(userAccount);
     } else {
-      // Sync Google verified display name if user had placeholder
+      // Sync Google verified display name or promote to ADMIN if configured in whitelist
       let hasUpdates = false;
       if (fullName && (!userAccount.fullName || userAccount.fullName === "Usuario Google")) {
         userAccount.fullName = fullName;
+        hasUpdates = true;
+      }
+      if (isConfiguredAdminEmail(email) && userAccount.role !== "ADMIN") {
+        userAccount.role = "ADMIN";
         hasUpdates = true;
       }
       if (hasUpdates) {

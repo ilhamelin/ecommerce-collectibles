@@ -8,6 +8,7 @@ import {
   getUserFromFirestoreClient,
 } from "@/lib/firebase/client-firestore";
 import { signInWithGoogle, signOutFirebase } from "@/lib/firebase/client-auth";
+import { isConfiguredAdminEmail } from "@/lib/auth/adminRoles";
 
 export type UserRole = "CUSTOMER" | "ADMIN";
 
@@ -276,8 +277,13 @@ export const useAuthStore = create<AuthState>()(
           const mergedWishlist = Array.from(new Set([...(user.wishlist || []), ...guestWishlist]));
           user.wishlist = mergedWishlist;
 
+          const isUserAdmin = user.role === "ADMIN" || isConfiguredAdminEmail(email);
+          if (isUserAdmin) {
+            user.role = "ADMIN";
+          }
+
           if (typeof document !== "undefined") {
-            if (user.role === "ADMIN") {
+            if (isUserAdmin) {
               document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
             } else {
               document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
@@ -287,11 +293,12 @@ export const useAuthStore = create<AuthState>()(
           set({
             currentUser: {
               ...user,
+              role: isUserAdmin ? "ADMIN" : user.role,
               wishlist: mergedWishlist,
             },
             guestWishlist: [],
             isAuthenticated: true,
-            isAdmin: user.role === "ADMIN",
+            isAdmin: isUserAdmin,
           });
           return {
             success: true,
@@ -306,9 +313,21 @@ export const useAuthStore = create<AuthState>()(
           currentInState.email.toLowerCase() === email &&
           currentInState.password === password
         ) {
+          const isStateUserAdmin = currentInState.role === "ADMIN" || isConfiguredAdminEmail(email);
+          if (isStateUserAdmin) {
+            currentInState.role = "ADMIN";
+            if (typeof document !== "undefined") {
+              document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+            }
+          }
+
           set({
+            currentUser: {
+              ...currentInState,
+              role: isStateUserAdmin ? "ADMIN" : currentInState.role,
+            },
             isAuthenticated: true,
-            isAdmin: currentInState.role === "ADMIN",
+            isAdmin: isStateUserAdmin,
           });
           return {
             success: true,
@@ -402,13 +421,14 @@ export const useAuthStore = create<AuthState>()(
         }
 
         const guestWishlist = get().guestWishlist || [];
+        const isNewUserAdmin = isConfiguredAdminEmail(email);
         const newUser: UserAccount = {
           id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           email,
           fullName: data.fullName.trim(),
           phone: data.phone?.trim() || "+56 9 8765 4321",
           rut: data.rut?.trim(),
-          role: "CUSTOMER",
+          role: isNewUserAdmin ? "ADMIN" : "CUSTOMER",
           password: data.password,
           addresses: [],
           paymentMethods: [],
@@ -428,13 +448,17 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newUser),
           }).catch(() => {});
+
+          if (isNewUserAdmin) {
+            document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+          }
         }
 
         set({
           currentUser: newUser,
           guestWishlist: [],
           isAuthenticated: true,
-          isAdmin: false,
+          isAdmin: isNewUserAdmin,
         });
 
         return {

@@ -109,6 +109,7 @@ export default function AdminUsersAnalyticsPage() {
   const [requestSearchQuery, setRequestSearchQuery] = useState("");
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
+  const [updatingUserRoleId, setUpdatingUserRoleId] = useState<string | null>(null);
 
   // Floating Toast Notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -305,6 +306,81 @@ export default function AdminUsersAnalyticsPage() {
       toast.error("Error de conexión", "No se pudo conectar con el servidor.");
     } finally {
       setDeletingRequestId(null);
+    }
+  };
+
+  // Toggle user administrative role (CUSTOMER <-> ADMIN)
+  const handleToggleUserRole = async (targetUser: UserAccount) => {
+    const isCurrentlyAdmin = targetUser.role === "ADMIN";
+    const nextRole: "ADMIN" | "CUSTOMER" = isCurrentlyAdmin ? "CUSTOMER" : "ADMIN";
+    const actionText = isCurrentlyAdmin
+      ? `degradar a '${targetUser.fullName || targetUser.email}' de Administrador a CLIENTE`
+      : `promover a '${targetUser.fullName || targetUser.email}' con privilegios de ADMINISTRADOR`;
+
+    if (
+      targetUser.email.toLowerCase() === "admin@omnicollector.cl" &&
+      isCurrentlyAdmin
+    ) {
+      toast.error("Acción Denegada", "La cuenta raíz principal 'admin@omnicollector.cl' no puede ser degradada.");
+      return;
+    }
+
+    if (
+      currentUser?.email?.toLowerCase() === targetUser.email.toLowerCase() &&
+      isCurrentlyAdmin
+    ) {
+      if (
+        !confirm(
+          "⚠️ ATENCIÓN: Estás a punto de quitarte a ti mismo los privilegios de Administrador. Perderás el acceso a este panel si continúas. ¿Deseas proceder?"
+        )
+      ) {
+        return;
+      }
+    } else {
+      if (!confirm(`¿Estás seguro de que deseas ${actionText}?`)) {
+        return;
+      }
+    }
+
+    const userIdKey = targetUser.id || targetUser.email;
+    setUpdatingUserRoleId(userIdKey);
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": "omni-super-secret-key-2026",
+        },
+        body: JSON.stringify({
+          id: targetUser.id,
+          email: targetUser.email,
+          role: nextRole,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setUsers((prev) =>
+          prev.map((u) => {
+            if (u.id === targetUser.id || u.email.toLowerCase() === targetUser.email.toLowerCase()) {
+              return { ...u, role: nextRole };
+            }
+            return u;
+          })
+        );
+        toast.success(
+          "Rol Actualizado",
+          `El usuario '${targetUser.email}' ahora es ${nextRole === "ADMIN" ? "Administrador" : "Cliente"}.`
+        );
+      } else {
+        toast.error("Error al cambiar rol", data.error || "No se pudo actualizar el rol.");
+      }
+    } catch (err) {
+      console.error("[ROLE_UPDATE_ERROR]", err);
+      toast.error("Error de red", "No se pudo conectar con el servidor.");
+    } finally {
+      setUpdatingUserRoleId(null);
     }
   };
 
@@ -548,6 +624,7 @@ export default function AdminUsersAnalyticsPage() {
                     <th className="py-3 px-4">Compras CLP</th>
                     <th className="py-3 px-4">Pedidos</th>
                     <th className="py-3 px-4">Direcciones</th>
+                    <th className="py-3 px-4 text-center">Gestión de Rol</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#004E72]/30 text-xs text-[#F9F9F9]">
@@ -614,6 +691,38 @@ export default function AdminUsersAnalyticsPage() {
                             <span className="text-[11px]">{u.addresses.length} guardada(s)</span>
                           ) : (
                             <span className="text-[11px] text-[#9bb5c2]/50">0</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          {cleanEmail === "admin@omnicollector.cl" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                              <ShieldCheck className="w-3 h-3" /> Raíz Inmutable
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleUserRole(u)}
+                              disabled={updatingUserRoleId === (u.id || u.email)}
+                              title={u.role === "ADMIN" ? "Degradar a Cliente" : "Promover a Administrador"}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition shadow-sm border ${
+                                u.role === "ADMIN"
+                                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/30"
+                                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              {updatingUserRoleId === (u.id || u.email) ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              ) : u.role === "ADMIN" ? (
+                                <>
+                                  <UserX className="w-3 h-3 text-rose-400" />
+                                  Degradar a Cliente
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                  Hacer Admin
+                                </>
+                              )}
+                            </button>
                           )}
                         </td>
                       </tr>

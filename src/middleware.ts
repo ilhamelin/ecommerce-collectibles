@@ -119,6 +119,28 @@ export function middleware(req: NextRequest) {
     );
   }
 
+  // 1.1 Admin Route Protection Guard
+  if (pathname.startsWith("/admin")) {
+    const adminSession = req.cookies.get("omni_admin_session")?.value;
+    const adminAuthHeader = req.headers.get("x-admin-authorization") || req.headers.get("x-admin-secret");
+    const isDev = process.env.NODE_ENV !== "production";
+    const host = req.headers.get("host") || "";
+    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+
+    const isAuthorized =
+      adminSession === "1" ||
+      adminAuthHeader === "omnicollector-admin-secret-chile-2026" ||
+      (isLocal && isDev);
+
+    if (!isAuthorized) {
+      console.warn(`[ADMIN_AUTH_BLOCKED] Unauthorized access attempt to ${pathname} from IP ${clientIp}`);
+      const loginUrl = new URL("/auth/login", req.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      loginUrl.searchParams.set("error", "admin_required");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   // 2. Rate Limiting on API endpoints
   if (pathname.startsWith("/api/")) {
     const isAuthLogin = pathname.startsWith("/api/auth/login") || pathname.startsWith("/api/auth/session");

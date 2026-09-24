@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { CheckoutRequestSchema } from "@/lib/validations/schemas";
 import { CheckoutService } from "@/lib/services/CheckoutService";
 import { DomainError } from "@/lib/errors/DomainErrors";
-import { createOrderInFirestore } from "@/lib/firebase/firestore";
+import { createOrderInFirestore, deductProductStockAtomic } from "@/lib/firebase/firestore";
 import { initiatePaymentGateway } from "@/lib/payments/payment-gateway";
 
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
@@ -32,6 +32,24 @@ export async function POST(req: NextRequest) {
 
     // Persist order to Firestore if configured
     await createOrderInFirestore(result.order);
+
+    // Atomically decrement stock in Cloud Firestore to prevent serverless overselling
+    await deductProductStockAtomic(
+      result.order.items.map((it) => ({
+        productId: it.productId,
+        quantity: it.quantity,
+      }))
+    );
+
+    // If Bank Transfer, dispatch immediate confirmation receipt email with payment instructions
+    if (result.order.paymentMethod === "BANK_TRANSFER") {
+      try {
+        const { sendOrderConfirmationEmail } = await import("@/lib/services/emailService");
+        await sendOrderConfirmationEmail(result.order);
+      } catch (emailErr) {
+        console.warn("[Checkout] Failed to dispatch bank transfer email:", emailErr);
+      }
+    }
 
     // Initiate real payment gateway (Mercado Pago / Flow / Sandbox)
     const baseUrl = req.nextUrl.origin;

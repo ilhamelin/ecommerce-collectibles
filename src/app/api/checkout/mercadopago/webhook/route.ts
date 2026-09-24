@@ -47,6 +47,27 @@ export async function POST(req: NextRequest) {
           updatedAt: new Date().toISOString(),
         };
         await createOrderInFirestore(updated);
+
+        // Deduct stock in Firestore atomically
+        try {
+          const { deductProductStockAtomic } = await import("@/lib/firebase/firestore");
+          await deductProductStockAtomic(
+            (firestoreOrder.items || []).map((it: any) => ({
+              productId: it.productId,
+              quantity: it.quantity,
+            }))
+          );
+        } catch (stkErr) {
+          console.warn("[Simulated Payment] Stock deduction warning:", stkErr);
+        }
+
+        // Dispatch confirmation email
+        try {
+          const { sendOrderConfirmationEmail } = await import("@/lib/services/emailService");
+          await sendOrderConfirmationEmail(updated);
+        } catch (emailErr) {
+          console.warn("[Simulated Payment] Failed to send email receipt:", emailErr);
+        }
       }
 
       return NextResponse.json({
@@ -111,6 +132,14 @@ export async function POST(req: NextRequest) {
             updatedAt: new Date().toISOString(),
           };
           await createOrderInFirestore(updated);
+
+          // Dispatch transactional order receipt email to customer
+          try {
+            const { sendOrderConfirmationEmail } = await import("@/lib/services/emailService");
+            await sendOrderConfirmationEmail(updated);
+          } catch (mailErr) {
+            console.warn("[Webhook] Failed to dispatch order confirmation email:", mailErr);
+          }
         }
       }
     }

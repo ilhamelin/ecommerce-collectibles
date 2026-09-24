@@ -1407,18 +1407,34 @@ function CatalogContent() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-20 bg-white rounded-2xl border border-[#E5E5E5] space-y-3 shadow-sm">
-                <Filter className="w-10 h-10 text-[#666666] mx-auto opacity-70" />
-                <h3 className="text-[#1A1A1A] font-bold text-base">No se encontraron productos</h3>
-                <p className="text-xs text-[#666666] max-w-sm mx-auto">
-                  No hay artículos que coincidan con la combinación de filtros aplicada en el catálogo.
-                </p>
-                <button
-                  onClick={resetAllFilters}
-                  className="text-xs px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white font-bold transition shadow-md shadow-[#FF6B35]/20"
-                >
-                  Limpiar Todos los Filtros
-                </button>
+              <div className="text-center py-16 px-6 bg-gradient-to-b from-white to-[#F8FAFC] rounded-3xl border border-[#E2E8F0] space-y-4 shadow-sm max-w-xl mx-auto">
+                <div className="w-14 h-14 rounded-2xl bg-[#FF6B35]/10 text-[#FF6B35] flex items-center justify-center mx-auto shadow-inner">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-[#0F172A] font-black text-lg">¿Buscabas una pieza rara o descatalogada?</h3>
+                  <p className="text-xs text-[#64748B] leading-relaxed max-w-md mx-auto">
+                    No encontramos artículos disponibles con esta combinación de filtros. Sin embargo, nuestro equipo de importación puede rastrear y traer cualquier figura japonesa, carta TCG PSA o juego retro directamente con el <strong>Radar Japón</strong>.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={resetAllFilters}
+                    className="w-full sm:w-auto text-xs px-5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-gray-50 text-[#1E293B] font-bold transition shadow-xs"
+                  >
+                    Limpiar Filtros
+                  </button>
+                  <a
+                    href="https://wa.me/56958243917?text=Hola%20OmniCollector,%20estoy%20buscando%20un%20artículo%20especial%20y%20me%20gustaría%20encargarlo%20con%20el%20Radar%20Japón"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto text-xs px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#E85D2A] hover:brightness-105 text-white font-black transition flex items-center justify-center gap-2 shadow-lg shadow-[#FF6B35]/25"
+                  >
+                    <span>Solicitar con Radar Japón</span>
+                    <span>🗾</span>
+                  </a>
+                </div>
               </div>
             )}
           </div>

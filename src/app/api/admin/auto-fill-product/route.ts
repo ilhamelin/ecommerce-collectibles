@@ -860,7 +860,8 @@ function generateWithSmartEngine(
       };
     } else if (matchedCategory === "HARDWARE") {
       let hwType: any = "TARJETA_DE_VIDEO";
-      if (lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2") || lower.includes("990 pro") || lower.includes("kc3000") || lower.includes("sn850")) hwType = "SSD";
+      if (lower.includes("rtx") || lower.includes("gtx") || lower.includes("geforce") || lower.includes("radeon") || lower.includes("rx ") || lower.includes("gpu") || lower.includes("tarjeta") || lower.includes("grafica") || lower.includes("video")) hwType = "TARJETA_DE_VIDEO";
+      else if (lower.includes("ssd") || lower.includes("nvme") || lower.includes("m.2") || lower.includes("990 pro") || lower.includes("kc3000") || lower.includes("sn850")) hwType = "SSD";
       else if (lower.includes("disco duro") || lower.includes("hdd") || lower.includes("barracuda") || lower.includes("ironwolf") || lower.includes("skyhawk") || lower.includes("wd blue")) hwType = "DISCO_DURO";
       else if (lower.includes("ram") || lower.includes("ddr") || lower.includes("dimm") || lower.includes("fury") || lower.includes("vengeance") || lower.includes("trident")) hwType = "RAM";
       else if (lower.includes("placa") || lower.includes("motherboard") || lower.includes("b650") || lower.includes("b550") || lower.includes("x670") || lower.includes("x870") || lower.includes("z790") || lower.includes("b760") || lower.includes("z890") || lower.includes("chipset")) hwType = "PLACA_MADRE";
@@ -896,7 +897,6 @@ function generateWithSmartEngine(
       else if (lower.includes("cooler") || lower.includes("refrigeraci") || lower.includes("disipador") || lower.includes("aio") || lower.includes("kraken") || lower.includes("liquid") || lower.includes("peerless")) hwType = "COOLER_CPU";
       else if (lower.includes("gabinete") || lower.includes("case") || lower.includes("chassis") || lower.includes("mid tower") || lower.includes("4000d") || lower.includes("o11") || lower.includes("h5 flow") || lower.includes("h9 flow")) hwType = "GABINETE";
       else if (lower.includes("ventilador") || lower.includes("fan") || lower.includes("pwm fan") || lower.includes("argb fan")) hwType = "VENTILADORES";
-      else if (lower.includes("rtx") || lower.includes("gtx") || lower.includes("geforce") || lower.includes("radeon") || lower.includes("rx ") || lower.includes("gpu") || lower.includes("tarjeta") || lower.includes("grafica") || lower.includes("video")) hwType = "TARJETA_DE_VIDEO";
 
       // VRAM detection for GPU
       const vramMatch = name.match(/\b(\d{1,2})\s*(?:g|gb)\b/i);

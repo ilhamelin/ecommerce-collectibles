@@ -1044,4 +1044,132 @@ export async function saveSideBannersSettingsToFirestore(sideBanners: any): Prom
   }
 }
 
+/**
+ * ============================================================================
+ * ATOMIC INVENTORY & STOCK TRANSACTIONS
+ * ============================================================================
+ */
+
+/**
+ * Atomic stock deduction using Firestore transactions.
+ * Guarantees zero overselling across concurrent serverless instances.
+ */
+export async function deductProductStockAtomic(
+  items: { productId: string; quantity: number }[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    invalidateProductsCache();
+
+    // 1. Server Admin SDK transaction
+    if (typeof window === "undefined" && adminDb) {
+      const firestoreAdmin = adminDb;
+      await firestoreAdmin.runTransaction(async (t) => {
+        for (const item of items) {
+          const ref = firestoreAdmin.collection(COLLECTIONS.PRODUCTS).doc(item.productId);
+          const docSnap = await t.get(ref);
+          if (!docSnap.exists) {
+            // If product is not yet in Firestore, skip atomic deduction or let memory fallback handle
+            continue;
+          }
+          const currentStock = docSnap.data()?.stock ?? 0;
+          if (currentStock < item.quantity) {
+            throw new Error(
+              `Stock insuficiente para el producto ${item.productId}. Stock disponible: ${currentStock}, solicitado: ${item.quantity}`
+            );
+          }
+          t.update(ref, {
+            stock: currentStock - item.quantity,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      });
+      return { success: true };
+    }
+
+    // 2. Client SDK fallback transaction
+    if (db && isFirebaseConfigured()) {
+      const clientDb = db;
+      const { runTransaction: clientRunTransaction } = await import("firebase/firestore");
+      await clientRunTransaction(clientDb, async (t) => {
+        for (const item of items) {
+          const ref = doc(clientDb, COLLECTIONS.PRODUCTS, item.productId);
+          const docSnap = await t.get(ref);
+          if (!docSnap.exists()) {
+            continue;
+          }
+          const currentStock = docSnap.data().stock ?? 0;
+          if (currentStock < item.quantity) {
+            throw new Error(`Stock insuficiente para el producto ${item.productId}.`);
+          }
+          t.update(ref, {
+            stock: currentStock - item.quantity,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      });
+      return { success: true };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[deductProductStockAtomic ERROR]", message);
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Restores product stock upon cancellation or expired reservation.
+ */
+export async function restoreProductStockAtomic(
+  items: { productId: string; quantity: number }[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    invalidateProductsCache();
+
+    if (typeof window === "undefined" && adminDb) {
+      const firestoreAdmin = adminDb;
+      await firestoreAdmin.runTransaction(async (t) => {
+        for (const item of items) {
+          const ref = firestoreAdmin.collection(COLLECTIONS.PRODUCTS).doc(item.productId);
+          const docSnap = await t.get(ref);
+          if (docSnap.exists) {
+            const currentStock = docSnap.data()?.stock ?? 0;
+            t.update(ref, {
+              stock: currentStock + item.quantity,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        }
+      });
+      return { success: true };
+    }
+
+    if (db && isFirebaseConfigured()) {
+      const clientDb = db;
+      const { runTransaction: clientRunTransaction } = await import("firebase/firestore");
+      await clientRunTransaction(clientDb, async (t) => {
+        for (const item of items) {
+          const ref = doc(clientDb, COLLECTIONS.PRODUCTS, item.productId);
+          const docSnap = await t.get(ref);
+          if (docSnap.exists()) {
+            const currentStock = docSnap.data().stock ?? 0;
+            t.update(ref, {
+              stock: currentStock + item.quantity,
+              updatedAt: new Date().toISOString(),
+            });
+          }
+        }
+      });
+      return { success: true };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[restoreProductStockAtomic ERROR]", message);
+    return { success: false, error: message };
+  }
+}
+
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateChileanRut } from "../utils/chileanRut";
 
 export const ProductTypeEnum = z.enum(["VIDEO_GAME", "FIGURE", "COLLECTIBLE", "BUNDLE", "CONSOLE", "HARDWARE", "OTHER"]).or(z.string());
 export const PreOrderStateEnum = z.enum([
@@ -87,7 +88,12 @@ export const CheckoutCustomerSchema = z.object({
   fullName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Correo electrónico inválido"),
   phone: z.string().min(8, "Teléfono inválido"),
-  rut: z.string().optional(),
+  rut: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateChileanRut(val), {
+      message: "RUT chileno inválido (debe cumplir formato y algoritmo Módulo 11)",
+    }),
 });
 
 export const CheckoutShippingAddressSchema = z.object({

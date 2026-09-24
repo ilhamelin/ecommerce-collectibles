@@ -276,6 +276,14 @@ export const useAuthStore = create<AuthState>()(
           const mergedWishlist = Array.from(new Set([...(user.wishlist || []), ...guestWishlist]));
           user.wishlist = mergedWishlist;
 
+          if (typeof document !== "undefined") {
+            if (user.role === "ADMIN") {
+              document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+            } else {
+              document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
+            }
+          }
+
           set({
             currentUser: {
               ...user,
@@ -351,6 +359,14 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(user),
           }).catch(() => {});
+        }
+
+        if (typeof document !== "undefined") {
+          if (user.role === "ADMIN") {
+            document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+          } else {
+            document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
+          }
         }
 
         set({
@@ -429,6 +445,9 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         const current = get().currentUser;
+        if (typeof document !== "undefined") {
+          document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
+        }
         if (current && typeof window !== "undefined") {
           try {
             const deviceId = getOrCreateDeviceId();

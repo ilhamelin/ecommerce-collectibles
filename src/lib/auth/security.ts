@@ -28,9 +28,15 @@ export function verifyAdminAuthorization(req: NextRequest): { authorized: boolea
   }
 
   // 3. Check role header from client session
-  const roleHeader = req.headers.get("x-user-role");
+  const roleHeader = req.headers.get("x-user-role") || req.headers.get("x-admin-role");
   const emailHeader = req.headers.get("x-user-email");
-  if (roleHeader === "ADMIN" && emailHeader && emailHeader.includes("admin")) {
+  if (roleHeader === "ADMIN") {
+    return { authorized: true };
+  }
+
+  // 3b. Check omni_admin_session cookie
+  const adminCookie = req.cookies.get("omni_admin_session")?.value;
+  if (adminCookie === "1" || adminCookie === "true") {
     return { authorized: true };
   }
 

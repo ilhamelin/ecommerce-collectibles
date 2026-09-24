@@ -41,6 +41,13 @@ async function getTransporter() {
     });
   }
 
+  // In unit test environment, return instantaneous json transport to prevent network timeouts
+  if (process.env.NODE_ENV === "test") {
+    return nodemailer.createTransport({
+      jsonTransport: true,
+    });
+  }
+
   // Fallback: Create ethereal test account for local testing if not configured
   try {
     const testAccount = await nodemailer.createTestAccount();
@@ -368,3 +375,162 @@ export async function sendProductAlertEmail(params: AlertEmailParams): Promise<{
     };
   }
 }
+
+/**
+ * Generates responsive HTML for Order Confirmation & Receipt emails
+ */
+function buildOrderConfirmationEmailHtml(order: any): string {
+  const customerName = order.customer?.fullName || "Coleccionista";
+  const orderNumber = order.orderNumber || order.id;
+  const items = Array.isArray(order.items) ? order.items : [];
+  const trackingNumber = order.shippingMethod?.trackingNumber || "";
+  const trackingUrl = `https://ecommerce-collectibles.vercel.app/tracking/${encodeURIComponent(order.id)}`;
+
+  const formatPrice = (val: number) => `$${Math.round(val).toLocaleString("es-CL")}`;
+
+  const itemRowsHtml = items
+    .map(
+      (item: any) => `
+    <tr>
+      <td style="padding: 12px 8px; border-bottom: 1px solid #E2E8F0; font-size: 13px; color: #1E293B;">
+        <strong style="color: #0F172A;">${item.name}</strong>
+        ${item.isPreOrder ? `<span style="display:inline-block; font-size: 10px; background: #FFEDD5; color: #C2410C; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">PREVENTA 20%</span>` : ""}
+        <div style="font-size: 11px; color: #64748B; margin-top: 2px;">SKU: ${item.sku || "N/A"}</div>
+      </td>
+      <td style="padding: 12px 8px; border-bottom: 1px solid #E2E8F0; font-size: 13px; text-align: center; color: #334155;">
+        ${item.quantity}
+      </td>
+      <td style="padding: 12px 8px; border-bottom: 1px solid #E2E8F0; font-size: 13px; text-align: right; font-weight: 600; color: #0F172A;">
+        ${item.isPartialDeposit ? formatPrice(item.unitDeposit * item.quantity) : formatPrice(item.unitPrice * item.quantity)}
+      </td>
+    </tr>
+  `
+    )
+    .join("");
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Comprobante de Compra - ${orderNumber}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #F8FAFC; margin: 0; padding: 24px 12px; color: #1E293B;">
+  <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 16px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #1F3A5F 0%, #0D1F36 100%); padding: 28px 24px; text-align: center; color: #FFFFFF;">
+      <div style="display: inline-block; padding: 6px 14px; background: rgba(255,107,53,0.2); border: 1px solid #FF6B35; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #FF6B35; text-transform: uppercase; margin-bottom: 12px;">
+        ✓ Pedido Confirmado
+      </div>
+      <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.5px;">OMNI<span style="color: #FF6B35;">COLLECTOR</span></h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: #CBD5E1;">Gracias por tu compra, ${customerName}</p>
+    </div>
+
+    <!-- Order Meta -->
+    <div style="padding: 24px; border-bottom: 1px solid #E2E8F0; background: #F8FAFC;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748B;">
+        <div><strong>N° Orden:</strong> <span style="color: #0F172A; font-weight: 700;">${orderNumber}</span></div>
+        <div><strong>Fecha:</strong> ${new Date().toLocaleDateString("es-CL")}</div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: #64748B;">
+        <strong>Envío a:</strong> ${order.customer?.address || "Dirección registrada"}, ${order.customer?.comuna || ""}, ${order.customer?.region || ""}
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <div style="padding: 24px;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 2px solid #E2E8F0;">
+            <th style="padding: 8px; font-size: 11px; text-transform: uppercase; color: #64748B;">Artículo</th>
+            <th style="padding: 8px; font-size: 11px; text-transform: uppercase; color: #64748B; text-align: center;">Cant.</th>
+            <th style="padding: 8px; font-size: 11px; text-transform: uppercase; color: #64748B; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRowsHtml}
+        </tbody>
+      </table>
+
+      <!-- Totals Summary -->
+      <div style="margin-top: 20px; padding: 16px; background: #F1F5F9; border-radius: 12px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #475569;">
+          <span>Subtotal:</span>
+          <span>${formatPrice(order.subtotal || 0)}</span>
+        </div>
+        ${order.discountAmount > 0 ? `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #16A34A; font-weight: 600;">
+          <span>Descuento aplicado:</span>
+          <span>-${formatPrice(order.discountAmount)}</span>
+        </div>` : ""}
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #475569;">
+          <span>Envío (${order.shippingMethod?.name || "Estándar"}):</span>
+          <span>${order.shippingCost === 0 ? "GRATIS" : formatPrice(order.shippingCost || 0)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid #CBD5E1; font-size: 15px; font-weight: 800; color: #0F172A;">
+          <span>Total Pagado Hoy:</span>
+          <span style="color: #FF6B35;">${formatPrice(order.totalChargedNow || 0)}</span>
+        </div>
+        ${order.remainingBalanceLater > 0 ? `
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #CBD5E1; font-size: 12px; color: #C2410C;">
+          <strong>Saldo pendiente al arribo a Chile:</strong> ${formatPrice(order.remainingBalanceLater)}
+        </div>` : ""}
+      </div>
+
+      <!-- Action Button -->
+      <div style="margin-top: 28px; text-align: center;">
+        <a href="${trackingUrl}" style="display: inline-block; padding: 14px 28px; background: #FF6B35; color: #FFFFFF; font-weight: 800; font-size: 14px; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(255,107,53,0.3);">
+          📦 Seguir Estado de mi Envío
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background: #0F172A; padding: 20px 24px; text-align: center; color: #94A3B8; font-size: 11px;">
+      <div>OmniCollector Chile • Coleccionables, Cartas TCG y Figuras de Edición Limitada</div>
+      <div style="margin-top: 6px;">¿Dudas con tu compra? Escríbenos directamente a WhatsApp: <a href="https://wa.me/56958243917" style="color: #FF6B35; text-decoration: none;">+56 9 5824 3917</a></div>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+/**
+ * Sends order confirmation email with itemized receipt to customer.
+ */
+export async function sendOrderConfirmationEmail(order: any): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> {
+  try {
+    const customerEmail = order.customer?.email;
+    if (!customerEmail || !customerEmail.includes("@")) {
+      console.warn("[EmailService] No valid customer email in order:", order.id);
+      return { success: false, error: "Email de cliente no válido" };
+    }
+
+    const transporter = await getTransporter();
+    const fromAddress = process.env.SMTP_FROM || '"OmniCollector Chile" <ventas@omnicollector.cl>';
+    const orderNumber = order.orderNumber || order.id;
+
+    const htmlContent = buildOrderConfirmationEmailHtml(order);
+
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: customerEmail,
+      subject: `[OmniCollector] ¡Confirmación de Pedido ${orderNumber}!`,
+      html: htmlContent,
+    });
+
+    console.log(`[EmailService] Order confirmation dispatched for ${orderNumber} to ${customerEmail}:`, info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[EmailService] Failed to send order confirmation email:", message);
+    return { success: false, error: message };
+  }
+}
+

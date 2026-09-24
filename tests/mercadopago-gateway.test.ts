@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isMercadoPagoConfigured } from "@/lib/payments/mercadopago";
 import * as mpModule from "@/lib/payments/mercadopago";
+import * as flowModule from "@/lib/payments/flow";
 import { initiatePaymentGateway } from "@/lib/payments/payment-gateway";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 
@@ -119,6 +120,12 @@ describe("Mercado Pago Integration & Gateway Integrity", () => {
     process.env.FLOW_API_KEY = "flow-test-api-key";
     process.env.FLOW_SECRET_KEY = "flow-test-secret-key-123456";
     process.env.FLOW_SANDBOX_MODE = "true";
+
+    vi.spyOn(flowModule, "createFlowPaymentOrder").mockResolvedValue({
+      token: "flow-token-123",
+      url: "https://sandbox.flow.cl/payment/pay?token=flow-token-123",
+      flowOrder: 123456,
+    });
 
     const flowOrder = {
       ...mockOrder,

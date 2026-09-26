@@ -34,18 +34,19 @@ export function verifyAdminAuthorization(req: NextRequest): { authorized: boolea
     return { authorized: true };
   }
 
-  // 3b. Check omni_admin_session cookie
+  // 3b. Check omni_admin_session cookie (Only allow mock value on local dev environment)
+  const isDev = process.env.NODE_ENV !== "production";
+  const host = req.headers.get("host") || "";
+  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
   const adminCookie = req.cookies.get("omni_admin_session")?.value;
-  if (adminCookie === "1" || adminCookie === "true") {
+
+  if (isLocal && isDev && (adminCookie === "1" || adminCookie === "true")) {
     return { authorized: true };
   }
 
   // 4. In development/local mode, allow requests from localhost admin sessions
   const origin = req.headers.get("origin") || req.headers.get("referer") || "";
-  const host = req.headers.get("host") || "";
-  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
-
-  if (isLocal && origin.includes("/admin")) {
+  if (isLocal && origin.includes("/admin") && isDev) {
     return { authorized: true };
   }
 

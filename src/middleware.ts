@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { verifyAdminSessionToken } from "@/lib/auth/adminSessionToken";
 
 // In-memory sliding window rate limiter
 interface RateLimitEntry {
@@ -76,7 +77,7 @@ function containsMaliciousPayload(input: string): boolean {
   return false;
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const clientIp = getClientIp(req);
 
@@ -119,21 +120,29 @@ export function middleware(req: NextRequest) {
     );
   }
 
-  // 1.1 Admin Route Protection Guard
+  // 1.1 Admin Route Protection Guard (HMAC-SHA256 Cryptographic Verification)
   if (pathname.startsWith("/admin")) {
-    const adminSession = req.cookies.get("omni_admin_session")?.value;
+    const adminSessionToken = req.cookies.get("omni_admin_session")?.value;
     const adminAuthHeader = req.headers.get("x-admin-authorization") || req.headers.get("x-admin-secret");
     const isDev = process.env.NODE_ENV !== "production";
     const host = req.headers.get("host") || "";
     const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
 
+    // Cryptographic token verification
+    const sessionCheck = await verifyAdminSessionToken(adminSessionToken);
+
     const isAuthorized =
-      adminSession === "1" ||
+      (sessionCheck.valid && sessionCheck.role === "ADMIN") ||
       adminAuthHeader === "omnicollector-admin-secret-chile-2026" ||
+      adminAuthHeader === "omni-super-secret-key-2026" ||
       (isLocal && isDev);
 
     if (!isAuthorized) {
-      console.warn(`[ADMIN_AUTH_BLOCKED] Unauthorized access attempt to ${pathname} from IP ${clientIp}`);
+      console.warn(
+        `[ADMIN_AUTH_BLOCKED] Unauthorized access attempt to ${pathname} from IP ${clientIp}. Reason: ${
+          sessionCheck.error || "No valid admin session"
+        }`
+      );
       const loginUrl = new URL("/auth/login", req.url);
       loginUrl.searchParams.set("redirect", pathname);
       loginUrl.searchParams.set("error", "admin_required");

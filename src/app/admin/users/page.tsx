@@ -129,46 +129,41 @@ export default function AdminUsersAnalyticsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Users
-      const usersRes = await fetch("/api/users", {
-        headers: {
-          "x-admin-secret": "omni-super-secret-key-2026",
-        },
-      });
-      const usersJson = await usersRes.json();
-      if (usersJson.success && usersJson.data?.users) {
-        setUsers(usersJson.data.users);
+      // Parallelize all 5 requests concurrently using Promise.allSettled to eliminate network waterfalls (O(1) roundtrips)
+      const [usersResult, ordersResult, analyticsResult, alertsResult, requestsResult] =
+        await Promise.allSettled([
+          fetch("/api/users", {
+            headers: {
+              "x-admin-secret": "omni-super-secret-key-2026",
+            },
+          }).then((r) => (r.ok ? r.json() : null)),
+          fetch("/api/orders").then((r) => (r.ok ? r.json() : null)),
+          fetch("/api/analytics").then((r) => (r.ok ? r.json() : null)),
+          fetch("/api/admin/alerts").then((r) => (r.ok ? r.json() : null)),
+          fetch("/api/admin/product-requests").then((r) => (r.ok ? r.json() : null)),
+        ]);
+
+      if (usersResult.status === "fulfilled" && usersResult.value?.success && usersResult.value.data?.users) {
+        setUsers(usersResult.value.data.users);
       }
 
-      // 2. Fetch Orders to cross-reference total spent
-      const ordersRes = await fetch("/api/orders");
-      const ordersJson = await ordersRes.json();
-      if (ordersJson.success && ordersJson.data?.orders) {
-        setOrders(ordersJson.data.orders);
+      if (ordersResult.status === "fulfilled" && ordersResult.value?.success && ordersResult.value.data?.orders) {
+        setOrders(ordersResult.value.data.orders);
       }
 
-      // 3. Fetch Analytics
-      const analyticsRes = await fetch("/api/analytics");
-      const analyticsJson = await analyticsRes.json();
-      if (analyticsJson.success && analyticsJson.data) {
-        setSummary(analyticsJson.data.summary);
-        setTopProducts(analyticsJson.data.topClickedProducts || []);
-        setCategories(analyticsJson.data.categoryBreakdown || []);
-        setPopularTags(analyticsJson.data.popularTags || []);
+      if (analyticsResult.status === "fulfilled" && analyticsResult.value?.success && analyticsResult.value.data) {
+        setSummary(analyticsResult.value.data.summary);
+        setTopProducts(analyticsResult.value.data.topClickedProducts || []);
+        setCategories(analyticsResult.value.data.categoryBreakdown || []);
+        setPopularTags(analyticsResult.value.data.popularTags || []);
       }
 
-      // 4. Fetch Stock & Email Alerts
-      const alertsRes = await fetch("/api/admin/alerts");
-      const alertsJson = await alertsRes.json();
-      if (alertsJson.success && Array.isArray(alertsJson.data?.alerts)) {
-        setAlerts(alertsJson.data.alerts);
+      if (alertsResult.status === "fulfilled" && alertsResult.value?.success && Array.isArray(alertsResult.value.data?.alerts)) {
+        setAlerts(alertsResult.value.data.alerts);
       }
 
-      // 5. Fetch Visual Search Product Requests
-      const requestsRes = await fetch("/api/admin/product-requests");
-      const requestsJson = await requestsRes.json();
-      if (requestsJson.success && Array.isArray(requestsJson.data?.requests)) {
-        setProductRequests(requestsJson.data.requests);
+      if (requestsResult.status === "fulfilled" && requestsResult.value?.success && Array.isArray(requestsResult.value.data?.requests)) {
+        setProductRequests(requestsResult.value.data.requests);
       }
     } catch (err) {
       console.error("Error loading admin users analytics:", err);

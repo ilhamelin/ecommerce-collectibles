@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMercadoPagoPayment } from "@/lib/payments/mercadopago";
-import { getOrderByIdFromFirestore, createOrderInFirestore } from "@/lib/firebase/firestore";
+import {
+  getOrderByIdFromFirestore,
+  createOrderInFirestore,
+  deductProductStockAtomic,
+} from "@/lib/firebase/firestore";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
+import { sendOrderConfirmationEmail } from "@/lib/services/emailService";
+import { ConfirmedOrderEntity } from "@/lib/types/domain";
+
+export const dynamic = "force-dynamic";
+
+interface MercadoPagoWebhookBody {
+  action?: string;
+  type?: string;
+  topic?: string;
+  id?: string;
+  data?: { id?: string };
+  resource?: string;
+  simulated?: boolean;
+  orderId?: string;
+  paymentDetails?: Record<string, unknown>;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => ({}))) as MercadoPagoWebhookBody;
     const { searchParams } = new URL(req.url);
 
     // 1. Handle Sandbox Simulation
@@ -26,33 +46,33 @@ export async function POST(req: NextRequest) {
       const orderId = body.orderId;
       const paymentDetails = body.paymentDetails || {};
 
-      // Update in memory DB
-      const store = MemoryTransactionalStore.getInstance();
-      const memOrder = store.orders.get(orderId);
-      if (memOrder) {
-        memOrder.status = "CONFIRMED";
-        (memOrder as any).paymentStatus = "PAID";
-        (memOrder as any).paymentDetails = paymentDetails;
-        store.orders.set(orderId, memOrder);
-      }
-
-      // Update in Cloud Firestore
+      // Check Cloud Firestore for idempotency
       const firestoreOrder = await getOrderByIdFromFirestore(orderId);
       if (firestoreOrder) {
-        const updated = {
+        // IDEMPOTENCY GUARD: Do not deduct stock or re-send emails if already paid/confirmed
+        if (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CONFIRMED") {
+          console.info(`[MP_SIMULATED_IDEMPOTENT] Order ${orderId} already processed.`);
+          return NextResponse.json({
+            success: true,
+            message: "Orden simulada ya acreditada previamente (Idempotencia verificada).",
+            idempotent: true,
+            orderId,
+          });
+        }
+
+        const updated: ConfirmedOrderEntity = {
           ...firestoreOrder,
-          status: "CONFIRMED" as const,
+          status: "CONFIRMED",
           paymentStatus: "PAID",
-          paymentDetails,
+          paymentId: String(paymentDetails.paymentId || `sim-${Date.now()}`),
           updatedAt: new Date().toISOString(),
         };
         await createOrderInFirestore(updated);
 
         // Deduct stock in Firestore atomically
         try {
-          const { deductProductStockAtomic } = await import("@/lib/firebase/firestore");
           await deductProductStockAtomic(
-            (firestoreOrder.items || []).map((it: any) => ({
+            (firestoreOrder.items || []).map((it) => ({
               productId: it.productId,
               quantity: it.quantity,
             }))
@@ -63,16 +83,26 @@ export async function POST(req: NextRequest) {
 
         // Dispatch confirmation email
         try {
-          const { sendOrderConfirmationEmail } = await import("@/lib/services/emailService");
           await sendOrderConfirmationEmail(updated);
         } catch (emailErr) {
           console.warn("[Simulated Payment] Failed to send email receipt:", emailErr);
         }
       }
 
+      // Update in memory DB
+      const store = MemoryTransactionalStore.getInstance();
+      const memOrder = store.orders.get(orderId);
+      if (memOrder) {
+        memOrder.status = "CONFIRMED";
+        memOrder.paymentStatus = "PAID";
+        memOrder.updatedAt = new Date().toISOString();
+        store.orders.set(orderId, memOrder);
+      }
+
       return NextResponse.json({
         success: true,
         message: "Pago simulado acreditado con éxito en Cloud Firestore.",
+        orderId,
       });
     }
 
@@ -99,47 +129,68 @@ export async function POST(req: NextRequest) {
       const status = payment.status;
 
       if (orderId && status === "approved") {
-        const paymentDetails = {
-          paymentId: String(payment.id),
-          status: payment.status,
-          statusDetail: payment.status_detail,
-          paymentMethodId: payment.payment_method_id,
-          paymentTypeId: payment.payment_type_id,
-          installments: payment.installments,
-          transactionAmount: payment.transaction_amount,
-          cardLast4: payment.card?.last_four_digits,
-          dateApproved: payment.date_approved,
-        };
-
-        // Update in Memory DB
+        const firestoreOrder = await getOrderByIdFromFirestore(orderId);
         const store = MemoryTransactionalStore.getInstance();
         const memOrder = store.orders.get(orderId);
-        if (memOrder) {
-          memOrder.status = "CONFIRMED";
-          (memOrder as any).paymentStatus = "PAID";
-          (memOrder as any).paymentDetails = paymentDetails;
-          store.orders.set(orderId, memOrder);
+
+        // IDEMPOTENCY GUARD: Check if order was already confirmed/paid
+        const isAlreadyProcessed =
+          (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CONFIRMED")) ||
+          (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CONFIRMED"));
+
+        if (isAlreadyProcessed) {
+          console.info(
+            `[MP_WEBHOOK_IDEMPOTENT] Payment for order ${orderId} already fulfilled. Skipping duplicate stock deduction.`
+          );
+          return NextResponse.json(
+            {
+              received: true,
+              idempotent: true,
+              orderId,
+              message: "Notificación de pago previamente procesada con éxito.",
+            },
+            { status: 200 }
+          );
         }
 
-        // Update in Cloud Firestore
-        const firestoreOrder = await getOrderByIdFromFirestore(orderId);
+        // Process first-time approved payment
         if (firestoreOrder) {
-          const updated = {
+          const updated: ConfirmedOrderEntity = {
             ...firestoreOrder,
-            status: "CONFIRMED" as const,
+            status: "CONFIRMED",
             paymentStatus: "PAID",
-            paymentDetails,
+            paymentId: String(payment.id),
             updatedAt: new Date().toISOString(),
           };
           await createOrderInFirestore(updated);
 
+          // Deduct stock in Firestore atomically
+          try {
+            await deductProductStockAtomic(
+              (firestoreOrder.items || []).map((it) => ({
+                productId: it.productId,
+                quantity: it.quantity,
+              }))
+            );
+          } catch (stkErr) {
+            console.warn("[MP Webhook] Stock deduction warning:", stkErr);
+          }
+
           // Dispatch transactional order receipt email to customer
           try {
-            const { sendOrderConfirmationEmail } = await import("@/lib/services/emailService");
             await sendOrderConfirmationEmail(updated);
           } catch (mailErr) {
             console.warn("[Webhook] Failed to dispatch order confirmation email:", mailErr);
           }
+        }
+
+        // Update in Memory DB
+        if (memOrder) {
+          memOrder.status = "CONFIRMED";
+          memOrder.paymentStatus = "PAID";
+          memOrder.paymentId = String(payment.id);
+          memOrder.updatedAt = new Date().toISOString();
+          store.orders.set(orderId, memOrder);
         }
       }
     }

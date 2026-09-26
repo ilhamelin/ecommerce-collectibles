@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFlowPaymentStatus } from "@/lib/payments/flow";
-import { getOrderByIdFromFirestore, createOrderInFirestore } from "@/lib/firebase/firestore";
+import {
+  getOrderByIdFromFirestore,
+  createOrderInFirestore,
+  deductProductStockAtomic,
+} from "@/lib/firebase/firestore";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
+import { sendOrderConfirmationEmail } from "@/lib/services/emailService";
+import { ConfirmedOrderEntity } from "@/lib/types/domain";
+
+export const dynamic = "force-dynamic";
 
 /**
  * Webhook receiver for Flow.cl (Transbank Webpay Plus)
@@ -26,35 +34,63 @@ export async function POST(req: NextRequest) {
     const isPaid = flowPayment.status === 2;
 
     if (isPaid && orderId) {
-      const paymentDetails = {
-        paymentId: String(flowPayment.flowOrder),
-        status: "approved",
-        paymentMethodId: flowPayment.paymentData?.media || "Webpay Plus",
-        merchantOrderId: flowPayment.commerceOrder,
-        dateApproved: flowPayment.paymentData?.date || new Date().toISOString(),
-      };
-
-      // 1. In-memory update
       const store = MemoryTransactionalStore.getInstance();
       const memOrder = store.orders.get(orderId);
+      const firestoreOrder = await getOrderByIdFromFirestore(orderId);
+
+      // IDEMPOTENCY GUARD: Do not process duplicate fulfillment
+      const isAlreadyProcessed =
+        (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CONFIRMED")) ||
+        (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CONFIRMED"));
+
+      if (isAlreadyProcessed) {
+        console.info(`[FLOW_WEBHOOK_IDEMPOTENT] Order ${orderId} already fulfilled. Skipping duplicate processing.`);
+        return NextResponse.json({
+          received: true,
+          idempotent: true,
+          status: flowPayment.status,
+          message: "Orden Flow ya procesada previamente.",
+        });
+      }
+
+      // 1. In-memory update
       if (memOrder) {
         memOrder.status = "CONFIRMED";
-        (memOrder as any).paymentStatus = "PAID";
-        (memOrder as any).paymentDetails = paymentDetails;
+        memOrder.paymentStatus = "PAID";
+        memOrder.paymentId = String(flowPayment.flowOrder);
+        memOrder.updatedAt = new Date().toISOString();
         store.orders.set(orderId, memOrder);
       }
 
       // 2. Firestore update
-      const firestoreOrder = await getOrderByIdFromFirestore(orderId);
       if (firestoreOrder) {
-        const updated = {
+        const updated: ConfirmedOrderEntity = {
           ...firestoreOrder,
-          status: "CONFIRMED" as const,
+          status: "CONFIRMED",
           paymentStatus: "PAID",
-          paymentDetails,
+          paymentId: String(flowPayment.flowOrder),
           updatedAt: new Date().toISOString(),
         };
         await createOrderInFirestore(updated);
+
+        // Atomic stock deduction
+        try {
+          await deductProductStockAtomic(
+            (firestoreOrder.items || []).map((it) => ({
+              productId: it.productId,
+              quantity: it.quantity,
+            }))
+          );
+        } catch (stkErr) {
+          console.warn("[Flow Webhook] Stock deduction warning:", stkErr);
+        }
+
+        // Transactional email
+        try {
+          await sendOrderConfirmationEmail(updated);
+        } catch (mailErr) {
+          console.warn("[Flow Webhook] Failed to dispatch email receipt:", mailErr);
+        }
       }
     }
 

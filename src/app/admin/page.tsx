@@ -131,26 +131,24 @@ export default function AdminDashboardPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch orders
-      const ordersRes = await fetch("/api/orders", {
-        headers: { ...getAdminHeaders() },
-      });
-      const ordersData = await ordersRes.json();
-      if (ordersData.success && Array.isArray(ordersData.data?.orders)) {
-        setOrders(ordersData.data.orders);
+      // Parallelize orders, products, and backups concurrently (O(1) network cycle)
+      const [ordersResult, productsResult] = await Promise.allSettled([
+        fetch("/api/orders", {
+          headers: { ...getAdminHeaders() },
+        }).then((r) => (r.ok ? r.json() : null)),
+        fetch("/api/products").then((r) => (r.ok ? r.json() : null)),
+        loadBackups(),
+      ]);
+
+      if (ordersResult.status === "fulfilled" && ordersResult.value?.success && Array.isArray(ordersResult.value.data?.orders)) {
+        setOrders(ordersResult.value.data.orders);
       }
 
-      // 2. Fetch products
-      const productsRes = await fetch("/api/products");
-      const productsData = await productsRes.json();
-      if (productsData.success && Array.isArray(productsData.data?.products)) {
-        setProducts(productsData.data.products);
-      } else {
+      if (productsResult.status === "fulfilled" && productsResult.value?.success && Array.isArray(productsResult.value.data?.products)) {
+        setProducts(productsResult.value.data.products);
+      } else if (productsResult.status === "fulfilled") {
         setProducts([]);
       }
-
-      // 3. Load DB backups & snapshots
-      await loadBackups();
     } catch (err) {
       console.error("Error cargando métricas:", err);
     } finally {

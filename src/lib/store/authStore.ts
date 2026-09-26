@@ -282,11 +282,15 @@ export const useAuthStore = create<AuthState>()(
             user.role = "ADMIN";
           }
 
-          if (typeof document !== "undefined") {
+          if (typeof window !== "undefined") {
             if (isUserAdmin) {
-              document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+              fetch("/api/auth/admin-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: user.email, role: "ADMIN" }),
+              }).catch(() => {});
             } else {
-              document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
+              fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
             }
           }
 
@@ -316,8 +320,16 @@ export const useAuthStore = create<AuthState>()(
           const isStateUserAdmin = currentInState.role === "ADMIN" || isConfiguredAdminEmail(email);
           if (isStateUserAdmin) {
             currentInState.role = "ADMIN";
-            if (typeof document !== "undefined") {
-              document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+          }
+          if (typeof window !== "undefined") {
+            if (isStateUserAdmin) {
+              fetch("/api/auth/admin-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: currentInState.email, role: "ADMIN" }),
+              }).catch(() => {});
+            } else {
+              fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
             }
           }
 
@@ -380,11 +392,15 @@ export const useAuthStore = create<AuthState>()(
           }).catch(() => {});
         }
 
-        if (typeof document !== "undefined") {
+        if (typeof window !== "undefined") {
           if (user.role === "ADMIN") {
-            document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+            fetch("/api/auth/admin-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: user.email, role: "ADMIN" }),
+            }).catch(() => {});
           } else {
-            document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
+            fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
           }
         }
 
@@ -450,7 +466,11 @@ export const useAuthStore = create<AuthState>()(
           }).catch(() => {});
 
           if (isNewUserAdmin) {
-            document.cookie = "omni_admin_session=1; path=/; max-age=86400; SameSite=Lax";
+            fetch("/api/auth/admin-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: newUser.email, role: "ADMIN" }),
+            }).catch(() => {});
           }
         }
 
@@ -469,8 +489,8 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         const current = get().currentUser;
-        if (typeof document !== "undefined") {
-          document.cookie = "omni_admin_session=; path=/; max-age=0; SameSite=Lax";
+        if (typeof window !== "undefined") {
+          fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
         }
         if (current && typeof window !== "undefined") {
           try {

@@ -285,7 +285,7 @@ function StoreNavbarContent() {
   ];
 
   return (
-    <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/95 border-b border-[#E5E5E5] shadow-sm">
+    <nav className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/95 border-b border-[#E5E5E5] shadow-sm">
       {/* Top Friendly Announcement Bar */}
       {announcement.enabled && (
         <div
@@ -514,15 +514,19 @@ function StoreNavbarContent() {
                 <div
                   role="menu"
                   aria-orientation="vertical"
-                  className="absolute left-0 mt-2.5 w-[680px] xl:w-[720px] max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0B1528]/98 backdrop-blur-2xl border border-slate-700/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden z-50 text-white animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150 ring-1 ring-white/10"
+                  style={{ backgroundColor: "#0B1528" }}
+                  className="absolute left-0 mt-2.5 w-[680px] xl:w-[720px] max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0B1528] border border-slate-700 shadow-[0_25px_70px_rgba(0,0,0,0.9)] overflow-hidden z-[100] text-white animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150 ring-1 ring-white/10"
                 >
                   {/* Top Gradient Glow Accent */}
                   <div className="h-[2px] w-full bg-gradient-to-r from-[#FF6B35] via-amber-400 to-[#1F3A5F]" />
 
                   {/* Header Bar: Catálogo Hero */}
-                  <div className="p-4 bg-gradient-to-b from-[#15253F] to-[#0E1A2E] border-b border-slate-700/60 flex items-center justify-between gap-4">
+                  <div
+                    style={{ backgroundColor: "#15253F" }}
+                    className="p-4 bg-[#15253F] border-b border-slate-700/80 flex items-center justify-between gap-4"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 flex items-center justify-center text-[#FF6B35] shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#FF6B35]/20 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] shrink-0">
                         <Sparkles className="w-4 h-4" />
                       </div>
                       <div>
@@ -530,7 +534,7 @@ function StoreNavbarContent() {
                           <span className="text-xs font-black uppercase tracking-wider text-white">
                             Explorar Catálogo Completo
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30 font-mono">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF6B35]/25 text-[#FF6B35] border border-[#FF6B35]/40 font-mono">
                             {categoryCounts.ALL} Productos
                           </span>
                         </div>
@@ -550,13 +554,16 @@ function StoreNavbarContent() {
                     </Link>
                   </div>
 
-                  {/* Main 2-Column Mega-Menu Body */}
-                  <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* Main 2-Column Mega-Menu Body (Solid 100% Opaque) */}
+                  <div
+                    style={{ backgroundColor: "#0B1528" }}
+                    className="p-4 bg-[#0B1528] grid grid-cols-1 md:grid-cols-12 gap-4"
+                  >
                     {/* Left Column: Categorías Principales (7 cols) */}
                     <div className="md:col-span-7 space-y-2">
                       <div className="flex items-center justify-between px-1 pb-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35] flex items-center gap-1.5">
-                          <Flame className="w-3 h-3" />
+                          <Flame className="w-3.5 h-3.5" />
                           Bóveda Principal
                         </span>
                         <span className="text-[10px] text-slate-400 font-medium">Líneas destacadas</span>
@@ -571,10 +578,11 @@ function StoreNavbarContent() {
                               key={item.key}
                               href={item.href}
                               onClick={() => setIsDropdownOpen(false)}
+                              style={{ backgroundColor: isItemActive ? "#182B47" : "#111F36" }}
                               className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all duration-150 ${
                                 isItemActive
-                                  ? "bg-[#FF6B35]/15 border-[#FF6B35] shadow-sm shadow-[#FF6B35]/10"
-                                  : "bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-slate-600/70"
+                                  ? "bg-[#182B47] border-[#FF6B35] shadow-md shadow-[#FF6B35]/20 ring-1 ring-[#FF6B35]/40"
+                                  : "bg-[#111F36] hover:bg-[#172844] border-slate-700/70 hover:border-[#FF6B35]/60 shadow-sm"
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -599,7 +607,7 @@ function StoreNavbarContent() {
                                 <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border ${
                                   isItemActive
                                     ? "bg-[#FF6B35] text-white border-[#FF6B35]"
-                                    : "bg-slate-800/80 text-slate-300 border-slate-700/60 group-hover:border-[#FF6B35]/40 group-hover:text-white"
+                                    : "bg-[#0B1528] text-slate-300 border-slate-700 group-hover:border-[#FF6B35]/50 group-hover:text-white"
                                 }`}>
                                   {item.count}
                                 </span>
@@ -612,15 +620,15 @@ function StoreNavbarContent() {
                     </div>
 
                     {/* Right Column: Especialidades & Ecosistema (5 cols) */}
-                    <div className="md:col-span-5 space-y-2 border-t md:border-t-0 md:border-l border-slate-700/60 md:pl-4 pt-3 md:pt-0">
+                    <div className="md:col-span-5 space-y-2 border-t md:border-t-0 md:border-l border-slate-700/80 md:pl-4 pt-3 md:pt-0">
                       <div className="flex items-center justify-between px-1 pb-1">
                         <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 flex items-center gap-1.5">
-                          <Zap className="w-3 h-3" />
+                          <Zap className="w-3.5 h-3.5" />
                           Especialidades & Hardware
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-1">
+                      <div className="grid grid-cols-1 gap-1.5">
                         {specializedCategories.map((item) => {
                           const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
                           const IconComponent = item.icon;
@@ -629,20 +637,23 @@ function StoreNavbarContent() {
                               key={item.key}
                               href={item.href}
                               onClick={() => setIsDropdownOpen(false)}
+                              style={{ backgroundColor: isItemActive ? "#153047" : "#111F36" }}
                               className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition ${
                                 isItemActive
-                                  ? "bg-cyan-500/15 border-cyan-400/60 text-white font-bold"
-                                  : "border-transparent text-slate-300 hover:text-white hover:bg-white/[0.07] hover:border-slate-700/50"
+                                  ? "bg-[#153047] border-cyan-400 text-white font-bold shadow-sm"
+                                  : "bg-[#111F36] hover:bg-[#172844] border-slate-700/70 hover:border-cyan-400/50 text-slate-200 hover:text-white"
                               }`}
                             >
                               <span className="flex items-center gap-2 text-xs">
                                 <IconComponent className={`w-3.5 h-3.5 transition-colors ${
-                                  isItemActive ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"
+                                  isItemActive ? "text-cyan-400" : "text-cyan-400/90 group-hover:text-cyan-300"
                                 }`} />
                                 <span className="truncate">{item.label}</span>
                               </span>
-                              <span className={`text-[10px] font-mono font-medium ${
-                                isItemActive ? "text-cyan-300 font-bold" : "text-slate-500 group-hover:text-slate-300"
+                              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                                isItemActive
+                                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/50 font-bold"
+                                  : "bg-[#0B1528] text-slate-400 border-slate-700 group-hover:text-slate-200"
                               }`}>
                                 ({item.count})
                               </span>
@@ -654,7 +665,10 @@ function StoreNavbarContent() {
                   </div>
 
                   {/* Bottom Luxury Footer Strip */}
-                  <div className="px-4 py-2.5 bg-[#080E1C] border-t border-slate-700/60 flex items-center justify-between gap-3 text-[10px] text-slate-400">
+                  <div
+                    style={{ backgroundColor: "#080E1C" }}
+                    className="px-4 py-2.5 bg-[#080E1C] border-t border-slate-700/80 flex items-center justify-between gap-3 text-[10px] text-slate-400"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
                         <Truck className="w-3 h-3 text-[#FF6B35]" />
@@ -889,7 +903,7 @@ export function StoreNavbar() {
   return (
     <Suspense
       fallback={
-        <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/95 border-b border-[#E5E5E5] shadow-sm min-h-[4rem]" />
+        <nav className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/95 border-b border-[#E5E5E5] shadow-sm min-h-[4rem]" />
       }
     >
       <StoreNavbarContent />

@@ -27,9 +27,12 @@ import {
   Flame,
   Shield,
   Crown,
+  Tv,
   Zap,
   Star,
-  Tv,
+  Compass,
+  ArrowRight,
+  Boxes,
 } from "lucide-react";
 import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -82,18 +85,30 @@ function StoreNavbarContent() {
     ALL: 28,
   });
 
-  // Click-outside listener
+  // Auto-close dropdown on route change
+  useEffect(() => {
+    setIsDropdownOpen(false);
+  }, [pathname, searchParams]);
+
+  // Click-outside and Escape key listener
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsDropdownOpen(false);
+      }
+    }
     if (isDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isDropdownOpen]);
 
@@ -207,6 +222,66 @@ function StoreNavbarContent() {
     { href: "/catalog?category=CONSOLE", label: "Consolas", icon: Tv, categoryKey: "CONSOLE" },
     { href: "/catalog?category=HARDWARE", label: "Hardware", icon: Cpu, categoryKey: "HARDWARE" },
     { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios", icon: Headphones, categoryKey: "GAMING_ACCESSORY" },
+  ];
+
+  const quickNavCategories = [
+    { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", categoryKey: "VIDEO_GAME" },
+    { href: "/catalog?category=FIGURE", label: "Figuras", categoryKey: "FIGURE" },
+    { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas", categoryKey: "COLLECTIBLE" },
+    { href: "/catalog?category=BUNDLE", label: "Bundles", categoryKey: "BUNDLE" },
+    { href: "/catalog?category=CONSOLE", label: "Consolas", categoryKey: "CONSOLE" },
+    { href: "/catalog?category=HARDWARE", label: "Hardware", categoryKey: "HARDWARE" },
+    { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios", categoryKey: "GAMING_ACCESSORY" },
+  ];
+
+  const coreCategories = [
+    {
+      key: "VIDEO_GAME",
+      href: "/catalog?category=VIDEO_GAME",
+      label: "Videojuegos",
+      desc: "Juegos PS5, Switch, Retro y Ed. Especiales",
+      icon: Gamepad2,
+      gradient: "from-blue-600 to-indigo-600",
+      count: categoryCounts.VIDEO_GAME,
+    },
+    {
+      key: "FIGURE",
+      href: "/catalog?category=FIGURE",
+      label: "Figuras de Escala",
+      desc: "Escalas 1/7, 1/4, Resinas y Nendoroid",
+      icon: Sparkles,
+      gradient: "from-purple-600 to-pink-600",
+      count: categoryCounts.FIGURE,
+    },
+    {
+      key: "COLLECTIBLE",
+      href: "/catalog?category=COLLECTIBLE",
+      label: "TCG & Rarezas PSA",
+      desc: "Pokémon, One Piece y Cartas Graduadas",
+      icon: Trophy,
+      gradient: "from-amber-500 to-[#FF6B35]",
+      count: categoryCounts.COLLECTIBLE,
+    },
+    {
+      key: "BUNDLE",
+      href: "/catalog?category=BUNDLE",
+      label: "Bundles & Packs",
+      desc: "Sets combinados con ahorro garantizado",
+      icon: Layers,
+      gradient: "from-emerald-500 to-teal-600",
+      count: categoryCounts.BUNDLE,
+    },
+  ];
+
+  const specializedCategories = [
+    { key: "CONSOLE", href: "/catalog?category=CONSOLE", label: "Consolas", icon: Tv, count: categoryCounts.CONSOLE },
+    { key: "HARDWARE", href: "/catalog?category=HARDWARE", label: "Hardware & PC", icon: Cpu, count: categoryCounts.HARDWARE },
+    { key: "GAMING_ACCESSORY", href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: Headphones, count: categoryCounts.GAMING_ACCESSORY },
+    { key: "APPAREL", href: "/catalog?category=APPAREL", label: "Ropa & Estilo", icon: Shirt, count: categoryCounts.APPAREL },
+    { key: "BOOK", href: "/catalog?category=BOOK", label: "Manga & Artbooks", icon: BookOpen, count: categoryCounts.BOOK },
+    { key: "MERCH", href: "/catalog?category=MERCH", label: "Merchandising", icon: Gift, count: categoryCounts.MERCH },
+    { key: "AUDIO", href: "/catalog?category=AUDIO", label: "Audio & OST", icon: Disc3, count: categoryCounts.AUDIO },
+    { key: "OTHER", href: "/catalog?category=OTHER", label: "Otras Categorías", icon: Boxes, count: categoryCounts.OTHER },
   ];
 
   return (
@@ -400,13 +475,214 @@ function StoreNavbarContent() {
 
           {/* Desktop Navigation Links */}
           <div className="hidden lg:flex items-center gap-1 xl:gap-1.5">
-            {navLinks.map((link) => {
-              const isActive = link.categoryKey
-                ? pathname === "/catalog" && currentCategory?.toUpperCase() === link.categoryKey
-                : link.href === "/catalog"
-                ? pathname === "/catalog" && (!currentCategory || currentCategory.toUpperCase() === "ALL")
-                : pathname === link.href;
+            {/* Inicio Direct Link */}
+            <Link
+              href="/"
+              className={`px-2 xl:px-3 py-1.5 rounded-xl text-[11px] xl:text-xs font-semibold transition whitespace-nowrap ${
+                pathname === "/"
+                  ? "bg-[#1F3A5F] text-white shadow-sm font-bold"
+                  : "text-[#1A1A1A] hover:text-[#FF6B35] hover:bg-[#F7F7F5]"
+              }`}
+            >
+              Inicio
+            </Link>
 
+            {/* Catálogo Dropdown Trigger & Luxury Mega-Menu */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                aria-expanded={isDropdownOpen}
+                aria-haspopup="true"
+                className={`px-2.5 xl:px-3 py-1.5 rounded-xl text-[11px] xl:text-xs font-semibold transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                  pathname === "/catalog" || isDropdownOpen
+                    ? "bg-[#1F3A5F] text-white shadow-sm font-bold ring-2 ring-[#FF6B35]/25"
+                    : "text-[#1A1A1A] hover:text-[#FF6B35] hover:bg-[#F7F7F5]"
+                }`}
+                title="Explorar todas las categorías del catálogo"
+              >
+                <Compass className={`w-3.5 h-3.5 ${pathname === "/catalog" || isDropdownOpen ? "text-[#FF6B35]" : "text-[#1F3A5F]"}`} />
+                <span>Catálogo</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isDropdownOpen ? "rotate-180 text-[#FF6B35]" : "text-slate-400 group-hover:text-[#FF6B35]"
+                  }`}
+                />
+              </button>
+
+              {isDropdownOpen && (
+                <div
+                  role="menu"
+                  aria-orientation="vertical"
+                  className="absolute left-0 mt-2.5 w-[680px] xl:w-[720px] max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0B1528]/98 backdrop-blur-2xl border border-slate-700/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden z-50 text-white animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150 ring-1 ring-white/10"
+                >
+                  {/* Top Gradient Glow Accent */}
+                  <div className="h-[2px] w-full bg-gradient-to-r from-[#FF6B35] via-amber-400 to-[#1F3A5F]" />
+
+                  {/* Header Bar: Catálogo Hero */}
+                  <div className="p-4 bg-gradient-to-b from-[#15253F] to-[#0E1A2E] border-b border-slate-700/60 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 flex items-center justify-center text-[#FF6B35] shrink-0">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-wider text-white">
+                            Explorar Catálogo Completo
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30 font-mono">
+                            {categoryCounts.ALL} Productos
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 line-clamp-1">
+                          Coleccionables certificados, preventas oficiales y hardware con precio congelado en CLP.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Link
+                      href="/catalog"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6B35] to-[#E85A24] text-white text-xs font-extrabold shadow-md shadow-[#FF6B35]/25 hover:brightness-110 active:scale-95 transition group"
+                    >
+                      <span>Ver Todo</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  </div>
+
+                  {/* Main 2-Column Mega-Menu Body */}
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {/* Left Column: Categorías Principales (7 cols) */}
+                    <div className="md:col-span-7 space-y-2">
+                      <div className="flex items-center justify-between px-1 pb-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#FF6B35] flex items-center gap-1.5">
+                          <Flame className="w-3 h-3" />
+                          Bóveda Principal
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">Líneas destacadas</span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {coreCategories.map((item) => {
+                          const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
+                          const IconComponent = item.icon;
+                          return (
+                            <Link
+                              key={item.key}
+                              href={item.href}
+                              onClick={() => setIsDropdownOpen(false)}
+                              className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all duration-150 ${
+                                isItemActive
+                                  ? "bg-[#FF6B35]/15 border-[#FF6B35] shadow-sm shadow-[#FF6B35]/10"
+                                  : "bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-slate-600/70"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-9 h-9 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0`}
+                                >
+                                  <IconComponent className="w-4 h-4" />
+                                </div>
+                                <div className="text-left">
+                                  <span className={`block text-xs font-bold transition-colors ${
+                                    isItemActive ? "text-[#FF6B35]" : "text-white group-hover:text-[#FF6B35]"
+                                  }`}>
+                                    {item.label}
+                                  </span>
+                                  <span className="block text-[10px] text-slate-400 line-clamp-1 group-hover:text-slate-300">
+                                    {item.desc}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 pl-2 shrink-0">
+                                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border ${
+                                  isItemActive
+                                    ? "bg-[#FF6B35] text-white border-[#FF6B35]"
+                                    : "bg-slate-800/80 text-slate-300 border-slate-700/60 group-hover:border-[#FF6B35]/40 group-hover:text-white"
+                                }`}>
+                                  {item.count}
+                                </span>
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#FF6B35] group-hover:translate-x-0.5 transition" />
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Right Column: Especialidades & Ecosistema (5 cols) */}
+                    <div className="md:col-span-5 space-y-2 border-t md:border-t-0 md:border-l border-slate-700/60 md:pl-4 pt-3 md:pt-0">
+                      <div className="flex items-center justify-between px-1 pb-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 flex items-center gap-1.5">
+                          <Zap className="w-3 h-3" />
+                          Especialidades & Hardware
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-1">
+                        {specializedCategories.map((item) => {
+                          const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
+                          const IconComponent = item.icon;
+                          return (
+                            <Link
+                              key={item.key}
+                              href={item.href}
+                              onClick={() => setIsDropdownOpen(false)}
+                              className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition ${
+                                isItemActive
+                                  ? "bg-cyan-500/15 border-cyan-400/60 text-white font-bold"
+                                  : "border-transparent text-slate-300 hover:text-white hover:bg-white/[0.07] hover:border-slate-700/50"
+                              }`}
+                            >
+                              <span className="flex items-center gap-2 text-xs">
+                                <IconComponent className={`w-3.5 h-3.5 transition-colors ${
+                                  isItemActive ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"
+                                }`} />
+                                <span className="truncate">{item.label}</span>
+                              </span>
+                              <span className={`text-[10px] font-mono font-medium ${
+                                isItemActive ? "text-cyan-300 font-bold" : "text-slate-500 group-hover:text-slate-300"
+                              }`}>
+                                ({item.count})
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Luxury Footer Strip */}
+                  <div className="px-4 py-2.5 bg-[#080E1C] border-t border-slate-700/60 flex items-center justify-between gap-3 text-[10px] text-slate-400">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1">
+                        <Truck className="w-3 h-3 text-[#FF6B35]" />
+                        <span>Envíos Asegurados a todo Chile</span>
+                      </span>
+                      <span className="hidden sm:inline text-slate-600">•</span>
+                      <span className="hidden sm:flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-emerald-400" />
+                        <span>100% Originales & Sellados</span>
+                      </span>
+                    </div>
+
+                    <Link
+                      href="/catalog?sort=newest"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="text-[#FF6B35] hover:underline font-bold flex items-center gap-1 group shrink-0"
+                    >
+                      <span>Novedades recientes</span>
+                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Category Direct Pills */}
+            {quickNavCategories.map((link) => {
+              const isActive = pathname === "/catalog" && currentCategory?.toUpperCase() === link.categoryKey;
               return (
                 <Link
                   key={link.href}
@@ -421,123 +697,6 @@ function StoreNavbarContent() {
                 </Link>
               );
             })}
-
-            {/* Dropdown for All / More Categories - As requested by user */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setIsDropdownOpen((prev) => !prev)}
-                aria-expanded={isDropdownOpen}
-                aria-label="Desplegar todas las categorías"
-                className={`p-2 rounded-xl border transition flex items-center justify-center gap-1 text-xs font-bold ${
-                  isDropdownOpen
-                    ? "bg-[#0F1D30] text-[#FF6B35] border-[#FF6B35] shadow-md ring-2 ring-[#FF6B35]/20"
-                    : "bg-white border-[#E5E5E5] text-[#1F3A5F] hover:border-[#FF6B35] hover:text-[#FF6B35]"
-                }`}
-                title="Ver todas las categorías del catálogo"
-              >
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    isDropdownOpen ? "rotate-180 text-[#FF6B35]" : ""
-                  }`}
-                />
-              </button>
-
-              {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#0F1D30] border border-[#1F3A5F] shadow-2xl shadow-black/40 overflow-hidden z-50 text-white animate-in fade-in slide-in-from-top-2 duration-150">
-                  {/* Dropdown Header */}
-                  <Link
-                    href="/catalog"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center justify-between px-4 py-3 bg-[#152842] border-b border-[#1F3A5F] hover:bg-[#1b3456] transition group"
-                  >
-                    <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider group-hover:text-[#FF6B35]">
-                      <Filter className="w-3.5 h-3.5 text-[#FF6B35]" />
-                      <span>Todas las Categorías ({categoryCounts.ALL})</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-cyan-400 group-hover:translate-x-0.5 transition" />
-                  </Link>
-
-                  <div className="p-2 space-y-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    {/* Sección 1: Categorías Principales */}
-                    <div className="px-2 pt-1.5 pb-1 flex items-center gap-2 text-[10px] font-bold text-[#FF6B35] uppercase tracking-wider">
-                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
-                      <span>Categorías Principales</span>
-                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
-                    </div>
-
-                    {[
-                      { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", icon: "🎮", count: categoryCounts.VIDEO_GAME, key: "VIDEO_GAME" },
-                      { href: "/catalog?category=FIGURE", label: "Figuras de Escala", icon: "🎎", count: categoryCounts.FIGURE, key: "FIGURE" },
-                      { href: "/catalog?category=COLLECTIBLE", label: "TCG & Rarezas PSA", icon: "🏆", count: categoryCounts.COLLECTIBLE, key: "COLLECTIBLE" },
-                      { href: "/catalog?category=BUNDLE", label: "Bundles Compuestos", icon: "📦", count: categoryCounts.BUNDLE, key: "BUNDLE" },
-                    ].map((item) => {
-                      const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                            isItemActive
-                              ? "bg-[#FF6B35] text-white font-bold shadow-sm"
-                              : "text-slate-200 hover:text-white hover:bg-white/10"
-                          }`}
-                        >
-                          <span className="flex items-center gap-2.5">
-                            <span className="text-sm">{item.icon}</span>
-                            <span>{item.label}</span>
-                          </span>
-                          <span className={`text-[11px] font-mono font-bold ${isItemActive ? "text-white" : "text-slate-400"}`}>
-                            ({item.count})
-                          </span>
-                        </Link>
-                      );
-                    })}
-
-                    {/* Sección 2: Categorías Especializadas */}
-                    <div className="px-2 pt-3 pb-1 flex items-center gap-2 text-[10px] font-bold text-[#FF6B35] uppercase tracking-wider">
-                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
-                      <span>Categorías Especializadas</span>
-                      <span className="h-px flex-1 bg-[#FF6B35]/30"></span>
-                    </div>
-
-                    {[
-                      { href: "/catalog?category=CONSOLE", label: "Consolas", icon: "🕹️", count: categoryCounts.CONSOLE, key: "CONSOLE" },
-                      { href: "/catalog?category=HARDWARE", label: "Hardware & Componentes", icon: "🖥️", count: categoryCounts.HARDWARE, key: "HARDWARE" },
-                      { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: "🎧", count: categoryCounts.GAMING_ACCESSORY, key: "GAMING_ACCESSORY" },
-                      { href: "/catalog?category=APPAREL", label: "Ropa & Estilo", icon: "👕", count: categoryCounts.APPAREL, key: "APPAREL" },
-                      { href: "/catalog?category=BOOK", label: "Manga / Artbooks", icon: "📖", count: categoryCounts.BOOK, key: "BOOK" },
-                      { href: "/catalog?category=MERCH", label: "Merchandising", icon: "🎁", count: categoryCounts.MERCH, key: "MERCH" },
-                      { href: "/catalog?category=AUDIO", label: "Audio / OST", icon: "💿", count: categoryCounts.AUDIO, key: "AUDIO" },
-                      { href: "/catalog?category=OTHER", label: "Otras Categorías", icon: "🧩", count: categoryCounts.OTHER, key: "OTHER" },
-                    ].map((item) => {
-                      const isItemActive = pathname === "/catalog" && currentCategory?.toUpperCase() === item.key;
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                            isItemActive
-                              ? "bg-[#FF6B35] text-white font-bold shadow-sm"
-                              : "text-slate-200 hover:text-white hover:bg-white/10"
-                          }`}
-                        >
-                          <span className="flex items-center gap-2.5">
-                            <span className="text-sm">{item.icon}</span>
-                            <span>{item.label}</span>
-                          </span>
-                          <span className={`text-[11px] font-mono font-bold ${isItemActive ? "text-white" : "text-slate-400"}`}>
-                            ({item.count})
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Wishlist, Cart & Quick Actions */}

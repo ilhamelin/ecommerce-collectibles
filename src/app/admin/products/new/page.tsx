@@ -40,6 +40,9 @@ import {
   Shirt,
   BookOpen,
   RotateCcw,
+  Headphones,
+  Gift,
+  Zap,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { GoogleDriveImportModal } from "@/components/admin/GoogleDriveImportModal";
@@ -55,12 +58,14 @@ import {
   CollectibleCondition,
   Authenticator,
   CustomCategorySpecifications,
+  CustomCategoryEntity,
 } from "@/lib/types/domain";
 import { CustomSpecificationsForm } from "@/components/admin/CustomSpecificationsForm";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { categoryClient } from "@/lib/services/categoryClient";
 import { WORLDWIDE_AGE_RATINGS, normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 
 const ALL_PRODUCT_CATEGORIES = [
@@ -75,8 +80,29 @@ const ALL_PRODUCT_CATEGORIES = [
   { id: "MERCH", label: "Merchandising", icon: Sparkles, defaultLabel: "Merchandising" },
   { id: "AUDIO", label: "Audio / OST", icon: Disc, defaultLabel: "Audio / OST" },
   { id: "BUNDLE", label: "Bundle Lote", icon: Layers, defaultLabel: "" },
-  { id: "OTHER", label: "+ Personalizada", icon: Tag, defaultLabel: "" },
 ] as const;
+
+const getCategoryIconComponent = (iconName?: string) => {
+  switch (iconName) {
+    case "Tv": return Tv;
+    case "Monitor": return Monitor;
+    case "Cpu": return Cpu;
+    case "Gamepad2": return Gamepad2;
+    case "Headphones": return Headphones;
+    case "Box": return Box;
+    case "Shirt": return Shirt;
+    case "BookOpen": return BookOpen;
+    case "Gift": return Gift;
+    case "Disc3": return Disc;
+    case "HardDrive": return HardDrive;
+    case "Zap": return Zap;
+    case "Shield": return ShieldAlert;
+    case "Sliders": return Sliders;
+    case "Sparkles": return Sparkles;
+    case "Tag": return Tag;
+    default: return Tag;
+  }
+};
 
 const CUSTOM_CATEGORY_PRESETS = [
   "Consolas",
@@ -100,6 +126,38 @@ export default function NewProductAdminPage() {
   const [hasUserManuallySelectedType, setHasUserManuallySelectedType] = useState(false);
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
+
+  // Dynamic Custom Categories created by administrator
+  const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
+  const [selectedCustomCategoryId, setSelectedCustomCategoryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    categoryClient.getCategories().then((cats) => {
+      if (Array.isArray(cats)) {
+        setCustomCategories(cats);
+      }
+    });
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const targetCat = params.get("newCategory") || params.get("category");
+      if (targetCat) {
+        categoryClient.getCategories().then((cats) => {
+          const found = cats.find((c) => c.id === targetCat || c.slug === targetCat);
+          if (found) {
+            setType("OTHER");
+            setSelectedCustomCategoryId(found.id);
+            setCustomCategoryLabel(found.name);
+            setHasUserManuallySelectedType(true);
+          }
+        });
+      }
+    }
+  }, []);
+
+  const selectedCustomCategory = customCategories.find(
+    (c) => c.id === selectedCustomCategoryId || c.name === customCategoryLabel
+  );
 
   const isCustomOrSpecializedCategory = useMemo(() => {
     return [
@@ -1412,19 +1470,33 @@ export default function NewProductAdminPage() {
           )}
 
           {/* Section 1: Type Selector - All Categories Directly Visible */}
+          {/* Section 1: Specialized Product Type */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-md">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                1. Tipo de Producto Especializado
-              </h2>
-              <span className="text-xs text-[#9bb5c2]">
-                Todas las categorías visibles • Haz clic para activar su ficha técnica
-              </span>
+              <div>
+                <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
+                  1. Tipo de Producto Especializado
+                </h2>
+                <span className="text-xs text-[#9bb5c2]">
+                  Todas las categorías visibles • Haz clic para activar su ficha técnica
+                </span>
+              </div>
+
+              {/* Botón que redirecciona a la nueva sección/vista para crear una nueva categoría / formulario */}
+              <Link
+                href="/admin/categories/new"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#FF8C66] hover:from-[#e55d32] hover:to-[#FF6E42] text-[#092634] font-black text-xs transition shadow-sm active:scale-95 cursor-pointer"
+                title="Crear una nueva categoría de producto y diseñar su formulario técnico personalizado"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>+ Nueva Categoría</span>
+              </Link>
             </div>
 
-            {/* Grid de 12 categorías a la vista directa sin menús secundarios */}
+            {/* Grid de categorías a la vista directa sin menús secundarios */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+              {/* Categorías Nativas Especializadas (11) */}
               {ALL_PRODUCT_CATEGORIES.map((item) => {
                 const Icon = item.icon;
                 const isSelected = type === item.id;
@@ -1435,11 +1507,12 @@ export default function NewProductAdminPage() {
                     onClick={() => {
                       const newType = item.id as ProductType;
                       setType(newType);
+                      setSelectedCustomCategoryId(null);
                       setHasUserManuallySelectedType(true);
 
                       if (item.defaultLabel) {
                         setCustomCategoryLabel(item.defaultLabel);
-                      } else if (newType !== "OTHER") {
+                      } else {
                         setCustomCategoryLabel("");
                       }
 
@@ -1457,25 +1530,37 @@ export default function NewProductAdminPage() {
                   </button>
                 );
               })}
-            </div>
 
-            {/* Si selecciona categoría "+ Personalizada", input directo sin desplegar submenús */}
-            {type === "OTHER" && (
-              <div className="p-3.5 rounded-xl bg-[#004E72]/20 border border-[#FF6E42]/40 space-y-2 animate-in fade-in-50 duration-200">
-                <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-[#FF6E42]" />
-                  Nombre de la Categoría Personalizada *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={customCategoryLabel}
-                  onChange={(e) => setCustomCategoryLabel(e.target.value)}
-                  placeholder="Ej: Figuras Custom, Juegos de Mesa, Tazas Coleccionables..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#092634] border border-[#004E72]/80 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
-                />
-              </div>
-            )}
+              {/* Categorías Creadas por el Administrador */}
+              {customCategories.map((cat) => {
+                const Icon = getCategoryIconComponent(cat.iconName);
+                const isSelected = type === "OTHER" && (selectedCustomCategoryId === cat.id || customCategoryLabel === cat.name);
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      setType("OTHER");
+                      setSelectedCustomCategoryId(cat.id);
+                      setCustomCategoryLabel(cat.name);
+                      setHasUserManuallySelectedType(true);
+                      setIsPreOrder(false);
+                    }}
+                    className={`relative p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center cursor-pointer ${
+                      isSelected
+                        ? "bg-[#004E72] border-[#FF6E42] text-[#F9F9F9] shadow-md shadow-[#004E72]/40 ring-2 ring-[#FF6E42]"
+                        : "bg-[#092634]/60 border-[#004E72]/30 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-[#F9F9F9]"
+                    }`}
+                  >
+                    <span className="absolute top-1 right-1 px-1 py-0.2 rounded text-[8px] font-bold bg-[#FF6E42]/20 text-[#FF6E42]">
+                      NUEVO
+                    </span>
+                    <Icon className={`w-5 h-5 ${isSelected ? "text-[#FF6E42]" : "text-[#FF6E42]"}`} />
+                    <span className="text-xs font-bold leading-tight line-clamp-1">{cat.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Section 2: General Information */}
@@ -3433,6 +3518,7 @@ export default function NewProductAdminPage() {
                   ? "Audio / OST"
                   : "")
               }
+              customCategoryTemplate={selectedCustomCategory}
               value={customSpecifications}
               onChange={setCustomSpecifications}
             />

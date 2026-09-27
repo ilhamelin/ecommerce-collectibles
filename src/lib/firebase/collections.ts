@@ -12,4 +12,5 @@ export const COLLECTIONS = {
   SIDE_BANNERS_SETTINGS: "side_banners_settings",
   PRODUCT_ALERTS: "product_alerts",
   PRODUCT_REQUESTS: "product_requests",
+  CUSTOM_CATEGORIES: "custom_categories",
 } as const;

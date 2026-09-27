@@ -12,7 +12,7 @@ import {
   where,
   type Firestore,
 } from "firebase/firestore";
-import { ProductDomainEntity, ConfirmedOrderEntity } from "../types/domain";
+import { ProductDomainEntity, ConfirmedOrderEntity, CustomCategoryEntity } from "../types/domain";
 import { UserAccount } from "../store/authStore";
 
 import { COLLECTIONS } from "./collections";
@@ -1171,5 +1171,77 @@ export async function restoreProductStockAtomic(
     return { success: false, error: message };
   }
 }
+
+/**
+ * ============================================================================
+ * CUSTOM PRODUCT CATEGORIES & TECHNICAL TEMPLATES
+ * ============================================================================
+ */
+
+export async function getCustomCategoriesFromFirestore(): Promise<CustomCategoryEntity[]> {
+  try {
+    // 1. Server Admin SDK
+    if (typeof window === "undefined" && adminDb) {
+      const snap = await adminDb.collection(COLLECTIONS.CUSTOM_CATEGORIES).get();
+      if (!snap.empty) {
+        return snap.docs.map((d) => d.data() as CustomCategoryEntity);
+      }
+    }
+
+    // 2. Client SDK
+    if (db && isFirebaseConfigured()) {
+      const colRef = collection(db, COLLECTIONS.CUSTOM_CATEGORIES);
+      const snap = await getDocs(colRef);
+      if (!snap.empty) {
+        return snap.docs.map((d) => d.data() as CustomCategoryEntity);
+      }
+    }
+
+    return [];
+  } catch (err) {
+    console.warn("[Firestore] Error fetching custom categories:", err);
+    return [];
+  }
+}
+
+export async function saveCustomCategoryToFirestore(category: CustomCategoryEntity): Promise<boolean> {
+  try {
+    const clean = cleanFirestoreData(category);
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb.collection(COLLECTIONS.CUSTOM_CATEGORIES).doc(category.id).set(clean, { merge: true });
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, category.id), clean, { merge: true });
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error("[Firestore] Error saving custom category:", err);
+    return false;
+  }
+}
+
+export async function deleteCustomCategoryFromFirestore(categoryId: string): Promise<boolean> {
+  try {
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb.collection(COLLECTIONS.CUSTOM_CATEGORIES).doc(categoryId).delete();
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await deleteDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, categoryId));
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error("[Firestore] Error deleting custom category:", err);
+    return false;
+  }
+}
+
 
 

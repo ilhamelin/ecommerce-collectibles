@@ -17,10 +17,12 @@ import {
   CustomCategorySpecifications,
   CustomDynamicCategorySpecs,
   DynamicSpecItem,
+  CustomCategoryEntity,
 } from "@/lib/types/domain";
 
 interface CustomDynamicSpecificationsFormProps {
   customCategoryLabel: string;
+  customCategoryTemplate?: CustomCategoryEntity;
   value?: CustomCategorySpecifications;
   onChange: (specs: CustomCategorySpecifications) => void;
 }
@@ -29,10 +31,11 @@ const generateId = () => `spec-${Date.now()}-${Math.random().toString(36).substr
 
 export const CustomDynamicSpecificationsForm: React.FC<CustomDynamicSpecificationsFormProps> = ({
   customCategoryLabel,
+  customCategoryTemplate,
   value = {},
   onChange,
 }) => {
-  const categoryName = (customCategoryLabel || "Producto Personalizado").trim();
+  const categoryName = (customCategoryLabel || customCategoryTemplate?.name || "Producto Personalizado").trim();
 
   // Extract initial dynamic specs or fallback from flat custom map
   const existingDynamic: CustomDynamicCategorySpecs =
@@ -49,6 +52,9 @@ export const CustomDynamicSpecificationsForm: React.FC<CustomDynamicSpecificatio
     if (existingDynamic.availableSubtypes && existingDynamic.availableSubtypes.length > 0) {
       return existingDynamic.availableSubtypes;
     }
+    if (customCategoryTemplate?.availableSubtypes && customCategoryTemplate.availableSubtypes.length > 0) {
+      return customCategoryTemplate.availableSubtypes;
+    }
     if (existingDynamic.subtype) {
       return [existingDynamic.subtype];
     }
@@ -56,7 +62,7 @@ export const CustomDynamicSpecificationsForm: React.FC<CustomDynamicSpecificatio
   });
 
   const [selectedSubtype, setSelectedSubtype] = useState<string>(
-    () => existingDynamic.subtype || value.customSubtype || ""
+    () => existingDynamic.subtype || value.customSubtype || (customCategoryTemplate?.availableSubtypes?.[0] || "")
   );
 
   const [newSubtypeName, setNewSubtypeName] = useState<string>("");
@@ -67,6 +73,13 @@ export const CustomDynamicSpecificationsForm: React.FC<CustomDynamicSpecificatio
   const [basicSpecs, setBasicSpecs] = useState<DynamicSpecItem[]>(() => {
     if (existingDynamic.basicSpecs && existingDynamic.basicSpecs.length > 0) {
       return existingDynamic.basicSpecs;
+    }
+    if (customCategoryTemplate?.basicSpecFields && customCategoryTemplate.basicSpecFields.length > 0) {
+      return customCategoryTemplate.basicSpecFields.map((f) => ({
+        id: f.id || generateId(),
+        name: f.name,
+        value: f.defaultValue || "",
+      }));
     }
     // If flat custom exists, initialize first 2 specs
     if (value.custom && typeof value.custom === "object") {
@@ -91,6 +104,13 @@ export const CustomDynamicSpecificationsForm: React.FC<CustomDynamicSpecificatio
   const [advancedSpecs, setAdvancedSpecs] = useState<DynamicSpecItem[]>(() => {
     if (existingDynamic.advancedSpecs && existingDynamic.advancedSpecs.length > 0) {
       return existingDynamic.advancedSpecs;
+    }
+    if (customCategoryTemplate?.advancedSpecFields && customCategoryTemplate.advancedSpecFields.length > 0) {
+      return customCategoryTemplate.advancedSpecFields.map((f) => ({
+        id: f.id || generateId(),
+        name: f.name,
+        value: f.defaultValue || "",
+      }));
     }
     if (value.custom && typeof value.custom === "object") {
       const entries = Object.entries(value.custom).filter(

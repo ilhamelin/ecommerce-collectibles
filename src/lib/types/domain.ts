@@ -595,6 +595,27 @@ export interface DynamicSpecItem {
   value: string;
 }
 
+export interface CustomCategoryTemplateField {
+  id: string;
+  name: string;
+  placeholder?: string;
+  defaultValue?: string;
+  required?: boolean;
+}
+
+export interface CustomCategoryEntity {
+  id: string;
+  name: string;
+  slug: string;
+  iconName?: string;
+  description?: string;
+  availableSubtypes: string[];
+  basicSpecFields: CustomCategoryTemplateField[];
+  advancedSpecFields: CustomCategoryTemplateField[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface CustomDynamicCategorySpecs {
   categoryName?: string;
   subtype?: string;

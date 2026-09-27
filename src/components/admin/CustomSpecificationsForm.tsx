@@ -47,11 +47,13 @@ import {
   BookSpecifications,
   MerchSpecifications,
   AudioSpecifications,
+  CustomCategoryEntity,
 } from "@/lib/types/domain";
 
 interface CustomSpecificationsFormProps {
   customCategoryLabel: string;
   isCustomCategory?: boolean;
+  customCategoryTemplate?: CustomCategoryEntity;
   value?: CustomCategorySpecifications;
   onChange: (specs: CustomCategorySpecifications) => void;
 }
@@ -59,6 +61,7 @@ interface CustomSpecificationsFormProps {
 export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> = ({
   customCategoryLabel,
   isCustomCategory = false,
+  customCategoryTemplate,
   value = {},
   onChange,
 }) => {
@@ -817,7 +820,8 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
       {/* TEMPLATE 0: CATEGORÍA PERSONALIZADA DINÁMICA */}
       {(activeTemplate === "CUSTOM" || activeTemplate === "OTHER") && (
         <CustomDynamicSpecificationsForm
-          customCategoryLabel={customCategoryLabel}
+          customCategoryLabel={customCategoryLabel || customCategoryTemplate?.name || ""}
+          customCategoryTemplate={customCategoryTemplate}
           value={value}
           onChange={onChange}
         />

@@ -243,19 +243,42 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
   // Technical Specifications List
   const isVideoGame = categoryInfo.key === "VIDEO_GAME";
   const isFigure = categoryInfo.key === "FIGURE";
-  const isConsoleCat = categoryInfo.key === "CONSOLE";
-  const isHardwareCat = categoryInfo.key === "HARDWARE";
-  const isAccessoryCat = categoryInfo.key === "GAMING_ACCESSORY";
-  const isApparelCat = categoryInfo.key === "APPAREL";
-  const isBookCat = categoryInfo.key === "BOOK";
-  const isMerchCat = categoryInfo.key === "MERCH";
-  const isAudioCat = categoryInfo.key === "AUDIO";
+  const isConsoleCat =
+    categoryInfo.key === "CONSOLE" ||
+    Boolean(product.customSpecifications?.console) ||
+    product.customSpecifications?.categoryType === "CONSOLE";
+  const isHardwareCat =
+    categoryInfo.key === "HARDWARE" ||
+    Boolean(product.customSpecifications?.hardware) ||
+    product.customSpecifications?.categoryType === "HARDWARE";
+  const isAccessoryCat =
+    categoryInfo.key === "GAMING_ACCESSORY" ||
+    Boolean(product.customSpecifications?.gamingAccessory) ||
+    product.customSpecifications?.categoryType === "GAMING_ACCESSORY";
+  const isApparelCat =
+    categoryInfo.key === "APPAREL" ||
+    Boolean(product.customSpecifications?.apparel) ||
+    product.customSpecifications?.categoryType === "APPAREL";
+  const isBookCat =
+    categoryInfo.key === "BOOK" ||
+    Boolean(product.customSpecifications?.book) ||
+    product.customSpecifications?.categoryType === "BOOK";
+  const isMerchCat =
+    categoryInfo.key === "MERCH" ||
+    Boolean(product.customSpecifications?.merch) ||
+    product.customSpecifications?.categoryType === "MERCH";
+  const isAudioCat =
+    categoryInfo.key === "AUDIO" ||
+    Boolean(product.customSpecifications?.audio) ||
+    product.customSpecifications?.categoryType === "AUDIO";
 
   const hw = product.customSpecifications?.hardware;
-  const hwSubtype = hw?.hardwareType;
+  const rawHwSubtype = (hw?.hardwareType || "").toUpperCase().replace(/\s+/g, "_");
+  const hwSubtype = rawHwSubtype;
 
   const acc = product.customSpecifications?.gamingAccessory;
-  const accSubtype = acc?.accessoryType;
+  const rawAccSubtype = (acc?.accessoryType || "").toUpperCase().replace(/\s+/g, "_");
+  const accSubtype = rawAccSubtype;
 
   const hasSpecializedHw = Boolean(
     hw && (hw.gpu || hw.cpu || hw.motherboard || hw.ram || hw.hdd || hw.ssd || hw.powerSupply || hw.coolerCpu || hw.cabinet || hw.fan)
@@ -675,47 +698,59 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
       ? [{ label: "Voltaje RAM", value: hw.ram.voltage }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && (hw?.ram?.casLatency || hw?.ram?.latencyClCas)
-      ? [{ label: "Latencia CAS (CL)", value: hw?.ram?.casLatency || hw?.ram?.latencyClCas }]
+      ? [{ label: "Latencia Cl (CAS)", value: hw?.ram?.casLatency || hw?.ram?.latencyClCas }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.latencyTrcd
+      ? [{ label: "Latencia Trcd", value: hw.ram.latencyTrcd }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.latencyTrp
+      ? [{ label: "Latencia Trp", value: hw.ram.latencyTrp }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.latencyTras
+      ? [{ label: "Latencia Tras", value: hw.ram.latencyTras }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.eccSupport
       ? [{ label: "Soporte ECC", value: hw.ram.eccSupport }]
       : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "RAM") && hw?.ram?.fullBufferedSupport
+      ? [{ label: "Soporte Full Buffered", value: hw.ram.fullBufferedSupport }]
+      : []),
 
     // Disco Duro (HDD) - SOLO SI ES DISCO DURO
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.type
-      ? [{ label: "Tipo Disco Duro", value: hw.hdd.type }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.type
+      ? [{ label: "Tipo", value: hw.hdd.type }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.line
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.line
       ? [{ label: "Línea", value: hw.hdd.line }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.capacity
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.capacity
       ? [{ label: "Capacidad", value: hw.hdd.capacity }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.rpm
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.rpm
       ? [{ label: "RPM", value: hw.hdd.rpm }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.size
-      ? [{ label: "Tamaño Disco", value: hw.hdd.size }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.size
+      ? [{ label: "Tamaño", value: hw.hdd.size }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.bus
-      ? [{ label: "Bus / Interfaz", value: hw.hdd.bus }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.bus
+      ? [{ label: "Bus", value: hw.hdd.bus }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO") && hw?.hdd?.buffer
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "DISCO_DURO" || hwSubtype === "HDD") && hw?.hdd?.buffer
       ? [{ label: "Búfer", value: hw.hdd.buffer }]
       : []),
 
     // SSD - SOLO SI ES SSD
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "SSD") && hw?.ssd?.line
-      ? [{ label: "Línea SSD", value: hw.ssd.line }]
+      ? [{ label: "Línea", value: hw.ssd.line }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "SSD") && hw?.ssd?.capacity
-      ? [{ label: "Capacidad SSD", value: hw.ssd.capacity }]
+      ? [{ label: "Capacidad", value: hw.ssd.capacity }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "SSD") && hw?.ssd?.format
-      ? [{ label: "Formato SSD", value: hw.ssd.format }]
+      ? [{ label: "Formato", value: hw.ssd.format }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "SSD") && hw?.ssd?.bus
-      ? [{ label: "Bus / Interfaz", value: hw.ssd.bus }]
+      ? [{ label: "Bus", value: hw.ssd.bus }]
       : []),
     ...(isHardwareCat && (!hwSubtype || hwSubtype === "SSD") && hw?.ssd?.hasDram
       ? [{ label: "¿Posee DRAM?", value: hw.ssd.hasDram }]
@@ -734,77 +769,116 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
       : []),
 
     // Fuente de Poder (PSU) - SOLO SI ES FUENTE DE PODER
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER") && hw?.powerSupply?.power
-      ? [{ label: "Potencia Fuente", value: hw.powerSupply.power }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && hw?.powerSupply?.power
+      ? [{ label: "Potencia", value: hw.powerSupply.power }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER") && hw?.powerSupply?.certification
-      ? [{ label: "Certificación 80 PLUS", value: hw.powerSupply.certification }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && hw?.powerSupply?.certification
+      ? [{ label: "Certificación", value: hw.powerSupply.certification }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER") && hw?.powerSupply?.size
-      ? [{ label: "Tamaño / Formato Fuente", value: hw.powerSupply.size }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && hw?.powerSupply?.size
+      ? [{ label: "Tamaño", value: hw.powerSupply.size }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER") && hw?.powerSupply?.modular
-      ? [{ label: "Modularidad", value: hw.powerSupply.modular }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && (hw?.powerSupply?.activePfc || (hw?.powerSupply as any)?.pfc)
+      ? [{ label: "PFC activo", value: hw?.powerSupply?.activePfc || (hw?.powerSupply as any)?.pfc }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER") && hw?.powerSupply?.powerConnectors
-      ? [{ label: "Conectores de Energía", value: hw.powerSupply.powerConnectors }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && hw?.powerSupply?.modular
+      ? [{ label: "Modular", value: hw.powerSupply.modular }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && (hw?.powerSupply?.rail12vCurrent || (hw?.powerSupply as any)?.current12v)
+      ? [{ label: "Corriente en la línea de 12 V", value: hw?.powerSupply?.rail12vCurrent || (hw?.powerSupply as any)?.current12v }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && (hw?.powerSupply?.rail5vCurrent || (hw?.powerSupply as any)?.current5v)
+      ? [{ label: "Corriente en la línea de 5 V", value: hw?.powerSupply?.rail5vCurrent || (hw?.powerSupply as any)?.current5v }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && (hw?.powerSupply?.rail33vCurrent || (hw?.powerSupply as any)?.current33v || (hw?.powerSupply as any)?.current3v)
+      ? [{ label: "Corriente en la línea de 3.3 V", value: hw?.powerSupply?.rail33vCurrent || (hw?.powerSupply as any)?.current33v || (hw?.powerSupply as any)?.current3v }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "FUENTE_DE_PODER" || hwSubtype === "PSU") && hw?.powerSupply?.powerConnectors
+      ? [{ label: "Conectores de energía", value: hw.powerSupply.powerConnectors }]
       : []),
 
     // Cooler CPU - SOLO SI ES COOLER
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU") && hw?.coolerCpu?.brand
-      ? [{ label: "Marca Cooler", value: hw.coolerCpu.brand }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.brand
+      ? [{ label: "Marca", value: hw.coolerCpu.brand }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU") && hw?.coolerCpu?.type
-      ? [{ label: "Tipo de Refrigeración", value: hw.coolerCpu.type }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.type
+      ? [{ label: "Tipo", value: hw.coolerCpu.type }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU") && hw?.coolerCpu?.height
-      ? [{ label: "Altura del Disipador", value: hw.coolerCpu.height }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.weight
+      ? [{ label: "Peso", value: hw.coolerCpu.weight }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU") && hw?.coolerCpu?.fanSize
-      ? [{ label: "Tamaño Ventilador", value: hw.coolerCpu.fanSize }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.rpm
+      ? [{ label: "RPM", value: hw.coolerCpu.rpm }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU") && hw?.coolerCpu?.compatibleSockets
-      ? [{ label: "Sockets Compatibles", value: hw.coolerCpu.compatibleSockets }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.noise
+      ? [{ label: "Ruido", value: hw.coolerCpu.noise }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.airflow
+      ? [{ label: "Flujo de aire", value: hw.coolerCpu.airflow }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.height
+      ? [{ label: "Altura", value: hw.coolerCpu.height }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.fanSize
+      ? [{ label: "Tamaño ventilador", value: hw.coolerCpu.fanSize }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.hasHeatpipes
+      ? [{ label: "¿Heatpipes?", value: hw.coolerCpu.hasHeatpipes }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "COOLER_CPU" || hwSubtype === "COOLER") && hw?.coolerCpu?.compatibleSockets
+      ? [{ label: "Sockets compatibles", value: hw.coolerCpu.compatibleSockets }]
       : []),
 
     // Gabinete - SOLO SI ES GABINETE
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.brand
-      ? [{ label: "Marca Gabinete", value: hw.cabinet.brand }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && hw?.cabinet?.brand
+      ? [{ label: "Marca", value: hw.cabinet.brand }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.model
-      ? [{ label: "Modelo Gabinete", value: hw.cabinet.model }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && hw?.cabinet?.model
+      ? [{ label: "Modelo", value: hw.cabinet.model }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.format
-      ? [{ label: "Formato Gabinete", value: hw.cabinet.format }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && hw?.cabinet?.format
+      ? [{ label: "Formato / Tamaño", value: hw.cabinet.format }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.sidePanel
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && hw?.cabinet?.motherboardSupport
+      ? [{ label: "Soporte Placas Madre", value: hw.cabinet.motherboardSupport }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && hw?.cabinet?.sidePanel
       ? [{ label: "Panel Lateral", value: hw.cabinet.sidePanel }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.maxGpuLength
-      ? [{ label: "Largo Máx. GPU Soportado", value: hw.cabinet.maxGpuLength }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && (hw?.cabinet?.gpuMaxDimensions || hw?.cabinet?.maxGpuLength)
+      ? [{ label: "Largo Máximo GPU", value: hw?.cabinet?.gpuMaxDimensions || hw?.cabinet?.maxGpuLength || "" }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.maxCoolerHeight
-      ? [{ label: "Altura Máx. Cooler Soportado", value: hw.cabinet.maxCoolerHeight }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && (hw?.cabinet?.cpuCoolerMaxHeight || hw?.cabinet?.maxCoolerHeight)
+      ? [{ label: "Altura Máxima Cooler CPU", value: hw?.cabinet?.cpuCoolerMaxHeight || hw?.cabinet?.maxCoolerHeight || "" }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE") && hw?.cabinet?.radiatorSupport
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "GABINETE" || hwSubtype === "CASE") && hw?.cabinet?.radiatorSupport
       ? [{ label: "Soporte de Radiadores", value: hw.cabinet.radiatorSupport }]
       : []),
 
     // Ventiladores - SOLO SI ES VENTILADOR
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES") && hw?.fan?.brand
-      ? [{ label: "Marca Ventilador", value: hw.fan.brand }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && hw?.fan?.brand
+      ? [{ label: "Marca", value: hw.fan.brand }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES") && hw?.fan?.size
-      ? [{ label: "Tamaño Ventilador", value: hw.fan.size }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && hw?.fan?.size
+      ? [{ label: "Tamaño", value: hw.fan.size }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES") && hw?.fan?.rpm
-      ? [{ label: "RPM Ventilador", value: hw.fan.rpm }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && hw?.fan?.rpm
+      ? [{ label: "RPM", value: hw.fan.rpm }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES") && hw?.fan?.airflow
-      ? [{ label: "Flujo de Aire", value: hw.fan.airflow }]
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && (hw?.fan?.noise || (hw?.fan as any)?.noiseLevel)
+      ? [{ label: "Ruido", value: hw?.fan?.noise || (hw?.fan as any)?.noiseLevel }]
       : []),
-    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES") && hw?.fan?.lighting
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && hw?.fan?.airflow
+      ? [{ label: "Flujo de aire", value: hw.fan.airflow }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && (hw?.fan?.bearingType || (hw?.fan as any)?.bearing)
+      ? [{ label: "Tipo de Rodamiento", value: hw?.fan?.bearingType || (hw?.fan as any)?.bearing }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && hw?.fan?.lighting
       ? [{ label: "Iluminación", value: hw.fan.lighting }]
+      : []),
+    ...(isHardwareCat && (!hwSubtype || hwSubtype === "VENTILADORES" || hwSubtype === "FAN" || hwSubtype === "VENTILADOR") && (hw?.fan?.connector || (hw?.fan as any)?.connectorPins)
+      ? [{ label: "Conector", value: hw?.fan?.connector || (hw?.fan as any)?.connectorPins }]
       : []),
 
     // Mouse Gaming - SOLO SI ES ACCESORIO GAMING DE TIPO MOUSE
@@ -837,6 +911,12 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
       : []),
     ...(isAccessoryCat && (!accSubtype || accSubtype === "MOUSE") && acc?.mouse?.pollingRate
       ? [{ label: "Polling Rate", value: acc.mouse.pollingRate }]
+      : []),
+    ...(isAccessoryCat && (!accSubtype || accSubtype === "MOUSE") && acc?.mouse?.adjustableWeight
+      ? [{ label: "Peso Ajustable", value: acc.mouse.adjustableWeight }]
+      : []),
+    ...(isAccessoryCat && (!accSubtype || accSubtype === "MOUSE") && acc?.mouse?.handedness
+      ? [{ label: "Lateralidad", value: acc.mouse.handedness }]
       : []),
     ...(isAccessoryCat && (!accSubtype || accSubtype === "MOUSE") && acc?.mouse?.technology
       ? [{ label: "Tecnología de Switches", value: acc.mouse.technology }]
@@ -1037,6 +1117,13 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
       : []),
     ...(isAudioCat && product.customSpecifications?.audio?.featuredTracks
       ? [{ label: "Pistas Destacadas", value: product.customSpecifications.audio.featuredTracks }]
+      : []),
+
+    // Dynamic / Additional Custom Specifications (if present)
+    ...(product.customSpecifications?.custom && typeof product.customSpecifications.custom === "object"
+      ? Object.entries(product.customSpecifications.custom)
+          .filter(([_, v]) => Boolean(v && typeof v === "string" && v.trim() !== ""))
+          .map(([k, v]) => ({ label: k, value: String(v) }))
       : []),
   ];
 

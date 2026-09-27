@@ -1161,14 +1161,17 @@ function generateWithSmartEngine(
           } : undefined,
           powerSupply: hwType === "FUENTE_DE_PODER" ? {
             power: lower.includes("1000") ? "1000 W" : lower.includes("750") ? "750 W" : lower.includes("650") ? "650 W" : "850 W",
-            certification: lower.includes("platinum") ? "80 Plus Platinum" : "80 Plus Gold (Eficiencia >90%)",
-            size: "ATX Estándar (150 x 140 x 86 mm)",
-            activePfc: "Sí, PFC Activo (>0.99)",
-            modular: "100% Modular (Full Modular)",
-            current12v: "70.8 A en riel único de +12V (850W continuos)",
+            certification: lower.includes("platinum") ? "80 Plus Platinum" : "80 Plus Gold",
+            size: "ATX (150 x 86 x 140 mm)",
+            activePfc: "Sí, PFC Activo (>0.99 a carga plena)",
+            modular: "Totalmente Modular (Full Modular)",
+            rail12vCurrent: lower.includes("750") ? "62.5 A (750 W)" : "70.8 A (849.6 W)",
+            rail5vCurrent: "20 A",
+            rail33vCurrent: "20 A",
+            current12v: lower.includes("750") ? "62.5 A (750 W)" : "70.8 A (849.6 W)",
             current5v: "20 A",
             current3v: "20 A",
-            powerConnectors: "1x 24-pin ATX, 2x 8-pin EPS (4+4), 1x 16-pin 12V-2x6 (PCIe 5.0 600W), 4x 8-pin PCIe (6+2), 8x SATA, 4x Molex",
+            powerConnectors: "1x 24-pin ATX, 2x 8-pin EPS (4+4), 1x 16-pin 12V-2x6 (PCIe 5.1 600W), 4x PCIe 6+2 pin, 8x SATA, 4x Molex",
           } : undefined,
           coolerCpu: hwType === "COOLER_CPU" ? {
             brand: lower.includes("noctua") ? "Noctua" : lower.includes("corsair") ? "Corsair" : lower.includes("deepcool") ? "DeepCool" : lower.includes("nzxt") ? "NZXT" : lower.includes("thermalright") ? "Thermalright" : "Fabricante Oficial",
@@ -1540,10 +1543,10 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       "ram": { "capacity": "", "type": "", "speed": "", "format": "", "voltage": "", "casLatency": "", "trcdLatency": "", "trpLatency": "", "trasLatency": "", "eccSupport": "", "fullBufferedSupport": "" },
       "hdd": { "type": "", "line": "", "capacity": "", "rpm": "", "size": "", "bus": "", "buffer": "" },
       "ssd": { "type": "", "line": "", "capacity": "", "format": "", "bus": "", "nandType": "", "controller": "", "readSeq": "", "writeSeq": "", "dram": "" },
-      "powerSupply": { "certification": "", "power": "", "wiring": "", "pfc": "", "fanSize": "", "standard": "" },
-      "coolerCpu": { "type": "", "radiatorSize": "", "fanRpm": "", "noise": "", "airflow": "", "height": "" },
-      "cabinet": { "size": "", "sidePanel": "", "motherboardSupport": "", "includedFans": "", "frontPorts": "" },
-      "fan": { "size": "", "speed": "", "bearingType": "", "noiseLevel": "", "airflowCfm": "", "lighting": "", "connector": "" }
+      "powerSupply": { "power": "", "certification": "", "size": "", "activePfc": "", "modular": "", "rail12vCurrent": "", "rail5vCurrent": "", "rail33vCurrent": "", "powerConnectors": "" },
+      "coolerCpu": { "brand": "", "type": "", "weight": "", "rpm": "", "noise": "", "airflow": "", "height": "", "fanSize": "", "hasHeatpipes": "", "compatibleSockets": "" },
+      "cabinet": { "format": "", "motherboardSupport": "", "sidePanel": "", "gpuMaxDimensions": "", "cpuCoolerMaxHeight": "", "brand": "", "model": "", "radiatorSupport": "" },
+      "fan": { "brand": "", "size": "", "rpm": "", "noise": "", "airflow": "", "bearingType": "", "lighting": "", "connector": "" }
     },
     "apparel": { "apparelType": "", "size": "", "gender": "", "material": "", "careInstructions": "", "license": "" },
     "merch": { "itemType": "", "material": "", "dimensions": "", "franchise": "" },
@@ -1664,6 +1667,23 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
                 const incomingHw: any = parsed.customSpecifications?.hardware || {};
                 const fallbackHw: any = fallbackSpecs.hardware || {};
                 const hwType = incomingHw.hardwareType || fallbackHw.hardwareType || "TARJETA_DE_VIDEO";
+
+                if (incomingHw.powerSupply) {
+                  const ps = incomingHw.powerSupply;
+                  if (!ps.activePfc && ps.pfc) ps.activePfc = ps.pfc;
+                  if (!ps.rail12vCurrent && ps.current12v) ps.rail12vCurrent = ps.current12v;
+                  if (!ps.rail5vCurrent && ps.current5v) ps.rail5vCurrent = ps.current5v;
+                  if (!ps.rail33vCurrent && (ps.current33v || ps.current3v)) ps.rail33vCurrent = ps.current33v || ps.current3v;
+                }
+                if (incomingHw.cabinet) {
+                  const cb = incomingHw.cabinet;
+                  if (!cb.gpuMaxDimensions && cb.maxGpuLength) cb.gpuMaxDimensions = cb.maxGpuLength;
+                  if (!cb.cpuCoolerMaxHeight && cb.maxCoolerHeight) cb.cpuCoolerMaxHeight = cb.maxCoolerHeight;
+                }
+                if (incomingHw.fan) {
+                  const fn = incomingHw.fan;
+                  if (!fn.noise && fn.noiseLevel) fn.noise = fn.noiseLevel;
+                }
 
                 cleanSpecs.hardware = {
                   ...mergeNonEmpty(fallbackHw, incomingHw),

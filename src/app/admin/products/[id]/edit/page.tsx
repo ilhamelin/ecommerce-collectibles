@@ -323,6 +323,30 @@ export default function EditProductAdminPage() {
       if (d.figureSpecs.boxCondition) setFigureBoxCondition(d.figureSpecs.boxCondition);
       if (d.figureSpecs.arrivalDate) setFigureArrivalDate(d.figureSpecs.arrivalDate);
       if (typeof d.figureSpecs.depositPercent === "number") setFigureDepositPercent(d.figureSpecs.depositPercent);
+
+      // Ficha Oficial Extendida de Figuras
+      if (d.figureSpecs.productName) setFigureProductName(d.figureSpecs.productName);
+      if (d.figureSpecs.franchise) setFigureFranchise(d.figureSpecs.franchise);
+      if (d.figureSpecs.productLine) setFigureProductLine(d.figureSpecs.productLine);
+      if (d.figureSpecs.releaseDate) setFigureReleaseDate(d.figureSpecs.releaseDate);
+      if (d.figureSpecs.licenseStatus) setFigureLicenseStatus(d.figureSpecs.licenseStatus);
+
+      if (d.figureSpecs.height) setFigureHeight(d.figureSpecs.height);
+      if (d.figureSpecs.width) setFigureWidth(d.figureSpecs.width);
+      if (d.figureSpecs.weight) setFigureWeight(d.figureSpecs.weight);
+      if (d.figureSpecs.base) setFigureBase(d.figureSpecs.base);
+
+      if (d.figureSpecs.materials) setFigureMaterials(d.figureSpecs.materials);
+      if (d.figureSpecs.paintTechnique) setFigurePaintTechnique(d.figureSpecs.paintTechnique);
+      if (d.figureSpecs.articulation) setFigureArticulation(d.figureSpecs.articulation);
+
+      if (d.figureSpecs.interchangeableParts) setFigureInterchangeableParts(d.figureSpecs.interchangeableParts);
+      if (d.figureSpecs.accessories) setFigureAccessories(d.figureSpecs.accessories);
+      if (d.figureSpecs.certificate) setFigureCertificate(d.figureSpecs.certificate);
+
+      if (d.figureSpecs.ageRecommendation) setFigureAgeRecommendation(d.figureSpecs.ageRecommendation);
+      if (d.figureSpecs.boxDimensions) setFigureBoxDimensions(d.figureSpecs.boxDimensions);
+      if (d.figureSpecs.shippingWeight) setFigureShippingWeight(d.figureSpecs.shippingWeight);
     } else if (targetCategoryType === "VIDEO_GAME" && d.gameSpecs) {
       if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
       if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
@@ -977,7 +1001,12 @@ export default function EditProductAdminPage() {
               includesProtection: tcgIncludesProtection,
             }
           : undefined,
-      customSpecifications: type === "OTHER" ? customSpecifications : undefined,
+      customSpecifications:
+        type !== "FIGURE" && type !== "VIDEO_GAME" && type !== "COLLECTIBLE"
+          ? customSpecifications
+          : customSpecifications && Object.keys(customSpecifications).length > 0
+          ? customSpecifications
+          : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

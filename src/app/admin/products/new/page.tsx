@@ -1004,7 +1004,12 @@ export default function NewProductAdminPage() {
               includesProtection: tcgIncludesProtection,
             }
           : undefined,
-      customSpecifications: type === "OTHER" ? customSpecifications : undefined,
+      customSpecifications:
+        type !== "FIGURE" && type !== "VIDEO_GAME" && type !== "COLLECTIBLE"
+          ? customSpecifications
+          : customSpecifications && Object.keys(customSpecifications).length > 0
+          ? customSpecifications
+          : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

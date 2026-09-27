@@ -229,5 +229,39 @@ describe("AI & Smart Knowledge Engine Auto-Fill Product Test Suite", () => {
     expect(data.customSpecifications.hardware.cpu).toBeDefined();
     expect(data.customSpecifications.hardware.cpu.socket).toBeDefined();
   });
+
+  it("should populate powerSupply technical specifications completely with activePfc and rail currents", async () => {
+    const req = new NextRequest("http://localhost:3000/api/admin/auto-fill-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Corsair RMe Series RM750e 2025 (CP-9020295-NA) (750 W)",
+        selectedType: "HARDWARE",
+        customCategoryLabel: "Fuente de Poder",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    const data = json.data;
+
+    expect(data.customSpecifications).toBeDefined();
+    expect(data.customSpecifications.hardware).toBeDefined();
+    expect(data.customSpecifications.hardware.hardwareType).toBe("FUENTE_DE_PODER");
+
+    const psu = data.customSpecifications.hardware.powerSupply;
+    expect(psu).toBeDefined();
+    expect(psu.power).toBe("750 W");
+    expect(psu.certification).toBeDefined();
+    expect(psu.size).toBeDefined();
+    expect(psu.activePfc).toBeDefined();
+    expect(psu.modular).toBeDefined();
+    expect(psu.rail12vCurrent).toBeDefined();
+    expect(psu.rail5vCurrent).toBeDefined();
+    expect(psu.rail33vCurrent).toBeDefined();
+    expect(psu.powerConnectors).toBeDefined();
+  });
 });
 

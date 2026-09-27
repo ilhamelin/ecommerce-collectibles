@@ -432,13 +432,18 @@ export function getProductCategoryInfo(
     };
   }
 
+  const customSubtype =
+    product.customSpecifications?.customSubtype ||
+    product.customSpecifications?.customDynamic?.subtype;
+  const customLabel = product.customCategoryLabel || "Producto Personalizado";
+
   return {
-    key: "ALL",
-    label: "Catálogo",
-    href: "/catalog",
-    defaultTags: ["Coleccionable", "Oficial"],
-    formatLabel: product.customCategoryLabel || "Producto Oficial",
+    key: "OTHER",
+    label: customLabel,
+    href: "/catalog?category=OTHER",
+    defaultTags: [customLabel, customSubtype || "Oficial"].filter(Boolean),
+    formatLabel: customSubtype ? `${customLabel} (${customSubtype})` : customLabel,
     brand: "Fabricante Oficial",
-    bracketTag: product.customCategoryLabel || "Producto Oficial",
+    bracketTag: customSubtype || customLabel,
   };
 }

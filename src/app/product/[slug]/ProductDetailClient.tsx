@@ -1119,8 +1119,49 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
       ? [{ label: "Pistas Destacadas", value: product.customSpecifications.audio.featuredTracks }]
       : []),
 
-    // Dynamic / Additional Custom Specifications (if present)
-    ...(product.customSpecifications?.custom && typeof product.customSpecifications.custom === "object"
+    // Custom Dynamic Category Specifications (Ordered: Subtype -> Basic Specs -> Advanced Specs)
+    ...(product.customSpecifications?.customDynamic?.subtype
+      ? [
+          {
+            label: `Tipo de ${product.customCategoryLabel || "Producto"}`,
+            value: product.customSpecifications.customDynamic.subtype,
+          },
+        ]
+      : product.customSpecifications?.customSubtype
+      ? [
+          {
+            label: `Tipo de ${product.customCategoryLabel || "Producto"}`,
+            value: product.customSpecifications.customSubtype,
+          },
+        ]
+      : []),
+    ...(Array.isArray(product.customSpecifications?.customDynamic?.basicSpecs) &&
+    product.customSpecifications.customDynamic.basicSpecs.length > 0
+      ? product.customSpecifications.customDynamic.basicSpecs
+          .filter((s) => Boolean(s.name && s.value))
+          .map((s) => ({ label: s.name, value: s.value }))
+      : Array.isArray(product.customSpecifications?.basicSpecs) &&
+        product.customSpecifications.basicSpecs.length > 0
+      ? product.customSpecifications.basicSpecs
+          .filter((s) => Boolean(s.name && s.value))
+          .map((s) => ({ label: s.name, value: s.value }))
+      : []),
+    ...(Array.isArray(product.customSpecifications?.customDynamic?.advancedSpecs) &&
+    product.customSpecifications.customDynamic.advancedSpecs.length > 0
+      ? product.customSpecifications.customDynamic.advancedSpecs
+          .filter((s) => Boolean(s.name && s.value))
+          .map((s) => ({ label: s.name, value: s.value }))
+      : Array.isArray(product.customSpecifications?.advancedSpecs) &&
+        product.customSpecifications.advancedSpecs.length > 0
+      ? product.customSpecifications.advancedSpecs
+          .filter((s) => Boolean(s.name && s.value))
+          .map((s) => ({ label: s.name, value: s.value }))
+      : []),
+    // Fallback for flat dictionary entries not already captured by structured dynamic specs
+    ...(product.customSpecifications?.custom &&
+    typeof product.customSpecifications.custom === "object" &&
+    !product.customSpecifications.customDynamic?.basicSpecs &&
+    !product.customSpecifications.basicSpecs
       ? Object.entries(product.customSpecifications.custom)
           .filter(([_, v]) => Boolean(v && typeof v === "string" && v.trim() !== ""))
           .map(([k, v]) => ({ label: k, value: String(v) }))

@@ -589,6 +589,20 @@ export interface HardwareSpecifications {
   fan?: FanSpecifications;
 }
 
+export interface DynamicSpecItem {
+  id: string;
+  name: string;
+  value: string;
+}
+
+export interface CustomDynamicCategorySpecs {
+  categoryName?: string;
+  subtype?: string;
+  availableSubtypes?: string[];
+  basicSpecs?: DynamicSpecItem[];
+  advancedSpecs?: DynamicSpecItem[];
+}
+
 export interface CustomCategorySpecifications {
   categoryType?: string;
   console?: ConsoleSpecifications;
@@ -598,6 +612,13 @@ export interface CustomCategorySpecifications {
   book?: BookSpecifications;
   merch?: MerchSpecifications;
   audio?: AudioSpecifications;
+  customDynamic?: CustomDynamicCategorySpecs;
+  customCategoryName?: string;
+  customSubtype?: string;
+  availableSubtypes?: string[];
+  basicSpecs?: DynamicSpecItem[];
+  advancedSpecs?: DynamicSpecItem[];
+  custom?: Record<string, string>;
   [key: string]: any;
 }
 

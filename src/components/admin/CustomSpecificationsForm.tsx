@@ -22,7 +22,9 @@ import {
   Fan,
   Box,
   Wind,
+  Tag,
 } from "lucide-react";
+import { CustomDynamicSpecificationsForm } from "./CustomDynamicSpecificationsForm";
 import {
   CustomCategorySpecifications,
   ConsoleSpecifications,
@@ -49,17 +51,20 @@ import {
 
 interface CustomSpecificationsFormProps {
   customCategoryLabel: string;
+  isCustomCategory?: boolean;
   value?: CustomCategorySpecifications;
   onChange: (specs: CustomCategorySpecifications) => void;
 }
 
 export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> = ({
   customCategoryLabel,
+  isCustomCategory = false,
   value = {},
   onChange,
 }) => {
   // Infer active template from customCategoryLabel, or allow manual override
   const getInitialTemplate = (label: string): string => {
+    if (isCustomCategory) return "CUSTOM";
     const l = (label || "").toLowerCase();
     if (l.includes("consola")) return "CONSOLE";
     if (l.includes("hardware") || l.includes("componente") || l.includes("ssd") || l.includes("ram") || l.includes("gpu") || l.includes("tarjeta gr") || l.includes("procesador")) return "HARDWARE";
@@ -80,21 +85,25 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
       return "MERCH";
     if (l.includes("audio") || l.includes("ost") || l.includes("soundtrack") || l.includes("vinilo"))
       return "AUDIO";
-    return "CONSOLE";
+    return isCustomCategory ? "CUSTOM" : "CONSOLE";
   };
 
-  const [activeTemplate, setActiveTemplate] = useState<string>(() =>
-    value?.categoryType || getInitialTemplate(customCategoryLabel)
-  );
+  const [activeTemplate, setActiveTemplate] = useState<string>(() => {
+    if (isCustomCategory) return "CUSTOM";
+    if (value?.categoryType === "OTHER" || value?.categoryType === "CUSTOM") return "CUSTOM";
+    return value?.categoryType || getInitialTemplate(customCategoryLabel);
+  });
 
   // Synchronize active template when value.categoryType changes (e.g. via AI auto-fill) or when customCategoryLabel changes
   useEffect(() => {
-    if (value?.categoryType) {
+    if (isCustomCategory) {
+      setActiveTemplate("CUSTOM");
+    } else if (value?.categoryType && value.categoryType !== "OTHER" && value.categoryType !== "CUSTOM") {
       setActiveTemplate(value.categoryType);
     } else if (customCategoryLabel) {
       setActiveTemplate(getInitialTemplate(customCategoryLabel));
     }
-  }, [value?.categoryType, customCategoryLabel]);
+  }, [isCustomCategory, value?.categoryType, customCategoryLabel]);
 
   // Gaming Accessory Subtype: MOUSE | KEYBOARD | HEADSET | CONTROLLER
   const [accessoryType, setAccessoryType] = useState<"MOUSE" | "KEYBOARD" | "HEADSET" | "CONTROLLER">(
@@ -760,15 +769,27 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
 
         {/* Template Quick Switcher */}
         <div className="flex flex-wrap gap-1.5 pt-1 sm:pt-0">
-          {[
-            { id: "CONSOLE", label: "Consolas", icon: Tv },
-            { id: "HARDWARE", label: "Hardware", icon: Cpu },
-            { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones },
-            { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt },
-            { id: "BOOK", label: "Manga / Libros", icon: BookOpen },
-            { id: "MERCH", label: "Merchandising", icon: Gift },
-            { id: "AUDIO", label: "Audio / OST", icon: Disc3 },
-          ].map((t) => {
+          {(isCustomCategory
+            ? [
+                { id: "CUSTOM", label: customCategoryLabel || "Personalizada", icon: Tag },
+                { id: "CONSOLE", label: "Consolas", icon: Tv },
+                { id: "HARDWARE", label: "Hardware", icon: Cpu },
+                { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones },
+                { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt },
+                { id: "BOOK", label: "Manga / Libros", icon: BookOpen },
+                { id: "MERCH", label: "Merchandising", icon: Gift },
+                { id: "AUDIO", label: "Audio / OST", icon: Disc3 },
+              ]
+            : [
+                { id: "CONSOLE", label: "Consolas", icon: Tv },
+                { id: "HARDWARE", label: "Hardware", icon: Cpu },
+                { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones },
+                { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt },
+                { id: "BOOK", label: "Manga / Libros", icon: BookOpen },
+                { id: "MERCH", label: "Merchandising", icon: Gift },
+                { id: "AUDIO", label: "Audio / OST", icon: Disc3 },
+              ]
+          ).map((t) => {
             const Icon = t.icon;
             const isSelected = activeTemplate === t.id;
             return (
@@ -792,6 +813,15 @@ export const CustomSpecificationsForm: React.FC<CustomSpecificationsFormProps> =
           })}
         </div>
       </div>
+
+      {/* TEMPLATE 0: CATEGORÍA PERSONALIZADA DINÁMICA */}
+      {(activeTemplate === "CUSTOM" || activeTemplate === "OTHER") && (
+        <CustomDynamicSpecificationsForm
+          customCategoryLabel={customCategoryLabel}
+          value={value}
+          onChange={onChange}
+        />
+      )}
 
       {/* TEMPLATE 1: CONSOLAS */}
       {activeTemplate === "CONSOLE" && (

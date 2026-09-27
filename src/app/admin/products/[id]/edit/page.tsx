@@ -3099,6 +3099,7 @@ export default function EditProductAdminPage() {
           {/* Section 6: Custom Category Technical Specifications Form */}
           {isCustomOrSpecializedCategory && (
             <CustomSpecificationsForm
+              isCustomCategory={type === "OTHER"}
               customCategoryLabel={
                 customCategoryLabel ||
                 (type === "HARDWARE"

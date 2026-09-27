@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import {
   ShieldCheck,
   Clock,
-  Package,
   ArrowLeft,
   Check,
   Pencil,
@@ -33,12 +32,9 @@ import { analytics } from "@/lib/services/AnalyticsTracker";
 import { extractYouTubeEmbedUrl } from "@/lib/utils/media";
 import { HolographicCard } from "@/components/catalog/HolographicCard";
 import { InspectionZoom } from "@/components/product/InspectionZoom";
-import { MintPackagingBadge } from "@/components/trust/MintPackagingBadge";
 import { ProductAlertSubscription } from "@/components/product/ProductAlertSubscription";
 import { getProductCategoryInfo } from "@/lib/utils/category";
-import { DigitalPassportCard } from "@/components/trust/DigitalPassportCard";
 import { TcgMarketPriceTracker } from "@/components/product/TcgMarketPriceTracker";
-import { generateDigitalPassport } from "@/lib/utils/passport";
 import { generateTcgMarketPriceGuide } from "@/lib/utils/priceTracker";
 import type { ProductDomainEntity } from "@/lib/types/domain";
 import { catalogClient } from "@/lib/services/catalogClient";
@@ -207,9 +203,6 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
 
   // Category Classification Info
   const categoryInfo = getProductCategoryInfo(product);
-
-  // Digital Authenticity Passport (Anti-Bootleg Guarantee)
-  const passport = product.authenticityPassport || generateDigitalPassport(product);
 
   // Real-Time TCG Market Price Guide Tracker
   const isTcgOrCollectible =
@@ -1215,9 +1208,6 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
             )}
           </div>
 
-          {/* Mint Collector Packaging Seal */}
-          <MintPackagingBadge />
-
           {/* Age Rating Official Badge */}
           <div className="bg-white text-black rounded-lg border-2 border-slate-900 shadow-sm flex items-stretch overflow-hidden">
             <div className="w-24 py-3 bg-white text-black font-black text-2xl sm:text-3xl flex items-center justify-center border-r-2 border-slate-900 tracking-tight">
@@ -1383,22 +1373,6 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
               </span>
             </div>
 
-            {/* Collector Trust Micro-Signals */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#E5E5E5] text-[11px] text-[#666666]">
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F7F7F5]">
-                <span className="text-base">🇯🇵</span>
-                <span className="font-medium text-[#1A1A1A]">100% Original Japón</span>
-              </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F7F7F5]">
-                <Package className="w-4 h-4 text-[#1F3A5F] shrink-0" />
-                <span className="font-medium text-[#1A1A1A]">Embalaje Blindado</span>
-              </div>
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-[#F7F7F5]">
-                <ShieldCheck className="w-4 h-4 text-[#2E9E5B] shrink-0" />
-                <span className="font-medium text-[#1A1A1A]">Garantía Anti-Bootleg</span>
-              </div>
-            </div>
-
             {/* Pre-order partial deposit selector if applicable */}
             {isPreOrder && (
               <div className="p-3.5 rounded-xl bg-[#F7F7F5] border border-[#E5E5E5] space-y-2 text-xs">
@@ -1517,15 +1491,6 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
               ))}
             </div>
           </div>
-
-          {/* Digital Authenticity Passport (Anti-Bootleg Guarantee) */}
-          {passport && (
-            <DigitalPassportCard
-              passport={passport}
-              productName={product.name}
-              sku={product.sku}
-            />
-          )}
         </div>
       </div>
 

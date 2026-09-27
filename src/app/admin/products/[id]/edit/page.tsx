@@ -60,7 +60,7 @@ import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
-import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
+import { WORLDWIDE_AGE_RATINGS, normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 import { toast } from "@/lib/store/toastStore";
 
 const CUSTOM_CATEGORY_PRESETS = [
@@ -289,14 +289,22 @@ export default function EditProductAdminPage() {
     if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
     if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
     if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
-    if (d.trailerUrl) setTrailerUrl(d.trailerUrl);
+    
+    if (d.trailerUrl) {
+      setTrailerUrl(d.trailerUrl);
+      setShowTrailerSection(true);
+    }
+
+    const targetCategoryType = chosenType || d.type;
     
     if (d.ageRating) {
+      const normalized = normalizeProductAgeRating(d.ageRating, targetCategoryType);
       const match = WORLDWIDE_AGE_RATINGS.find(
-        (r) => r.value.toLowerCase() === d.ageRating.toLowerCase()
+        (r) => r.value.toLowerCase() === normalized.toLowerCase()
       );
       if (match) {
         setAgeRating(match.value);
+        setCustomAgeRating("");
       } else {
         setAgeRating("CUSTOM");
         setCustomAgeRating(d.ageRating);
@@ -306,7 +314,6 @@ export default function EditProductAdminPage() {
     if (d.genres) setGenresInput(d.genres);
 
     // Category-specific specs
-    const targetCategoryType = chosenType || d.type;
     if (targetCategoryType === "FIGURE" && d.figureSpecs) {
       if (d.figureSpecs.scale) setFigureScale(d.figureSpecs.scale as any);
       if (d.figureSpecs.manufacturer) setFigureManufacturer(d.figureSpecs.manufacturer as any);

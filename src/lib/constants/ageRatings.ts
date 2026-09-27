@@ -45,3 +45,107 @@ export const WORLDWIDE_AGE_RATINGS: AgeRatingOption[] = [
   { value: "EXEMPT", label: "Sin Sello / Coleccionable Exento", system: "OTHER" },
   { value: "CUSTOM", label: "Otro / Sello Personalizado", system: "OTHER" },
 ];
+
+/**
+ * Checks if a given value is one of the predefined official regulatory ratings
+ */
+export function isValidAgeRating(val?: string | null): boolean {
+  if (!val) return false;
+  return WORLDWIDE_AGE_RATINGS.some((r) => r.value.toLowerCase() === val.trim().toLowerCase());
+}
+
+/**
+ * Normalizes any incoming age rating or classification string (from AI, OCR or heuristics)
+ * to an exact canonical regulatory option matching WORLDWIDE_AGE_RATINGS.
+ *
+ * It enforces that the rating represents the PHYSICAL OR DIGITAL PRODUCT (game, figure, hardware, etc.)
+ * and NOT any YouTube trailer video restriction.
+ */
+export function normalizeProductAgeRating(rawRating?: string | null, productType?: string): string {
+  if (!rawRating || typeof rawRating !== "string" || !rawRating.trim()) {
+    if (productType === "VIDEO_GAME") return "ESRB T";
+    if (productType === "FIGURE") return "14+";
+    if (productType === "BOOK") return "14+";
+    return "EXEMPT";
+  }
+
+  const trimmed = rawRating.trim();
+  const upper = trimmed.toUpperCase().replace(/[\s_-]+/g, " ");
+
+  // 1. Direct case-insensitive match
+  const directMatch = WORLDWIDE_AGE_RATINGS.find(
+    (r) => r.value.toUpperCase() === upper || r.value.toUpperCase() === trimmed.toUpperCase()
+  );
+  if (directMatch) return directMatch.value;
+
+  // 2. ESRB (América)
+  if (upper.includes("ESRB M") || upper === "M" || upper.includes("MATURE") || upper.includes("M 17") || upper.includes("M17")) {
+    return "ESRB M";
+  }
+  if (upper.includes("ESRB T") || upper === "TEEN" || upper.includes("T 13") || upper.includes("T13")) {
+    return "ESRB T";
+  }
+  if (upper.includes("ESRB E10") || upper.includes("E10") || upper.includes("EVERYONE 10")) {
+    return "ESRB E10+";
+  }
+  if (upper.includes("ESRB E") || upper === "EVERYONE") {
+    return "ESRB E";
+  }
+  if (upper.includes("ESRB AO") || upper.includes("ADULTS ONLY")) {
+    return "ESRB AO";
+  }
+  if (upper.includes("ESRB RP") || upper.includes("RATING PENDING")) {
+    return "ESRB RP";
+  }
+
+  // 3. Chile - Ley 19.846
+  if (upper === "TE" || upper.includes("TODO ESPECTADOR")) return "TE";
+  if (upper === "8+" || upper.includes("MAYORES DE 8") || upper === "8") return "8+";
+  if (upper === "14+" || upper.includes("MAYORES DE 14") || upper === "14") return "14+";
+  if (upper === "18+" || upper.includes("MAYORES DE 18") || upper === "18" || upper === "M18") return "18+";
+
+  // 4. PEGI (Europa)
+  if (upper.includes("PEGI 18")) return "PEGI 18";
+  if (upper.includes("PEGI 16")) return "PEGI 16";
+  if (upper.includes("PEGI 12")) return "PEGI 12";
+  if (upper.includes("PEGI 7")) return "PEGI 7";
+  if (upper.includes("PEGI 3")) return "PEGI 3";
+
+  // 5. CERO (Japón)
+  if (upper.includes("CERO Z")) return "CERO Z";
+  if (upper.includes("CERO D")) return "CERO D";
+  if (upper.includes("CERO C")) return "CERO C";
+  if (upper.includes("CERO B")) return "CERO B";
+  if (upper.includes("CERO A")) return "CERO A";
+
+  // 6. USK (Alemania)
+  if (upper.includes("USK 18")) return "USK 18";
+  if (upper.includes("USK 16")) return "USK 16";
+  if (upper.includes("USK 12")) return "USK 12";
+  if (upper.includes("USK 6")) return "USK 6";
+  if (upper.includes("USK 0")) return "USK 0";
+
+  // 7. Exento / Sin Sello
+  if (
+    upper.includes("EXEMPT") ||
+    upper.includes("EXENTO") ||
+    upper.includes("SIN SELLO") ||
+    upper.includes("NO RATING") ||
+    upper === "NONE" ||
+    upper === "ALL"
+  ) {
+    return "EXEMPT";
+  }
+
+  // 8. Categories without regulatory content restriction
+  if (
+    ["HARDWARE", "CONSOLE", "GAMING_ACCESSORY", "APPAREL", "MERCH", "AUDIO", "COLLECTIBLE"].includes(
+      productType || ""
+    )
+  ) {
+    return "EXEMPT";
+  }
+
+  return trimmed;
+}
+

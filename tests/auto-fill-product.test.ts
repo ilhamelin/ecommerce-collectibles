@@ -134,4 +134,100 @@ describe("AI & Smart Knowledge Engine Auto-Fill Product Test Suite", () => {
     expect(data.type).toBe("APPAREL");
     expect(data.customCategoryLabel).toBe("Ropa & Estilo");
   });
+
+  it("should populate trailerUrl with an official YouTube link and assign regulatory product ageRating", async () => {
+    const req = new NextRequest("http://localhost:3000/api/admin/auto-fill-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Elden Ring: Shadow of the Erdtree Deluxe Edition",
+        selectedType: "VIDEO_GAME",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    const data = json.data;
+
+    // Verify official YouTube trailer URL is populated
+    expect(data.trailerUrl).toBeDefined();
+    expect(data.trailerUrl).toMatch(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//);
+
+    // Verify product age rating is regulatory for the game (ESRB M or 18+), not a video restriction
+    expect(["ESRB M", "18+"]).toContain(data.ageRating);
+
+    // Verify gameSpecs contains complete fields
+    expect(data.gameSpecs).toBeDefined();
+    expect(data.gameSpecs.title).toBeTruthy();
+    expect(data.gameSpecs.genre).toBeTruthy();
+    expect(data.gameSpecs.platform).toBeTruthy();
+    expect(data.gameSpecs.developer).toBeTruthy();
+    expect(data.gameSpecs.publisher).toBeTruthy();
+    expect(data.gameSpecs.fileSize).toBeTruthy();
+    expect(data.gameSpecs.audioLanguages).toBeTruthy();
+    expect(data.gameSpecs.subtitleLanguages).toBeTruthy();
+  });
+
+  it("should populate figureSpecs completely and assign appropriate collector age rating", async () => {
+    const req = new NextRequest("http://localhost:3000/api/admin/auto-fill-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Makima 1/7 Scale Shibuya Scramble Figure Chainsaw Man",
+        selectedType: "FIGURE",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    const data = json.data;
+
+    expect(data.type).toBe("FIGURE");
+    expect(data.trailerUrl).toBeDefined();
+    expect(data.trailerUrl).toMatch(/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//);
+
+    // Collector anime figures have 14+ or 18+ regulatory seal
+    expect(["14+", "18+", "TE"]).toContain(data.ageRating);
+
+    // Verify figureSpecs completeness
+    expect(data.figureSpecs).toBeDefined();
+    expect(data.figureSpecs.scale).toBeDefined();
+    expect(data.figureSpecs.manufacturer).toBeDefined();
+    expect(data.figureSpecs.material).toBeDefined();
+    expect(data.figureSpecs.height).toBeDefined();
+    expect(data.figureSpecs.sculptor).toBeDefined();
+    expect(data.figureSpecs.boxCondition).toBeDefined();
+    expect(data.figureSpecs.boxDimensions).toBeDefined();
+  });
+
+  it("should assign EXEMPT age rating for PC Hardware and populate all hardware specs", async () => {
+    const req = new NextRequest("http://localhost:3000/api/admin/auto-fill-product", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Procesador AMD Ryzen 7 7800X3D AM5",
+        selectedType: "HARDWARE",
+        customCategoryLabel: "Hardware & Componentes",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    const data = json.data;
+
+    // Hardware has EXEMPT regulatory seal
+    expect(data.ageRating).toBe("EXEMPT");
+    expect(data.customSpecifications).toBeDefined();
+    expect(data.customSpecifications.hardware).toBeDefined();
+    expect(data.customSpecifications.hardware.hardwareType).toBe("PROCESADORES");
+    expect(data.customSpecifications.hardware.cpu).toBeDefined();
+    expect(data.customSpecifications.hardware.cpu.socket).toBeDefined();
+  });
 });
+

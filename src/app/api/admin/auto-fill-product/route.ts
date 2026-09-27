@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeProductAgeRating } from "@/lib/constants/ageRatings";
+import { extractYouTubeEmbedUrl, inferOfficialYouTubeTrailer } from "@/lib/utils/media";
 
 export const dynamic = "force-dynamic";
 
@@ -291,6 +293,20 @@ function generateWithSmartEngine(
   const randomNum = Math.floor(100 + Math.random() * 900);
   const sku = `${prefix}-${cleanSlugPart || "PROD"}-${randomNum}`;
 
+  // Determine specialized category context
+  const isSpecializedOrCustom =
+    [
+      "OTHER",
+      "HARDWARE",
+      "CONSOLE",
+      "GAMING_ACCESSORY",
+      "APPAREL",
+      "BOOK",
+      "MERCH",
+      "AUDIO",
+    ].includes(type) || Boolean(customCategoryLabel && customCategoryLabel.trim() !== "");
+  const specializedCategory = getCategoryTypeFromLabel(customCategoryLabel || type);
+
   // Pricing logic
   let price = 69900;
   let originalPrice = 79900;
@@ -316,39 +332,38 @@ function generateWithSmartEngine(
     costPrice = 55000;
     isPreOrder = false;
     stockAvailable = 1;
-  } else if (type === "OTHER") {
-    const cat = getCategoryTypeFromLabel(customCategoryLabel);
-    if (cat === "CONSOLE") {
+  } else if (isSpecializedOrCustom) {
+    if (specializedCategory === "CONSOLE") {
       price = 429900;
       originalPrice = 469900;
       costPrice = 350000;
       isPreOrder = false;
       stockAvailable = 4;
-    } else if (cat === "HARDWARE") {
+    } else if (specializedCategory === "HARDWARE") {
       price = 149900;
       originalPrice = 179900;
       costPrice = 110000;
       isPreOrder = false;
       stockAvailable = 8;
-    } else if (cat === "BOOK") {
+    } else if (specializedCategory === "BOOK") {
       price = 18900;
       originalPrice = 22900;
       costPrice = 11000;
       isPreOrder = false;
       stockAvailable = 20;
-    } else if (cat === "APPAREL") {
+    } else if (specializedCategory === "APPAREL") {
       price = 29900;
       originalPrice = 34900;
       costPrice = 16000;
       isPreOrder = false;
       stockAvailable = 15;
-    } else if (cat === "MERCH") {
+    } else if (specializedCategory === "MERCH") {
       price = 24900;
       originalPrice = 29900;
       costPrice = 13000;
       isPreOrder = false;
       stockAvailable = 15;
-    } else if (cat === "AUDIO") {
+    } else if (specializedCategory === "AUDIO") {
       price = 39900;
       originalPrice = 45900;
       costPrice = 24000;
@@ -371,52 +386,100 @@ function generateWithSmartEngine(
     description = `Título oficial ${name} en edición física garantizada con carátula en perfecto estado. Incluye todos los códigos de contenido adicional sellados de fábrica y soporte oficial para las últimas características de la plataforma.`;
   } else if (type === "COLLECTIBLE") {
     description = `Carta de colección ${name} encapsulada y sellada por ultrasonido con protección anti-rayas y filtro UV al 99%. Ejemplar auditado en centrado, esquinas, bordes y superficie para máxima conservación de valor patrimonial.`;
-  } else if (type === "OTHER") {
-    const cat = getCategoryTypeFromLabel(customCategoryLabel);
-    if (cat === "BOOK") {
+  } else if (isSpecializedOrCustom) {
+    if (specializedCategory === "BOOK") {
       description = `Tomo oficial de arte y lectura ${name} en papel satinado de alta resolución con sobrecubierta a todo color y encuadernación de lujo para biblioteca de coleccionistas.`;
-    } else if (cat === "CONSOLE") {
+    } else if (specializedCategory === "CONSOLE") {
       description = `Consola y sistema de entretenimiento oficial ${name}. Incluye todos los componentes de fábrica, cables de alta velocidad, garantía oficial y despacho prioritario protegido a todo Chile.`;
-    } else if (cat === "APPAREL") {
+    } else if (specializedCategory === "HARDWARE") {
+      description = `Componente de hardware oficial ${name}. Máximo rendimiento térmico y eléctrico con componentes de grado profesional, compatibilidad validada y garantía oficial con soporte técnico en Chile.`;
+    } else if (specializedCategory === "APPAREL") {
       description = `Prenda de colección oficial ${name} confeccionada en algodón premium con costuras reforzadas y estampado de alta durabilidad resistente a lavados continuos.`;
-    } else if (cat === "MERCH") {
+    } else if (specializedCategory === "MERCH") {
       description = `Artículo conmemorativo oficial de ${name} con licencia directa. Ideal para exhibición en vitrina, repisa o colecciones temáticas con acabados de alta fidelidad.`;
-    } else if (cat === "AUDIO") {
+    } else if (specializedCategory === "AUDIO") {
       description = `Edición musical oficial de ${name} con masterización acústica de alta fidelidad. Presentación en formato físico con arte conmemorativo para amantes de las bandas sonoras.`;
     } else {
       description = `Accesorio oficial de alta fidelidad ${name}. Diseñado ergonómicamente con materiales de grado profesional, componentes de respuesta ultra-rápida, baja latencia y máxima durabilidad para sesiones intensivas de juego. Totalmente compatible con la plataforma y garantizado con soporte oficial en Chile.`;
     }
   }
 
-  // Age Rating & Genres
+  // Age Rating & Genres - Strictly regulatory for the PHYSICAL/DIGITAL PRODUCT (never for video restriction)
   let ageRating = "TE";
   let genres = "Anime, Escala, Coleccionismo";
 
   if (type === "FIGURE") {
-    ageRating = "TE";
+    const isExplicit =
+      lower.includes("castoff") ||
+      lower.includes("18+") ||
+      lower.includes("ecchi") ||
+      lower.includes("hentai") ||
+      lower.includes("adult");
+    ageRating = isExplicit ? "18+" : lower.includes("nendoroid") || lower.includes("chibi") ? "TE" : "14+";
     genres = "Anime, Escala, Coleccionismo, Importación Japón";
   } else if (type === "VIDEO_GAME") {
-    ageRating = lower.includes("m18") || lower.includes("cyberpunk") ? "M18" : "TE";
+    const isMature =
+      lower.includes("cyberpunk") ||
+      lower.includes("witcher") ||
+      lower.includes("gta") ||
+      lower.includes("grand theft auto") ||
+      lower.includes("resident evil") ||
+      lower.includes("mortal kombat") ||
+      lower.includes("elden") ||
+      lower.includes("dark souls") ||
+      lower.includes("silent hill") ||
+      lower.includes("doom") ||
+      lower.includes("bloodborne") ||
+      lower.includes("diablo") ||
+      lower.includes("m18") ||
+      lower.includes("18+");
+    const isAllAges =
+      lower.includes("mario") ||
+      lower.includes("pokemon") ||
+      lower.includes("pokémon") ||
+      lower.includes("kirby") ||
+      lower.includes("sonic") ||
+      lower.includes("fifa") ||
+      lower.includes("fc 24") ||
+      lower.includes("fc 25") ||
+      lower.includes("lego");
+    ageRating = isMature ? "ESRB M" : isAllAges ? "ESRB E" : "ESRB T";
     genres = "Acción, Aventura, RPG, Videojuegos";
   } else if (type === "COLLECTIBLE") {
-    ageRating = "ALL";
+    ageRating = "EXEMPT";
     genres = "TCG, Rareza, Inversión, Coleccionables";
-  } else if (type === "OTHER") {
-    ageRating = "ALL";
-    if (customCategoryLabel === "Accesorio Gaming") {
-      genres = "Accesorios Gaming, Mandos, Periféricos, Esports";
-    } else if (customCategoryLabel === "Consola") {
-      genres = "Consolas, Videojuegos, Sistemas, Ediciones Limitadas";
-    } else if (customCategoryLabel === "Hardware & Componentes") {
-      genres = "Hardware, Componentes, Almacenamiento SSD, Tarjetas Gráficas, PC Gaming";
-    } else if (customCategoryLabel === "Ropa & Estilo") {
-      genres = "Moda Gamer, Ropa Urbana, Accesorios";
-    } else if (customCategoryLabel === "Manga / Artbook") {
+  } else if (isSpecializedOrCustom) {
+    if (specializedCategory === "BOOK") {
+      const isSeinen =
+        lower.includes("berserk") ||
+        lower.includes("seinen") ||
+        lower.includes("gore") ||
+        lower.includes("18+");
+      ageRating = isSeinen ? "18+" : "14+";
       genres = "Lectura, Manga, Artbook, Ilustraciones";
+    } else if (specializedCategory === "CONSOLE") {
+      ageRating = "EXEMPT";
+      genres = "Consolas, Videojuegos, Sistemas, Ediciones Limitadas";
+    } else if (specializedCategory === "HARDWARE") {
+      ageRating = "EXEMPT";
+      genres = "Hardware, Componentes, Almacenamiento SSD, Tarjetas Gráficas, PC Gaming";
+    } else if (specializedCategory === "GAMING_ACCESSORY") {
+      ageRating = "EXEMPT";
+      genres = "Accesorios Gaming, Mandos, Periféricos, Esports";
+    } else if (specializedCategory === "APPAREL") {
+      ageRating = "EXEMPT";
+      genres = "Moda Gamer, Ropa Urbana, Accesorios";
+    } else if (specializedCategory === "AUDIO") {
+      ageRating = "EXEMPT";
+      genres = "Audio, Bandas Sonoras, OST, Vinilos, Música Gamer";
     } else {
+      ageRating = "EXEMPT";
       genres = "Coleccionables, Merchandising, Especial";
     }
   }
+
+  // Official YouTube trailer inference
+  const trailerUrl = inferOfficialYouTubeTrailer(name, type, customCategoryLabel) || "";
 
   // Specs
   const figureSpecs =
@@ -1213,6 +1276,7 @@ function generateWithSmartEngine(
     costPrice,
     stockAvailable,
     isPreOrder,
+    trailerUrl: trailerUrl || undefined,
     ageRating,
     genres,
     figureSpecs,
@@ -1337,6 +1401,18 @@ ${imageAnalysisInstructions}
 ${categoryConstraint}
 ${hardwareInstructions}
 
+REGLA PARA TRAILER OFICIAL (YOUTUBE):
+- Proporciona en "trailerUrl" el enlace oficial de YouTube (formato https://www.youtube.com/watch?v=... o https://youtu.be/...) del trailer de lanzamiento, gameplay o presentación oficial del producto (videojuego, figura, anime, consola, etc.). Si no aplica o no existe, déjalo vacío "".
+
+REGLA CRÍTICA PARA CLASIFICACIÓN DE EDAD / SELLO DEL PRODUCTO:
+- El campo "ageRating" corresponde al SELLO OFICIAL DE CLASIFICACIÓN REGULATORIA DEL PRODUCTO FÍSICO/DIGITAL (en su caja o carátula), NUNCA al video de YouTube ni a la restricción del video.
+- Opciones válidas canónicas: 'ESRB E', 'ESRB E10+', 'ESRB T', 'ESRB M', 'PEGI 3', 'PEGI 7', 'PEGI 12', 'PEGI 16', 'PEGI 18', 'CERO A', 'CERO B', 'CERO C', 'CERO D', 'CERO Z', 'TE', '8+', '14+', '18+', 'EXEMPT'.
+  * Para Videojuegos adultos (+17/+18 como Cyberpunk, Elden Ring, GTA, Resident Evil, Mortal Kombat): 'ESRB M' o '18+'
+  * Para Videojuegos adolescentes (+13/+14 como Final Fantasy, Persona, Zelda): 'ESRB T' o '14+'
+  * Para Videojuegos familiares/todos (+6/E como Mario, Pokémon, Sonic): 'ESRB E' o 'TE'
+  * Para Figuras de anime/colección: '14+' (colección estándar 15+) o '18+' (si es explícita/castoff) o 'TE' / 'EXEMPT' (chibi/todo público)
+  * Para Hardware PC, Consolas, Accesorios Gaming, Ropa, Merch, TCG: 'EXEMPT' (Sin Sello / Coleccionable Exento) o 'TE'
+
 Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código tipo \`\`\`json) con esta estructura exacta:
 {
   "sku": "Ej: FIG-MAKIMA-17 o VG-CYBERP-2077 o ACC-DUALS-001 o HW-RTX5070-01 o CON-PS5SLIM-01",
@@ -1349,7 +1425,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
   "costPrice": costo_estimado_en_CLP_entero,
   "stockAvailable": numero_entre_3_y_15,
   "isPreOrder": true_o_false,
-  "ageRating": "TE" | "M18" | "ALL" | "ESRB_T" | "ESRB_M",
+  "trailerUrl": "https://www.youtube.com/watch?v=... o https://youtu.be/... (o vacío si no aplica)",
+  "ageRating": "ESRB M" | "ESRB T" | "ESRB E" | "ESRB E10+" | "18+" | "14+" | "TE" | "PEGI 18" | "PEGI 16" | "PEGI 12" | "CERO Z" | "CERO D" | "EXEMPT",
   "genres": "Palabras clave separadas por coma",
   "figureSpecs": {
     "productName": "Nombre oficial de la figura o personaje",
@@ -1664,6 +1741,23 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             // Remove any image auto-generation so "4. Galería de Fotos & Portada" is NOT touched
             delete parsed.imageUrl;
             delete parsed.images;
+
+            // Validate and normalize official YouTube trailerUrl
+            let resolvedTrailerUrl: string | undefined = undefined;
+            if (parsed.trailerUrl && typeof parsed.trailerUrl === "string" && parsed.trailerUrl.trim()) {
+              const trimmedUrl = parsed.trailerUrl.trim();
+              const embed = extractYouTubeEmbedUrl(trimmedUrl);
+              if (embed) {
+                resolvedTrailerUrl = trimmedUrl;
+              }
+            }
+            if (!resolvedTrailerUrl) {
+              resolvedTrailerUrl = inferOfficialYouTubeTrailer(productName, parsed.type, parsed.customCategoryLabel);
+            }
+            parsed.trailerUrl = resolvedTrailerUrl || undefined;
+
+            // Normalize and enforce official regulatory ageRating of the product
+            parsed.ageRating = normalizeProductAgeRating(parsed.ageRating, parsed.type);
 
             return NextResponse.json({
               success: true,

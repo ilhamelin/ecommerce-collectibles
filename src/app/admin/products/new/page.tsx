@@ -61,7 +61,7 @@ import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
-import { WORLDWIDE_AGE_RATINGS } from "@/lib/constants/ageRatings";
+import { WORLDWIDE_AGE_RATINGS, normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 
 const ALL_PRODUCT_CATEGORIES = [
   { id: "FIGURE", label: "Figura", icon: Clock, defaultLabel: "" },
@@ -467,7 +467,7 @@ export default function NewProductAdminPage() {
     // 1. Nombre comercial identificado
     if (fromImage && d.name) {
       setName(d.name);
-    } else if (d.name && (!name.trim() || name === "Producto Coleccionable")) {
+    } else if (d.name) {
       setName(d.name);
     }
 
@@ -504,8 +504,28 @@ export default function NewProductAdminPage() {
     if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
     if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
     if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);
-    if (d.trailerUrl) setTrailerUrl(d.trailerUrl);
-    if (d.ageRating) setAgeRating(d.ageRating);
+
+    // Official YouTube Trailer
+    if (d.trailerUrl) {
+      setTrailerUrl(d.trailerUrl);
+      setShowTrailerSection(true);
+    }
+
+    // Regulatory Age Rating for the physical/digital product (never of the video)
+    if (d.ageRating) {
+      const normalized = normalizeProductAgeRating(d.ageRating, resolvedType);
+      const match = WORLDWIDE_AGE_RATINGS.find(
+        (r) => r.value.toLowerCase() === normalized.toLowerCase()
+      );
+      if (match) {
+        setAgeRating(match.value);
+        setCustomAgeRating("");
+      } else {
+        setAgeRating("CUSTOM");
+        setCustomAgeRating(d.ageRating);
+      }
+    }
+
     if (d.genres) setGenresInput(d.genres);
 
     // 6. Especificaciones de la categoría
@@ -550,6 +570,7 @@ export default function NewProductAdminPage() {
 
     if (d.gameSpecs) {
       if (d.gameSpecs.gameType) setGameType(d.gameSpecs.gameType);
+      if (typeof d.gameSpecs.isDigital === "boolean") setGameIsDigital(d.gameSpecs.isDigital);
       if (d.gameSpecs.title) setGameTitle(d.gameSpecs.title);
       if (d.gameSpecs.developer) setGameDeveloper(d.gameSpecs.developer);
       if (d.gameSpecs.publisher) setGamePublisher(d.gameSpecs.publisher);

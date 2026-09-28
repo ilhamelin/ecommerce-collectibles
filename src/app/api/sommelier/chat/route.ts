@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { db, isFirebaseConfigured } from "@/lib/firebase/config";
 import { collection, addDoc } from "firebase/firestore";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
+import { getGeminiApiKey, getSupportedGeminiModels } from "@/lib/services/geminiClient";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +30,7 @@ async function logChatInquiry(userQuery: string, recommendedSkus: string[], repl
 
 export async function POST(req: NextRequest) {
   try {
-    const geminiApiKey = (
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      ""
-    ).trim();
+    const geminiApiKey = getGeminiApiKey();
 
     if (!geminiApiKey || geminiApiKey.includes("YOUR_") || geminiApiKey.length < 15) {
       return NextResponse.json(
@@ -115,18 +111,13 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
       parts: [{ text: m.content }],
     }));
 
-    // Cascade of modern, active models (Google AI Studio omnicollector-ai)
-    const candidateModels = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
-    ];
+    // Dynamically retrieve models authorized for generateContent on this API key
+    const candidateModels = await getSupportedGeminiModels(geminiApiKey);
 
     let geminiRes: Response | null = null;
     let lastErrorText = "";
     const chatStartTime = Date.now();
-    let usedModel = candidateModels[0];
+    let usedModel = candidateModels[0] || "gemini-2.5-flash";
 
     for (const model of candidateModels) {
       try {

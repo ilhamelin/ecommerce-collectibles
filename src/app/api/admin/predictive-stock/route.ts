@@ -9,6 +9,7 @@ import { db, isFirebaseConfigured } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
+import { getGeminiApiKey, getSupportedGeminiModels } from "@/lib/services/geminiClient";
 
 export const dynamic = "force-dynamic";
 
@@ -281,12 +282,7 @@ export async function GET() {
 // POST: Calls Gemini AI to generate strategic diagnostic insights
 export async function POST() {
   try {
-    const geminiApiKey = (
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      ""
-    ).trim();
+    const geminiApiKey = getGeminiApiKey();
 
     if (!geminiApiKey || geminiApiKey.includes("YOUR_") || geminiApiKey.length < 15) {
       return NextResponse.json(
@@ -358,17 +354,12 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
   ]
 }`;
 
-    const candidateModels = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
-    ];
+    const candidateModels = await getSupportedGeminiModels(geminiApiKey);
 
     const callStartTime = Date.now();
     let geminiRes: Response | null = null;
     let lastErrorText = "";
-    let usedModel = candidateModels[0];
+    let usedModel = candidateModels[0] || "gemini-2.5-flash";
 
     for (const model of candidateModels) {
       try {

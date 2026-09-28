@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
+import { getGeminiApiKey, getSupportedGeminiModels } from "@/lib/services/geminiClient";
 
 export const dynamic = "force-dynamic";
 
@@ -145,12 +146,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const geminiApiKey = (
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      ""
-    ).trim();
+    const geminiApiKey = getGeminiApiKey();
 
     // Si no hay API key de Gemini configurada, usar el preset solicitado o el mando gamer
     if (!geminiApiKey || geminiApiKey.includes("YOUR_") || geminiApiKey.length < 15) {
@@ -183,12 +179,8 @@ REGLAS DE DISEÑO:
 
 Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">...</svg>.`;
 
-    const candidateModels = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
-    ];
+    // Dynamically retrieve models authorized for generateContent on this API key
+    const candidateModels = await getSupportedGeminiModels(geminiApiKey);
 
     const callStartTime = Date.now();
     let generatedSvg = "";

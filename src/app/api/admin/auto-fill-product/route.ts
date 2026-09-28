@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 import { extractYouTubeEmbedUrl, inferOfficialYouTubeTrailer } from "@/lib/utils/media";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
+import { getGeminiApiKey, getSupportedGeminiModels } from "@/lib/services/geminiClient";
 
 export const dynamic = "force-dynamic";
 
@@ -1349,9 +1350,9 @@ export async function POST(req: NextRequest) {
       productName = "Producto Coleccionable";
     }
 
-    const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)?.trim();
+    const geminiApiKey = getGeminiApiKey();
     let lastErrorText = "";
-    let usedGeminiModel = "gemini-1.5-flash";
+    let usedGeminiModel = "gemini-2.5-flash";
     const autoFillStartTime = Date.now();
 
     if (geminiApiKey) {
@@ -1568,16 +1569,9 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           });
         }
 
-        const candidates = [
-          "gemini-2.0-flash",
-          "gemini-flash-latest",
-          "gemini-2.0-flash-lite",
-          "gemini-flash-lite-latest",
-          "gemini-1.5-flash",
-          "gemini-1.5-pro",
-        ];
+        const candidates = await getSupportedGeminiModels(geminiApiKey);
         let geminiRes: Response | null = null;
-        usedGeminiModel = candidates[0];
+        usedGeminiModel = candidates[0] || "gemini-2.5-flash";
 
         for (const model of candidates) {
           try {

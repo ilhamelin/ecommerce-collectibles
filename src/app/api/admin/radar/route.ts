@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
+import { getGeminiApiKey, getSupportedGeminiModels } from "@/lib/services/geminiClient";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const geminiApiKey = (
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      ""
-    ).trim();
+    const geminiApiKey = getGeminiApiKey();
 
     // 1. Fetch current catalog to provide real context to the AI
     const firestoreProducts = await getProductsFromFirestore(false);
@@ -72,16 +68,11 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
   ]
 }`;
 
-    const candidateModels = [
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
-    ];
+    const candidateModels = await getSupportedGeminiModels(geminiApiKey);
     let geminiRes: Response | null = null;
     let lastError = "";
     const radarStartTime = Date.now();
-    let usedModel = candidateModels[0];
+    let usedModel = candidateModels[0] || "gemini-2.5-flash";
 
     for (const model of candidateModels) {
       try {

@@ -143,4 +143,31 @@ describe("Custom Product Categories & Technical Form Designer Suite", () => {
     diskList = readCategoriesFromDisk();
     expect(diskList.some((c) => c.id === "cat-tv-test-1")).toBe(false);
   });
+
+  it("handles deleting and restoring pre-existing native categories", async () => {
+    const {
+      deleteNativeCategoryOnDisk,
+      readDeletedNativeCategoriesFromDisk,
+      restoreNativeCategoryOnDisk,
+    } = await import("@/lib/services/categoryDiskService");
+
+    const nativeId = "FIGURE";
+
+    // Delete native category
+    const deleted = deleteNativeCategoryOnDisk(nativeId);
+    expect(deleted).toBe(true);
+
+    let deletedList = readDeletedNativeCategoriesFromDisk();
+    expect(deletedList).toContain("FIGURE");
+
+    // Re-delete same category should be idempotent
+    expect(deleteNativeCategoryOnDisk(nativeId)).toBe(false);
+
+    // Restore native category
+    const restored = restoreNativeCategoryOnDisk(nativeId);
+    expect(restored).toBe(true);
+
+    deletedList = readDeletedNativeCategoriesFromDisk();
+    expect(deletedList).not.toContain("FIGURE");
+  });
 });

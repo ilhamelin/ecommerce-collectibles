@@ -4,11 +4,14 @@ import { CustomCategoryEntity } from "@/lib/types/domain";
 
 const DATA_DIR = path.join(process.cwd(), "src", "data");
 const CATEGORIES_DISK_PATH = path.join(DATA_DIR, "custom_categories.json");
+const DELETED_NATIVE_DISK_PATH = path.join(DATA_DIR, "deleted_native_category_ids.json");
 
 // Ensure global singleton cache across server hot-reloads and API route boundaries
 declare global {
   // eslint-disable-next-line no-var
   var __customCategoriesGlobalStore: CustomCategoryEntity[] | undefined;
+  // eslint-disable-next-line no-var
+  var __deletedNativeCategoriesGlobalStore: string[] | undefined;
 }
 
 function ensureDataDir(): void {
@@ -103,3 +106,76 @@ export function getCategoryByIdFromDisk(id: string): CustomCategoryEntity | null
   const current = readCategoriesFromDisk();
   return current.find((c) => c.id === id || c.slug === id) || null;
 }
+
+/**
+ * ============================================================================
+ * NATIVE/PRE-EXISTING CATEGORY EXCLUSION & SOFT-DELETION
+ * ============================================================================
+ */
+
+/**
+ * Reads list of deleted/hidden native category IDs from disk storage.
+ */
+export function readDeletedNativeCategoriesFromDisk(): string[] {
+  if (globalThis.__deletedNativeCategoriesGlobalStore) {
+    return globalThis.__deletedNativeCategoriesGlobalStore;
+  }
+
+  try {
+    if (fs.existsSync(DELETED_NATIVE_DISK_PATH)) {
+      const raw = fs.readFileSync(DELETED_NATIVE_DISK_PATH, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        globalThis.__deletedNativeCategoriesGlobalStore = parsed;
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("[CategoryDiskService] Could not read deleted native categories:", err);
+  }
+
+  globalThis.__deletedNativeCategoriesGlobalStore = [];
+  return [];
+}
+
+/**
+ * Writes list of deleted/hidden native category IDs to disk.
+ */
+export function writeDeletedNativeCategoriesToDisk(ids: string[]): void {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(DELETED_NATIVE_DISK_PATH, JSON.stringify(ids, null, 2), "utf-8");
+    globalThis.__deletedNativeCategoriesGlobalStore = ids;
+  } catch (err) {
+    console.warn("[CategoryDiskService] Could not persist deleted native categories:", err);
+  }
+}
+
+/**
+ * Marks a native category as deleted on disk.
+ */
+export function deleteNativeCategoryOnDisk(id: string): boolean {
+  const upperId = id.toUpperCase();
+  const current = readDeletedNativeCategoriesFromDisk();
+  if (!current.includes(upperId)) {
+    const updated = [...current, upperId];
+    writeDeletedNativeCategoriesToDisk(updated);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Restores a previously deleted native category on disk.
+ */
+export function restoreNativeCategoryOnDisk(id: string): boolean {
+  const upperId = id.toUpperCase();
+  const current = readDeletedNativeCategoriesFromDisk();
+  const filtered = current.filter((item) => item !== upperId);
+  if (filtered.length !== current.length) {
+    writeDeletedNativeCategoriesToDisk(filtered);
+    return true;
+  }
+  return false;
+}
+

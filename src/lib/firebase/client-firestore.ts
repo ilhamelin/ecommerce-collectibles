@@ -204,3 +204,41 @@ export async function deleteCustomCategoryFromFirestoreClient(
   }
 }
 
+const DELETED_NATIVE_DOC_ID = "_deleted_native_categories_";
+
+/**
+ * Reads list of deleted/hidden native category IDs directly from Firestore Client SDK
+ */
+export async function getDeletedNativeCategoriesFromFirestoreClient(): Promise<string[]> {
+  try {
+    if (!db || !isFirebaseConfigured()) return [];
+    const snap = await getDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, DELETED_NATIVE_DOC_ID));
+    if (snap.exists() && Array.isArray(snap.data()?.ids)) {
+      return snap.data()?.ids as string[];
+    }
+    return [];
+  } catch (err) {
+    console.warn("[Firebase Client] Error reading deleted native categories:", err);
+    return [];
+  }
+}
+
+/**
+ * Saves list of deleted/hidden native category IDs directly via Firestore Client SDK
+ */
+export async function saveDeletedNativeCategoriesToFirestoreClient(ids: string[]): Promise<boolean> {
+  try {
+    if (!db || !isFirebaseConfigured()) return false;
+    await setDoc(
+      doc(db, COLLECTIONS.CUSTOM_CATEGORIES, DELETED_NATIVE_DOC_ID),
+      { ids, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+    return true;
+  } catch (err) {
+    console.warn("[Firebase Client] Error saving deleted native categories:", err);
+    return false;
+  }
+}
+
+

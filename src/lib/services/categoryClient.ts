@@ -4,10 +4,28 @@ import {
   getCustomCategoriesFromFirestoreClient,
   saveCustomCategoryToFirestoreClient,
   deleteCustomCategoryFromFirestoreClient,
+  getDeletedNativeCategoriesFromFirestoreClient,
+  saveDeletedNativeCategoriesToFirestoreClient,
 } from "@/lib/firebase/client-firestore";
 
+export const NATIVE_CATEGORY_IDS = [
+  "FIGURE",
+  "VIDEO_GAME",
+  "COLLECTIBLE",
+  "CONSOLE",
+  "HARDWARE",
+  "GAMING_ACCESSORY",
+  "APPAREL",
+  "BOOK",
+  "MERCH",
+  "AUDIO",
+  "BUNDLE",
+] as const;
+
 const CATEGORIES_CACHE_KEY = "omnicollector_custom_categories_cache";
+const DELETED_NATIVE_CACHE_KEY = "omnicollector_deleted_native_categories_cache";
 let inMemoryCache: CustomCategoryEntity[] | null = null;
+let inMemoryDeletedNative: string[] | null = null;
 let lastFetchTime = 0;
 const CACHE_TTL_MS = 15000; // 15 seconds client-side cache
 
@@ -63,6 +81,18 @@ export const categoryClient = {
       const serverCats: CustomCategoryEntity[] =
         apiRes?.success && Array.isArray(apiRes.data?.categories) ? apiRes.data.categories : [];
 
+      if (apiRes?.success && Array.isArray(apiRes.data?.deletedNativeCategories)) {
+        inMemoryDeletedNative = apiRes.data.deletedNativeCategories;
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(
+              DELETED_NATIVE_CACHE_KEY,
+              JSON.stringify(apiRes.data.deletedNativeCategories)
+            );
+          } catch {}
+        }
+      }
+
       const combined = mergeCategoryLists(serverCats, firestoreCats);
 
       if (combined.length > 0 || (apiRes && apiRes.success)) {
@@ -80,6 +110,57 @@ export const categoryClient = {
     }
 
     return inMemoryCache || [];
+  },
+
+  /**
+   * Retrieves list of deleted/hidden native categories from server / Firestore.
+   */
+  async getDeletedNativeCategories(forceRefresh = false): Promise<string[]> {
+    if (!forceRefresh && inMemoryDeletedNative && inMemoryDeletedNative.length >= 0) {
+      return inMemoryDeletedNative;
+    }
+
+    if (!inMemoryDeletedNative && typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(DELETED_NATIVE_CACHE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            inMemoryDeletedNative = parsed;
+          }
+        }
+      } catch {}
+    }
+
+    try {
+      const [apiRes, firestoreIds] = await Promise.all([
+        fetch("/api/admin/categories", {
+          headers: getAdminHeaders(),
+          cache: "no-store",
+        })
+          .then(async (res) => (res.ok ? res.json() : null))
+          .catch(() => null),
+        getDeletedNativeCategoriesFromFirestoreClient().catch(() => [] as string[]),
+      ]);
+
+      const serverIds: string[] =
+        apiRes?.success && Array.isArray(apiRes.data?.deletedNativeCategories)
+          ? apiRes.data.deletedNativeCategories
+          : [];
+
+      const combined = Array.from(new Set([...serverIds, ...firestoreIds, ...(inMemoryDeletedNative || [])]));
+      inMemoryDeletedNative = combined;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(DELETED_NATIVE_CACHE_KEY, JSON.stringify(combined));
+        } catch {}
+      }
+      return combined;
+    } catch (err) {
+      console.warn("[categoryClient] Error fetching deleted native categories:", err);
+    }
+
+    return inMemoryDeletedNative || [];
   },
 
   /**
@@ -129,10 +210,39 @@ export const categoryClient = {
   },
 
   /**
-   * Deletes a custom category by ID from both Firestore and server storage.
+   * Deletes a category by ID (supporting both custom and pre-existing native categories).
    */
   async deleteCategory(id: string): Promise<boolean> {
     try {
+      const upperId = id.toUpperCase();
+      const isNative = (NATIVE_CATEGORY_IDS as readonly string[]).includes(upperId);
+
+      if (isNative) {
+        // 1. Delete/hide native category via Server API
+        const res = await fetch(`/api/admin/categories/${upperId}`, {
+          method: "DELETE",
+          headers: getAdminHeaders(),
+        });
+
+        // 2. Persist to Firestore Client SDK
+        const current = inMemoryDeletedNative || [];
+        const next = Array.from(new Set([...current, upperId]));
+        inMemoryDeletedNative = next;
+
+        saveDeletedNativeCategoriesToFirestoreClient(next).catch((e) =>
+          console.warn("[categoryClient] Firestore save deleted native error:", e)
+        );
+
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(DELETED_NATIVE_CACHE_KEY, JSON.stringify(next));
+          } catch {}
+        }
+
+        return res.ok;
+      }
+
+      // Custom category deletion
       // 1. Delete from Server API (and disk)
       const res = await fetch(`/api/admin/categories/${id}`, {
         method: "DELETE",
@@ -165,14 +275,47 @@ export const categoryClient = {
   },
 
   /**
+   * Restores a previously deleted/hidden native category.
+   */
+  async restoreNativeCategory(id: string): Promise<boolean> {
+    try {
+      const upperId = id.toUpperCase();
+      const res = await fetch(`/api/admin/categories/${upperId}?restore=true`, {
+        method: "DELETE",
+        headers: getAdminHeaders(),
+      });
+
+      const current = inMemoryDeletedNative || [];
+      const next = current.filter((item) => item !== upperId);
+      inMemoryDeletedNative = next;
+
+      saveDeletedNativeCategoriesToFirestoreClient(next).catch((e) =>
+        console.warn("[categoryClient] Firestore save restored native error:", e)
+      );
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(DELETED_NATIVE_CACHE_KEY, JSON.stringify(next));
+        } catch {}
+      }
+
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
    * Invalidates cache so next call refreshes data.
    */
   invalidateCache() {
     inMemoryCache = null;
+    inMemoryDeletedNative = null;
     lastFetchTime = 0;
     if (typeof window !== "undefined") {
       try {
         localStorage.removeItem(CATEGORIES_CACHE_KEY);
+        localStorage.removeItem(DELETED_NATIVE_CACHE_KEY);
       } catch {}
     }
   },

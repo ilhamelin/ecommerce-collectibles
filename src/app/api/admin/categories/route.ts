@@ -7,6 +7,7 @@ import {
   readCategoriesFromDisk,
   saveCategoryToDisk,
   writeCategoriesToDisk,
+  readDeletedNativeCategoriesFromDisk,
 } from "@/lib/services/categoryDiskService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 import type { CustomCategoryEntity } from "@/lib/types/domain";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const deletedNativeCategories = readDeletedNativeCategoriesFromDisk();
+
     // 1. Try Firestore first
     const firestoreData = await getCustomCategoriesFromFirestore();
     if (firestoreData && Array.isArray(firestoreData) && firestoreData.length > 0) {
@@ -23,6 +26,7 @@ export async function GET() {
         success: true,
         data: {
           categories: firestoreData,
+          deletedNativeCategories,
           source: "FIRESTORE",
         },
       });
@@ -34,16 +38,19 @@ export async function GET() {
       success: true,
       data: {
         categories: diskCategories,
+        deletedNativeCategories,
         source: "DISK_STORAGE",
       },
     });
   } catch (error) {
     console.error("[CATEGORIES_GET_ERROR]", error);
     const diskCategories = readCategoriesFromDisk();
+    const deletedNativeCategories = readDeletedNativeCategoriesFromDisk();
     return NextResponse.json({
       success: true,
       data: {
         categories: diskCategories,
+        deletedNativeCategories,
         source: "FALLBACK_DISK",
       },
     });

@@ -108,11 +108,18 @@ export default function NewProductAdminPage() {
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
 
-  // Dynamic Custom Categories created by administrator
+  // Dynamic Custom and Native Categories management
   const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
   const [selectedCustomCategoryId, setSelectedCustomCategoryId] = useState<string | null>(null);
+  const [deletedNativeCategories, setDeletedNativeCategories] = useState<string[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<CustomCategoryEntity | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<{
+    id: string;
+    name: string;
+    isNative: boolean;
+    subtypesCount?: number;
+    attributesCount?: number;
+  } | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [deleteSuccessMessage, setDeleteSuccessMessage] = useState<string | null>(null);
 
@@ -120,6 +127,12 @@ export default function NewProductAdminPage() {
     categoryClient.getCategories().then((cats) => {
       if (Array.isArray(cats)) {
         setCustomCategories(cats);
+      }
+    });
+
+    categoryClient.getDeletedNativeCategories().then((deletedIds) => {
+      if (Array.isArray(deletedIds)) {
+        setDeletedNativeCategories(deletedIds);
       }
     });
 
@@ -144,17 +157,99 @@ export default function NewProductAdminPage() {
     (c) => c.id === selectedCustomCategoryId || c.name === customCategoryLabel
   );
 
+  // Active native categories filtered from deleted ones
+  const activeNativeCategories = useMemo(() => {
+    return ALL_PRODUCT_CATEGORIES.filter((item) => !deletedNativeCategories.includes(item.id));
+  }, [deletedNativeCategories]);
+
+  // Current selected category information (whether native or custom)
+  const currentSelectedCategoryInfo = useMemo(() => {
+    if (selectedCustomCategory) {
+      return {
+        id: selectedCustomCategory.id,
+        name: selectedCustomCategory.name,
+        isNative: false,
+        subtypesCount: selectedCustomCategory.availableSubtypes?.length || 0,
+        attributesCount:
+          (selectedCustomCategory.basicSpecFields?.length || 0) +
+          (selectedCustomCategory.advancedSpecFields?.length || 0),
+      };
+    }
+    const native = activeNativeCategories.find((c) => c.id === type);
+    if (native) {
+      return {
+        id: native.id,
+        name: native.label,
+        isNative: true,
+      };
+    }
+    return null;
+  }, [selectedCustomCategory, type, activeNativeCategories]);
+
+  // All deletable categories currently available in the form
+  const allDeletableCategories = useMemo(() => {
+    const list: Array<{
+      id: string;
+      name: string;
+      isNative: boolean;
+      subtypesCount?: number;
+      attributesCount?: number;
+    }> = [];
+
+    for (const item of activeNativeCategories) {
+      list.push({
+        id: item.id,
+        name: item.label,
+        isNative: true,
+      });
+    }
+
+    for (const cat of customCategories) {
+      list.push({
+        id: cat.id,
+        name: cat.name,
+        isNative: false,
+        subtypesCount: cat.availableSubtypes?.length || 0,
+        attributesCount: (cat.basicSpecFields?.length || 0) + (cat.advancedSpecFields?.length || 0),
+      });
+    }
+
+    return list;
+  }, [activeNativeCategories, customCategories]);
+
   const handleConfirmDeleteCategory = async () => {
     if (!categoryToDelete) return;
     setIsDeletingCategory(true);
     try {
       const ok = await categoryClient.deleteCategory(categoryToDelete.id);
       if (ok) {
-        setCustomCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
-        if (selectedCustomCategoryId === categoryToDelete.id || customCategoryLabel === categoryToDelete.name) {
-          setType("FIGURE");
-          setSelectedCustomCategoryId(null);
-          setCustomCategoryLabel("");
+        if (categoryToDelete.isNative) {
+          const upperId = categoryToDelete.id.toUpperCase();
+          const nextDeleted = Array.from(new Set([...deletedNativeCategories, upperId]));
+          setDeletedNativeCategories(nextDeleted);
+
+          if (type === categoryToDelete.id) {
+            const remainingNative = ALL_PRODUCT_CATEGORIES.filter((c) => !nextDeleted.includes(c.id));
+            if (remainingNative.length > 0) {
+              setType(remainingNative[0].id as ProductType);
+              setCustomCategoryLabel(remainingNative[0].defaultLabel || "");
+              setSelectedCustomCategoryId(null);
+            } else if (customCategories.length > 0) {
+              setType("OTHER");
+              setSelectedCustomCategoryId(customCategories[0].id);
+              setCustomCategoryLabel(customCategories[0].name);
+            }
+          }
+        } else {
+          setCustomCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
+          if (selectedCustomCategoryId === categoryToDelete.id || customCategoryLabel === categoryToDelete.name) {
+            const firstActive = activeNativeCategories[0];
+            if (firstActive) {
+              setType(firstActive.id as ProductType);
+              setSelectedCustomCategoryId(null);
+              setCustomCategoryLabel(firstActive.defaultLabel || "");
+            }
+          }
         }
         setDeleteSuccessMessage(`Categoría "${categoryToDelete.name}" eliminada de la base de datos exitosamente.`);
         setTimeout(() => setDeleteSuccessMessage(null), 4000);
@@ -168,6 +263,19 @@ export default function NewProductAdminPage() {
       alert("Error inesperado al eliminar la categoría.");
     } finally {
       setIsDeletingCategory(false);
+    }
+  };
+
+  const handleRestoreNativeCategory = async (catId: string) => {
+    try {
+      const ok = await categoryClient.restoreNativeCategory(catId);
+      if (ok) {
+        setDeletedNativeCategories((prev) => prev.filter((id) => id !== catId));
+        setDeleteSuccessMessage("Categoría predeterminada restaurada exitosamente.");
+        setTimeout(() => setDeleteSuccessMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error("[handleRestoreNativeCategory]", err);
     }
   };
 
@@ -1496,36 +1604,51 @@ export default function NewProductAdminPage() {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Botón para Restaurar Categorías Predeterminadas Eliminadas si existen */}
+                {deletedNativeCategories.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deletedNativeCategories.forEach((id) => handleRestoreNativeCategory(id));
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#00E5FF] bg-[#004E72]/30 border border-[#00E5FF]/40 hover:bg-[#00E5FF]/20 transition shadow-sm active:scale-95 cursor-pointer"
+                    title="Restaurar todas las categorías predeterminadas que fueron eliminadas"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Restaurar ({deletedNativeCategories.length})</span>
+                  </button>
+                )}
+
                 {/* Botón para Eliminar Categoría seleccionada o elegir una para eliminar */}
                 <button
                   type="button"
                   onClick={() => {
-                    if (selectedCustomCategory) {
-                      setCategoryToDelete(selectedCustomCategory);
-                    } else if (customCategories.length > 0) {
-                      setCategoryToDelete(customCategories[0]);
+                    if (currentSelectedCategoryInfo) {
+                      setCategoryToDelete(currentSelectedCategoryInfo);
+                    } else if (allDeletableCategories.length > 0) {
+                      setCategoryToDelete(allDeletableCategories[0]);
                     }
                     setIsDeleteModalOpen(true);
                   }}
-                  disabled={customCategories.length === 0}
+                  disabled={!currentSelectedCategoryInfo && allDeletableCategories.length === 0}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${
-                    selectedCustomCategory
+                    currentSelectedCategoryInfo
                       ? "bg-red-500/20 text-red-300 border border-red-500/50 hover:bg-red-600 hover:text-white active:scale-95 ring-1 ring-red-500/40"
-                      : customCategories.length > 0
+                      : allDeletableCategories.length > 0
                       ? "bg-[#092634] text-red-400 border border-red-500/40 hover:bg-red-500/20 hover:text-red-300 active:scale-95"
                       : "bg-[#092634]/40 text-gray-500 border border-gray-700/30 cursor-not-allowed opacity-50"
                   }`}
                   title={
-                    selectedCustomCategory
-                      ? `Eliminar la categoría "${selectedCustomCategory.name}" de la base de datos`
-                      : customCategories.length > 0
-                      ? "Eliminar una categoría personalizada de la base de datos"
-                      : "No hay categorías personalizadas creadas para eliminar"
+                    currentSelectedCategoryInfo
+                      ? `Eliminar la categoría "${currentSelectedCategoryInfo.name}" de la base de datos`
+                      : allDeletableCategories.length > 0
+                      ? "Eliminar una categoría de la base de datos"
+                      : "No hay categorías disponibles para eliminar"
                   }
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>
-                    {selectedCustomCategory ? `Eliminar "${selectedCustomCategory.name}"` : "Eliminar Categoría"}
+                    {currentSelectedCategoryInfo ? `Eliminar "${currentSelectedCategoryInfo.name}"` : "Eliminar Categoría"}
                   </span>
                 </button>
 
@@ -1560,8 +1683,8 @@ export default function NewProductAdminPage() {
 
             {/* Grid de categorías a la vista directa sin menús secundarios */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-              {/* Categorías Nativas Especializadas (11) */}
-              {ALL_PRODUCT_CATEGORIES.map((item) => {
+              {/* Categorías Nativas Especializadas Activas */}
+              {activeNativeCategories.map((item) => {
                 const Icon = item.icon;
                 const isSelected = type === item.id;
                 return (
@@ -3771,7 +3894,7 @@ export default function NewProductAdminPage() {
                 Selecciona la categoría que deseas eliminar permanentemente. Esta acción removerá su plantilla técnica de la base de datos y la quitará de la vista de creación y del catálogo.
               </p>
 
-              {customCategories.length > 1 && (
+              {allDeletableCategories.length > 1 && (
                 <div>
                   <label className="text-[11px] font-bold text-[#F9F9F9] uppercase tracking-wider block mb-1.5">
                     Categoría a eliminar:
@@ -3779,14 +3902,14 @@ export default function NewProductAdminPage() {
                   <select
                     value={categoryToDelete?.id || ""}
                     onChange={(e) => {
-                      const found = customCategories.find((c) => c.id === e.target.value);
+                      const found = allDeletableCategories.find((c) => c.id === e.target.value);
                       if (found) setCategoryToDelete(found);
                     }}
                     className="w-full px-3 py-2 bg-[#051722] border border-[#004E72] rounded-xl text-xs text-[#F9F9F9] focus:outline-none focus:border-red-500 cursor-pointer"
                   >
-                    {customCategories.map((c) => (
+                    {allDeletableCategories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} ({c.slug})
+                        {c.name} {c.isNative ? "(Predeterminada)" : "(Personalizada)"}
                       </option>
                     ))}
                   </select>
@@ -3795,14 +3918,25 @@ export default function NewProductAdminPage() {
 
               {categoryToDelete && (
                 <div className="p-3.5 rounded-xl bg-red-950/20 border border-red-500/30 text-xs text-red-200 space-y-1">
-                  <span className="font-bold text-red-300 block text-sm">
-                    {categoryToDelete.name}
-                  </span>
-                  <span className="text-[11px] text-red-300/80 block">
-                    Subtipos: {categoryToDelete.availableSubtypes?.length || 0} • Atributos técnicos: {(categoryToDelete.basicSpecFields?.length || 0) + (categoryToDelete.advancedSpecFields?.length || 0)}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-red-300 block text-sm">
+                      {categoryToDelete.name}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                      {categoryToDelete.isNative ? "Predeterminada" : "Personalizada"}
+                    </span>
+                  </div>
+                  {categoryToDelete.isNative ? (
+                    <span className="text-[11px] text-red-300/80 block">
+                      Categoría base del sistema • Se removerá de las opciones activas del catálogo en la base de datos.
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-red-300/80 block">
+                      Subtipos: {categoryToDelete.subtypesCount || 0} • Atributos técnicos: {categoryToDelete.attributesCount || 0}
+                    </span>
+                  )}
                   <p className="text-[11px] text-red-400 font-semibold pt-1">
-                    ⚠️ Esta eliminación es definitiva y persistirá al recargar la página.
+                    ⚠️ Esta eliminación persistirá al recargar la página.
                   </p>
                 </div>
               )}

@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteCustomCategoryFromFirestore } from "@/lib/firebase/firestore";
-import { deleteCategoryFromDisk } from "@/lib/services/categoryDiskService";
+import {
+  deleteCategoryFromDisk,
+  deleteNativeCategoryOnDisk,
+  restoreNativeCategoryOnDisk,
+} from "@/lib/services/categoryDiskService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 
 export const dynamic = "force-dynamic";
+
+const NATIVE_CATEGORY_IDS = [
+  "FIGURE",
+  "VIDEO_GAME",
+  "COLLECTIBLE",
+  "CONSOLE",
+  "HARDWARE",
+  "GAMING_ACCESSORY",
+  "APPAREL",
+  "BOOK",
+  "MERCH",
+  "AUDIO",
+  "BUNDLE",
+];
 
 export async function DELETE(
   request: NextRequest,
@@ -30,6 +48,28 @@ export async function DELETE(
       );
     }
 
+    const upperId = id.toUpperCase();
+    const isNative = NATIVE_CATEGORY_IDS.includes(upperId);
+
+    const isRestore = request.nextUrl.searchParams.get("restore") === "true";
+
+    if (isNative) {
+      if (isRestore) {
+        restoreNativeCategoryOnDisk(upperId);
+        return NextResponse.json({
+          success: true,
+          message: `Categoría predeterminada ${upperId} restaurada exitosamente.`,
+        });
+      }
+
+      deleteNativeCategoryOnDisk(upperId);
+      return NextResponse.json({
+        success: true,
+        message: `Categoría predeterminada ${upperId} eliminada exitosamente.`,
+      });
+    }
+
+    // Custom category deletion
     deleteCategoryFromDisk(id);
     await deleteCustomCategoryFromFirestore(id);
 
@@ -45,3 +85,4 @@ export async function DELETE(
     );
   }
 }
+

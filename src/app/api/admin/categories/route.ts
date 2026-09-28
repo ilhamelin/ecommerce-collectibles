@@ -3,44 +3,48 @@ import {
   getCustomCategoriesFromFirestore,
   saveCustomCategoryToFirestore,
 } from "@/lib/firebase/firestore";
+import {
+  readCategoriesFromDisk,
+  saveCategoryToDisk,
+  writeCategoriesToDisk,
+} from "@/lib/services/categoryDiskService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 import type { CustomCategoryEntity } from "@/lib/types/domain";
 
 export const dynamic = "force-dynamic";
 
-// In-memory cache for fast local responses
-let inMemoryCategories: CustomCategoryEntity[] = [];
-let hasFetchedFromFirestore = false;
-
 export async function GET() {
   try {
+    // 1. Try Firestore first
     const firestoreData = await getCustomCategoriesFromFirestore();
     if (firestoreData && Array.isArray(firestoreData) && firestoreData.length > 0) {
-      inMemoryCategories = firestoreData;
-      hasFetchedFromFirestore = true;
+      writeCategoriesToDisk(firestoreData);
       return NextResponse.json({
         success: true,
         data: {
-          categories: inMemoryCategories,
+          categories: firestoreData,
           source: "FIRESTORE",
         },
       });
     }
 
+    // 2. Fallback to server disk persistence
+    const diskCategories = readCategoriesFromDisk();
     return NextResponse.json({
       success: true,
       data: {
-        categories: inMemoryCategories,
-        source: hasFetchedFromFirestore ? "FIRESTORE_EMPTY" : "IN_MEMORY",
+        categories: diskCategories,
+        source: "DISK_STORAGE",
       },
     });
   } catch (error) {
     console.error("[CATEGORIES_GET_ERROR]", error);
+    const diskCategories = readCategoriesFromDisk();
     return NextResponse.json({
       success: true,
       data: {
-        categories: inMemoryCategories,
-        source: "FALLBACK_MEMORY",
+        categories: diskCategories,
+        source: "FALLBACK_DISK",
       },
     });
   }
@@ -120,15 +124,8 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Update in-memory
-    const existingIndex = inMemoryCategories.findIndex((c) => c.id === newCategory.id || c.slug === newCategory.slug);
-    if (existingIndex >= 0) {
-      inMemoryCategories[existingIndex] = newCategory;
-    } else {
-      inMemoryCategories.push(newCategory);
-    }
-
-    // Persist to Firestore
+    // Persist to disk and Firestore
+    saveCategoryToDisk(newCategory);
     await saveCustomCategoryToFirestore(newCategory);
 
     return NextResponse.json({

@@ -1,8 +1,8 @@
 import { db, isFirebaseConfigured } from "./config";
-import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
 import { COLLECTIONS } from "./collections";
 import type { UserAccount } from "../store/authStore";
-import type { ProductDomainEntity } from "../types/domain";
+import type { ProductDomainEntity, CustomCategoryEntity } from "../types/domain";
 
 /**
  * Helper to log database operation timings for monitoring and diagnostics
@@ -146,3 +146,61 @@ export async function saveProductToFirestoreClient(
     return false;
   }
 }
+
+/**
+ * ============================================================================
+ * CUSTOM PRODUCT CATEGORIES & TECHNICAL TEMPLATES (Direct Client SDK)
+ * ============================================================================
+ */
+
+/**
+ * Retrieve all custom categories directly from Cloud Firestore via Client SDK
+ */
+export async function getCustomCategoriesFromFirestoreClient(): Promise<CustomCategoryEntity[]> {
+  try {
+    if (!db || !isFirebaseConfigured()) return [];
+    const colRef = collection(db, COLLECTIONS.CUSTOM_CATEGORIES);
+    const snap = await getDocs(colRef);
+    if (!snap.empty) {
+      return snap.docs.map((d) => d.data() as CustomCategoryEntity);
+    }
+    return [];
+  } catch (err) {
+    console.warn("[Firebase Client] Error reading custom categories:", err);
+    return [];
+  }
+}
+
+/**
+ * Save custom category directly to Cloud Firestore via Client SDK
+ */
+export async function saveCustomCategoryToFirestoreClient(
+  category: CustomCategoryEntity
+): Promise<boolean> {
+  try {
+    if (!db || !isFirebaseConfigured()) return false;
+    const clean = JSON.parse(JSON.stringify(category));
+    await setDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, category.id), clean, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn("[Firebase Client] Error saving custom category:", err);
+    return false;
+  }
+}
+
+/**
+ * Delete custom category directly from Cloud Firestore via Client SDK
+ */
+export async function deleteCustomCategoryFromFirestoreClient(
+  categoryId: string
+): Promise<boolean> {
+  try {
+    if (!db || !isFirebaseConfigured()) return false;
+    await deleteDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, categoryId));
+    return true;
+  } catch (err) {
+    console.warn("[Firebase Client] Error deleting custom category:", err);
+    return false;
+  }
+}
+

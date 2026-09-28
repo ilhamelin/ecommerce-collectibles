@@ -105,4 +105,42 @@ describe("Custom Product Categories & Technical Form Designer Suite", () => {
       { id: "f-3", name: "Mecánicas", value: "Drafting, Deckbuilding" },
     ]);
   });
+
+  it("persists categories to disk and permanently deletes them without ghost effect", async () => {
+    const {
+      saveCategoryToDisk,
+      readCategoriesFromDisk,
+      deleteCategoryFromDisk,
+    } = await import("@/lib/services/categoryDiskService");
+
+    const testCat: CustomCategoryEntity = {
+      id: "cat-tv-test-1",
+      name: "Televisores Test",
+      slug: "televisores-test",
+      iconName: "Tv",
+      availableSubtypes: ["OLED", "Mini LED"],
+      basicSpecFields: [{ id: "f-1", name: "Resolución", placeholder: "4K" }],
+      advancedSpecFields: [{ id: "f-2", name: "HDR", placeholder: "Dolby Vision" }],
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save
+    saveCategoryToDisk(testCat);
+    let diskList = readCategoriesFromDisk();
+    expect(diskList.some((c) => c.id === "cat-tv-test-1")).toBe(true);
+
+    // Read again to simulate page refresh
+    diskList = readCategoriesFromDisk();
+    const retrieved = diskList.find((c) => c.id === "cat-tv-test-1");
+    expect(retrieved).toBeDefined();
+    expect(retrieved?.name).toBe("Televisores Test");
+
+    // Delete
+    const deleted = deleteCategoryFromDisk("cat-tv-test-1");
+    expect(deleted).toBe(true);
+
+    // Verify it does not reappear (no ghost effect)
+    diskList = readCategoriesFromDisk();
+    expect(diskList.some((c) => c.id === "cat-tv-test-1")).toBe(false);
+  });
 });

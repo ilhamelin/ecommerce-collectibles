@@ -111,6 +111,10 @@ export default function NewProductAdminPage() {
   // Dynamic Custom Categories created by administrator
   const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
   const [selectedCustomCategoryId, setSelectedCustomCategoryId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<CustomCategoryEntity | null>(null);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [deleteSuccessMessage, setDeleteSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     categoryClient.getCategories().then((cats) => {
@@ -139,6 +143,33 @@ export default function NewProductAdminPage() {
   const selectedCustomCategory = customCategories.find(
     (c) => c.id === selectedCustomCategoryId || c.name === customCategoryLabel
   );
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    setIsDeletingCategory(true);
+    try {
+      const ok = await categoryClient.deleteCategory(categoryToDelete.id);
+      if (ok) {
+        setCustomCategories((prev) => prev.filter((c) => c.id !== categoryToDelete.id));
+        if (selectedCustomCategoryId === categoryToDelete.id || customCategoryLabel === categoryToDelete.name) {
+          setType("FIGURE");
+          setSelectedCustomCategoryId(null);
+          setCustomCategoryLabel("");
+        }
+        setDeleteSuccessMessage(`Categoría "${categoryToDelete.name}" eliminada de la base de datos exitosamente.`);
+        setTimeout(() => setDeleteSuccessMessage(null), 4000);
+        setIsDeleteModalOpen(false);
+        setCategoryToDelete(null);
+      } else {
+        alert("Error al eliminar la categoría del servidor.");
+      }
+    } catch (err) {
+      console.error("[handleConfirmDeleteCategory]", err);
+      alert("Error inesperado al eliminar la categoría.");
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
 
   const isCustomOrSpecializedCategory = useMemo(() => {
     return [
@@ -1464,16 +1495,68 @@ export default function NewProductAdminPage() {
                 </span>
               </div>
 
-              {/* Botón que redirecciona a la nueva sección/vista para crear una nueva categoría / formulario */}
-              <Link
-                href="/admin/categories/new"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#FF8C66] hover:from-[#e55d32] hover:to-[#FF6E42] text-[#092634] font-black text-xs transition shadow-sm active:scale-95 cursor-pointer"
-                title="Crear una nueva categoría de producto y diseñar su formulario técnico personalizado"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                <span>+ Nueva Categoría</span>
-              </Link>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Botón para Eliminar Categoría seleccionada o elegir una para eliminar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedCustomCategory) {
+                      setCategoryToDelete(selectedCustomCategory);
+                    } else if (customCategories.length > 0) {
+                      setCategoryToDelete(customCategories[0]);
+                    }
+                    setIsDeleteModalOpen(true);
+                  }}
+                  disabled={customCategories.length === 0}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${
+                    selectedCustomCategory
+                      ? "bg-red-500/20 text-red-300 border border-red-500/50 hover:bg-red-600 hover:text-white active:scale-95 ring-1 ring-red-500/40"
+                      : customCategories.length > 0
+                      ? "bg-[#092634] text-red-400 border border-red-500/40 hover:bg-red-500/20 hover:text-red-300 active:scale-95"
+                      : "bg-[#092634]/40 text-gray-500 border border-gray-700/30 cursor-not-allowed opacity-50"
+                  }`}
+                  title={
+                    selectedCustomCategory
+                      ? `Eliminar la categoría "${selectedCustomCategory.name}" de la base de datos`
+                      : customCategories.length > 0
+                      ? "Eliminar una categoría personalizada de la base de datos"
+                      : "No hay categorías personalizadas creadas para eliminar"
+                  }
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>
+                    {selectedCustomCategory ? `Eliminar "${selectedCustomCategory.name}"` : "Eliminar Categoría"}
+                  </span>
+                </button>
+
+                {/* Botón que redirecciona a la nueva sección/vista para crear una nueva categoría / formulario */}
+                <Link
+                  href="/admin/categories/new"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF6E42] to-[#FF8C66] hover:from-[#e55d32] hover:to-[#FF6E42] text-[#092634] font-black text-xs transition shadow-sm active:scale-95 cursor-pointer"
+                  title="Crear una nueva categoría de producto y diseñar su formulario técnico personalizado"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>+ Nueva Categoría</span>
+                </Link>
+              </div>
             </div>
+
+            {/* Alerta de confirmación de eliminación exitosa */}
+            {deleteSuccessMessage && (
+              <div className="p-3 bg-red-950/40 border border-red-500/50 text-red-200 rounded-xl text-xs flex items-center justify-between animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{deleteSuccessMessage}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeleteSuccessMessage(null)}
+                  className="text-red-400 hover:text-white ml-2 text-xs cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             {/* Grid de categorías a la vista directa sin menús secundarios */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
@@ -3661,6 +3744,104 @@ export default function NewProductAdminPage() {
           }
         }}
       />
+
+      {/* Modal de Confirmación para Eliminar Categoría de la Base de Datos */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-[#092634] border border-[#004E72] rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#004E72]/40">
+              <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+                <Trash2 className="w-5 h-5 text-red-400" />
+                <span>Eliminar Categoría de la Base de Datos</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setCategoryToDelete(null);
+                }}
+                className="text-[#9bb5c2] hover:text-[#F9F9F9] transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-[#9bb5c2] leading-relaxed">
+                Selecciona la categoría que deseas eliminar permanentemente. Esta acción removerá su plantilla técnica de la base de datos y la quitará de la vista de creación y del catálogo.
+              </p>
+
+              {customCategories.length > 1 && (
+                <div>
+                  <label className="text-[11px] font-bold text-[#F9F9F9] uppercase tracking-wider block mb-1.5">
+                    Categoría a eliminar:
+                  </label>
+                  <select
+                    value={categoryToDelete?.id || ""}
+                    onChange={(e) => {
+                      const found = customCategories.find((c) => c.id === e.target.value);
+                      if (found) setCategoryToDelete(found);
+                    }}
+                    className="w-full px-3 py-2 bg-[#051722] border border-[#004E72] rounded-xl text-xs text-[#F9F9F9] focus:outline-none focus:border-red-500 cursor-pointer"
+                  >
+                    {customCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.slug})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {categoryToDelete && (
+                <div className="p-3.5 rounded-xl bg-red-950/20 border border-red-500/30 text-xs text-red-200 space-y-1">
+                  <span className="font-bold text-red-300 block text-sm">
+                    {categoryToDelete.name}
+                  </span>
+                  <span className="text-[11px] text-red-300/80 block">
+                    Subtipos: {categoryToDelete.availableSubtypes?.length || 0} • Atributos técnicos: {(categoryToDelete.basicSpecFields?.length || 0) + (categoryToDelete.advancedSpecFields?.length || 0)}
+                  </span>
+                  <p className="text-[11px] text-red-400 font-semibold pt-1">
+                    ⚠️ Esta eliminación es definitiva y persistirá al recargar la página.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#004E72]/40">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setCategoryToDelete(null);
+                }}
+                disabled={isDeletingCategory}
+                className="px-4 py-2 rounded-xl border border-[#004E72] text-[#9bb5c2] hover:text-[#F9F9F9] text-xs font-semibold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCategory}
+                disabled={isDeletingCategory || !categoryToDelete}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-bold transition shadow-md cursor-pointer"
+              >
+                {isDeletingCategory ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Eliminando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar Definitivamente</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

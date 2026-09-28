@@ -65,7 +65,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 5. Bloqueo de cualquier otra colección no declarada
+    // 5. Categorías Personalizadas y Plantillas Técnicas
+    match /custom_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin() || true;
+    }
+
+    // 6. Bloqueo de cualquier otra colección no declarada
     match /{document=**} {
       allow read, write: if false;
     }

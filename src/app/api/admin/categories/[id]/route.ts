@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  deleteCustomCategoryFromFirestore,
-  getCustomCategoriesFromFirestore,
-} from "@/lib/firebase/firestore";
+import { deleteCustomCategoryFromFirestore } from "@/lib/firebase/firestore";
+import { deleteCategoryFromDisk } from "@/lib/services/categoryDiskService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +30,7 @@ export async function DELETE(
       );
     }
 
+    deleteCategoryFromDisk(id);
     await deleteCustomCategoryFromFirestore(id);
 
     return NextResponse.json({

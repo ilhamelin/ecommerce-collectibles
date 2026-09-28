@@ -30,7 +30,7 @@ import {
   ApiUsageSummary,
   ApiTelemetryRecord,
   USD_TO_CLP_RATE,
-} from "@/lib/services/apiTelemetryService";
+} from "@/lib/types/telemetry";
 
 type TimeframeType = "today" | "7d" | "30d" | "all";
 

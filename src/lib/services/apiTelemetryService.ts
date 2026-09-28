@@ -19,9 +19,6 @@ export { USD_TO_CLP_RATE };
 const DATA_DIR = path.join(process.cwd(), "src", "data");
 const TELEMETRY_DISK_PATH = path.join(DATA_DIR, "api_telemetry.json");
 
-// Reference exchange rate USD to CLP
-export const USD_TO_CLP_RATE = 950;
-
 // Gemini Pricing Reference (USD per 1,000,000 tokens)
 const GEMINI_PRICING: Record<string, { promptPerMillion: number; candidatePerMillion: number }> = {
   "gemini-1.5-flash": { promptPerMillion: 0.075, candidatePerMillion: 0.30 },

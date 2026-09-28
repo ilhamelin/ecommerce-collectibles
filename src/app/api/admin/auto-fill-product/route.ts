@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 import { extractYouTubeEmbedUrl, inferOfficialYouTubeTrailer } from "@/lib/utils/media";
+import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 
 export const dynamic = "force-dynamic";
 
@@ -1574,6 +1575,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           "gemini-1.5-pro",
         ];
         let geminiRes: Response | null = null;
+        const autoFillStartTime = Date.now();
+        let usedGeminiModel = candidates[0];
 
         for (const model of candidates) {
           try {
@@ -1597,6 +1600,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             );
             if (res.ok) {
               geminiRes = res;
+              usedGeminiModel = model;
               break;
             } else {
               lastErrorText = await res.text();
@@ -1610,6 +1614,22 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 
         if (geminiRes && geminiRes.ok) {
           const geminiData = await geminiRes.json();
+          const pCount = geminiData?.usageMetadata?.promptTokenCount;
+          const cCount = geminiData?.usageMetadata?.candidatesTokenCount;
+          const tCount = geminiData?.usageMetadata?.totalTokenCount;
+          void recordApiUsage({
+            provider: "GEMINI",
+            feature: "AUTO_FILL_PRODUCT",
+            endpoint: "/api/admin/auto-fill-product",
+            model: usedGeminiModel,
+            promptTokens: pCount,
+            candidatesTokens: cCount,
+            totalTokens: tCount,
+            latencyMs: Date.now() - autoFillStartTime,
+            statusCode: 200,
+            success: true,
+          }).catch(() => {});
+
           const rawText =
             geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 

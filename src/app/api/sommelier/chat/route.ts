@@ -3,6 +3,7 @@ import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { adminDb } from "@/lib/firebase/admin";
 import { db, isFirebaseConfigured } from "@/lib/firebase/config";
 import { collection, addDoc } from "firebase/firestore";
+import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
 
     let geminiRes: Response | null = null;
     let lastErrorText = "";
+    const chatStartTime = Date.now();
+    let usedModel = candidateModels[0];
 
     for (const model of candidateModels) {
       try {
@@ -150,6 +153,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
 
         if (res.ok) {
           geminiRes = res;
+          usedModel = model;
           break;
         } else {
           lastErrorText = await res.text();
@@ -161,6 +165,17 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
     }
 
     if (!geminiRes) {
+      void recordApiUsage({
+        provider: "GEMINI",
+        feature: "SOMMELIER_CHAT",
+        endpoint: "/api/sommelier/chat",
+        model: usedModel,
+        latencyMs: Date.now() - chatStartTime,
+        statusCode: 502,
+        success: false,
+        errorMessage: lastErrorText,
+      }).catch(() => {});
+
       return NextResponse.json(
         {
           success: false,
@@ -171,6 +186,23 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
     }
 
     const geminiData = await geminiRes.json();
+    const promptTokens = geminiData?.usageMetadata?.promptTokenCount;
+    const candidatesTokens = geminiData?.usageMetadata?.candidatesTokenCount;
+    const totalTokens = geminiData?.usageMetadata?.totalTokenCount;
+
+    void recordApiUsage({
+      provider: "GEMINI",
+      feature: "SOMMELIER_CHAT",
+      endpoint: "/api/sommelier/chat",
+      model: usedModel,
+      promptTokens,
+      candidatesTokens,
+      totalTokens,
+      latencyMs: Date.now() - chatStartTime,
+      statusCode: 200,
+      success: true,
+    }).catch(() => {});
+
     const rawAiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     const cleanedJson = rawAiText

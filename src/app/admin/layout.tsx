@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Megaphone,
   Layers,
+  Cpu,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -52,7 +53,10 @@ export default function AdminLayout({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isMetricsActive = pathname === "/admin" || pathname.startsWith("/admin/predictive-stock");
+  const isMetricsActive =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/predictive-stock") ||
+    pathname.startsWith("/admin/api-usage");
   const isInventoryActive = pathname.startsWith("/admin/products") || pathname.startsWith("/admin/orders");
   const isVisualActive =
     pathname.startsWith("/admin/slider") ||
@@ -172,6 +176,33 @@ export default function AdminLayout({
                         </div>
                         <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
                           Burn rate, runway, demanda reprimida y reorden sugerido
+                        </span>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/admin/api-usage"
+                      onClick={() => setIsMetricsMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${
+                        pathname === "/admin/api-usage"
+                          ? "bg-orange-50 text-[#1F3A5F]"
+                          : "hover:bg-gray-50 text-[#333333]"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-[#1F3A5F]/10 text-[#1F3A5F] shrink-0 mt-0.5">
+                        <Cpu className="w-4 h-4 text-[#FF6B35]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black block leading-tight text-[#1F3A5F]">
+                            Consumo de APIs & Tokens IA
+                          </span>
+                          <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full shrink-0">
+                            Tokens
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">
+                          Telemetría Gemini Flash/Pro, cuotas, pasarelas y costos
                         </span>
                       </div>
                     </Link>

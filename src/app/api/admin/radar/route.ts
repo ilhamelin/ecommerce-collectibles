@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
     ];
     let geminiRes: Response | null = null;
     let lastError = "";
+    const radarStartTime = Date.now();
+    let usedModel = candidateModels[0];
 
     for (const model of candidateModels) {
       try {
@@ -101,6 +104,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
 
         if (res.ok) {
           geminiRes = res;
+          usedModel = model;
           break;
         } else {
           lastError = await res.text();
@@ -112,6 +116,17 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
     }
 
     if (!geminiRes) {
+      void recordApiUsage({
+        provider: "GEMINI",
+        feature: "MARKET_RADAR",
+        endpoint: "/api/admin/radar",
+        model: usedModel,
+        latencyMs: Date.now() - radarStartTime,
+        statusCode: 502,
+        success: false,
+        errorMessage: lastError,
+      }).catch(() => {});
+
       return NextResponse.json({
         success: true,
         data: getFallbackRadarData(),
@@ -121,6 +136,23 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
     }
 
     const geminiData = await geminiRes.json();
+    const promptTokens = geminiData?.usageMetadata?.promptTokenCount;
+    const candidatesTokens = geminiData?.usageMetadata?.candidatesTokenCount;
+    const totalTokens = geminiData?.usageMetadata?.totalTokenCount;
+
+    void recordApiUsage({
+      provider: "GEMINI",
+      feature: "MARKET_RADAR",
+      endpoint: "/api/admin/radar",
+      model: usedModel,
+      promptTokens,
+      candidatesTokens,
+      totalTokens,
+      latencyMs: Date.now() - radarStartTime,
+      statusCode: 200,
+      success: true,
+    }).catch(() => {});
+
     const rawAiText =
       geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 

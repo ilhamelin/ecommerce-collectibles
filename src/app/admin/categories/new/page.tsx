@@ -31,28 +31,14 @@ import {
   HelpCircle,
   Eye,
 } from "lucide-react";
+import {
+  AVAILABLE_SUGGESTED_ICONS,
+  getCategoryIconComponent,
+  generateCategoryIcon,
+  type CategoryIconItem,
+} from "@/lib/constants/categoryIcons";
 import { categoryClient } from "@/lib/services/categoryClient";
 import type { CustomCategoryTemplateField } from "@/lib/types/domain";
-
-// Selectable modern icons for category branding
-const AVAILABLE_ICONS = [
-  { id: "Tv", label: "Pantallas / TV", icon: Tv },
-  { id: "Monitor", label: "Monitores", icon: Monitor },
-  { id: "Cpu", label: "Hardware / PC", icon: Cpu },
-  { id: "Gamepad2", label: "Gaming / Mandos", icon: Gamepad2 },
-  { id: "Headphones", label: "Audio / Headsets", icon: Headphones },
-  { id: "Box", label: "Cajas / Packs", icon: Box },
-  { id: "Shirt", label: "Indumentaria", icon: Shirt },
-  { id: "BookOpen", label: "Libros / Cómics", icon: BookOpen },
-  { id: "Gift", label: "Merch / Regalos", icon: Gift },
-  { id: "Disc3", label: "Discos / OST", icon: Disc3 },
-  { id: "HardDrive", label: "Almacenamiento", icon: HardDrive },
-  { id: "Zap", label: "Energía / Fuentes", icon: Zap },
-  { id: "Shield", label: "Coleccionables", icon: Shield },
-  { id: "Sliders", label: "Accesorios", icon: Sliders },
-  { id: "Sparkles", label: "Especial", icon: Sparkles },
-  { id: "Tag", label: "Etiqueta", icon: Tag },
-];
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -127,6 +113,40 @@ export default function NewCategoryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Generated icon state based on category name reference
+  const [iconVariationIndex, setIconVariationIndex] = useState(0);
+  const [generatedIconItem, setGeneratedIconItem] = useState<CategoryIconItem | null>(null);
+  const [isGeneratingIcon, setIsGeneratingIcon] = useState(false);
+  const [iconGenerationNotice, setIconGenerationNotice] = useState<string | null>(null);
+
+  const handleGenerateIcon = () => {
+    if (!name.trim()) {
+      setIconGenerationNotice("Ingresa primero el Nombre de la Categoría para generar su icono correspondiente.");
+      setTimeout(() => setIconGenerationNotice(null), 3500);
+      return;
+    }
+
+    setIsGeneratingIcon(true);
+    setIconGenerationNotice(null);
+
+    setTimeout(() => {
+      const generated = generateCategoryIcon(name, description, iconVariationIndex);
+      setIconVariationIndex((prev) => prev + 1);
+
+      const newItem: CategoryIconItem = {
+        id: generated.id,
+        label: generated.label,
+        icon: generated.icon,
+      };
+
+      setGeneratedIconItem(newItem);
+      setIconName(generated.id);
+      setIsGeneratingIcon(false);
+      setIconGenerationNotice(`¡Icono generado con éxito a partir de "${name.trim()}"! (${generated.id})`);
+      setTimeout(() => setIconGenerationNotice(null), 4000);
+    }, 200);
+  };
 
   // Auto-generate slug from name if not manually modified
   const handleNameChange = (val: string) => {
@@ -235,7 +255,7 @@ export default function NewCategoryPage() {
     }
   };
 
-  const SelectedIconComponent = AVAILABLE_ICONS.find((i) => i.id === iconName)?.icon || Layers;
+  const SelectedIconComponent = getCategoryIconComponent(iconName);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -335,16 +355,68 @@ export default function NewCategoryPage() {
               </div>
             </div>
 
-            {/* Icon Selector */}
-            <div className="space-y-2 pt-2">
-              <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#FF6E42]" />
-                Icono Distintivo en el Panel de Productos
-              </label>
+            {/* Icon Selector with Generar Icono Button */}
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                <div>
+                  <label className="text-xs font-bold text-[#F9F9F9] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF6E42]" />
+                    <span>Icono Distintivo en el Panel de Productos</span>
+                  </label>
+                  <p className="text-[11px] text-[#9bb5c2] mt-0.5">
+                    Selecciona un icono sugerido o genera uno personalizado automáticamente según el Nombre de la Categoría.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateIcon}
+                  disabled={isGeneratingIcon}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#FF6E42]/15 hover:bg-[#FF6E42]/25 text-[#FF6E42] border border-[#FF6E42]/40 transition hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer shadow-sm group shrink-0"
+                  title="Generar un icono distintivo con el mismo diseño basado en el Nombre de la Categoría"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isGeneratingIcon ? "animate-spin text-[#FF6E42]" : "text-[#FF6E42] group-hover:rotate-12 transition-transform"}`} />
+                  <span>{isGeneratingIcon ? "Generando Icono..." : "Generar Icono"}</span>
+                </button>
+              </div>
+
+              {iconGenerationNotice && (
+                <div className="text-[11px] font-medium text-[#FF6E42] bg-[#FF6E42]/10 border border-[#FF6E42]/30 px-3 py-1.5 rounded-lg flex items-center gap-2 animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>{iconGenerationNotice}</span>
+                </div>
+              )}
+
+              {/* Grid de Iconos: Diseñados con el mismo estilo de tarjetas y etiquetas */}
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                {AVAILABLE_ICONS.map((item) => {
+                {/* Icono Generado dinámicamente con referencia al Nombre de la Categoría */}
+                {generatedIconItem && (
+                  <button
+                    type="button"
+                    onClick={() => setIconName(generatedIconItem.id)}
+                    className={`relative p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition cursor-pointer text-center ${
+                      iconName === generatedIconItem.id
+                        ? "bg-[#004E72] border-[#FF6E42] text-white ring-2 ring-[#FF6E42]/60 shadow-md"
+                        : "bg-[#004E72]/15 border-[#FF6E42]/40 text-[#9bb5c2] hover:bg-[#004E72]/30 hover:text-white"
+                    }`}
+                    title={`Icono generado: ${generatedIconItem.label}`}
+                  >
+                    <span className="absolute -top-1.5 -right-1 px-1 rounded text-[7px] font-black uppercase tracking-wider bg-[#FF6E42] text-white shadow-sm">
+                      IA
+                    </span>
+                    {React.createElement(generatedIconItem.icon, {
+                      className: `w-4 h-4 ${iconName === generatedIconItem.id ? "text-[#FF6E42]" : "text-[#FF6E42]/80"}`,
+                    })}
+                    <span className="text-[10px] truncate max-w-full font-bold text-[#FF6E42]">
+                      {generatedIconItem.label}
+                    </span>
+                  </button>
+                )}
+
+                {/* Iconos Sugeridos con el mismo diseño */}
+                {AVAILABLE_SUGGESTED_ICONS.map((item) => {
                   const Icon = item.icon;
-                  const isSelected = iconName === item.id;
+                  const isSelected = iconName === item.id && (!generatedIconItem || generatedIconItem.id !== item.id);
                   return (
                     <button
                       key={item.id}

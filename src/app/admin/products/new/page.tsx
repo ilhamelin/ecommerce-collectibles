@@ -82,27 +82,8 @@ const ALL_PRODUCT_CATEGORIES = [
   { id: "BUNDLE", label: "Bundle Lote", icon: Layers, defaultLabel: "" },
 ] as const;
 
-const getCategoryIconComponent = (iconName?: string) => {
-  switch (iconName) {
-    case "Tv": return Tv;
-    case "Monitor": return Monitor;
-    case "Cpu": return Cpu;
-    case "Gamepad2": return Gamepad2;
-    case "Headphones": return Headphones;
-    case "Box": return Box;
-    case "Shirt": return Shirt;
-    case "BookOpen": return BookOpen;
-    case "Gift": return Gift;
-    case "Disc3": return Disc;
-    case "HardDrive": return HardDrive;
-    case "Zap": return Zap;
-    case "Shield": return ShieldAlert;
-    case "Sliders": return Sliders;
-    case "Sparkles": return Sparkles;
-    case "Tag": return Tag;
-    default: return Tag;
-  }
-};
+import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
+
 
 const CUSTOM_CATEGORY_PRESETS = [
   "Consolas",

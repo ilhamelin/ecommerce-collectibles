@@ -29,10 +29,12 @@ async function logChatInquiry(userQuery: string, recommendedSkus: string[], repl
 
 export async function POST(req: NextRequest) {
   try {
-    const geminiApiKey =
+    const geminiApiKey = (
       process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      "";
+      ""
+    ).trim();
 
     if (!geminiApiKey || geminiApiKey.includes("YOUR_") || geminiApiKey.length < 15) {
       return NextResponse.json(
@@ -115,9 +117,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
 
     // Cascade of modern, active models (Google AI Studio omnicollector-ai)
     const candidateModels = [
+      "gemini-2.0-flash",
       "gemini-1.5-flash",
       "gemini-1.5-flash-8b",
-      "gemini-2.0-flash",
       "gemini-1.5-pro",
     ];
 
@@ -129,7 +131,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
     for (const model of candidateModels) {
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
             headers: {
@@ -164,7 +166,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
     }
 
     if (!geminiRes) {
-      void recordApiUsage({
+      await recordApiUsage({
         provider: "GEMINI",
         feature: "SOMMELIER_CHAT",
         endpoint: "/api/sommelier/chat",
@@ -189,7 +191,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
     const candidatesTokens = geminiData?.usageMetadata?.candidatesTokenCount;
     const totalTokens = geminiData?.usageMetadata?.totalTokenCount;
 
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "GEMINI",
       feature: "SOMMELIER_CHAT",
       endpoint: "/api/sommelier/chat",

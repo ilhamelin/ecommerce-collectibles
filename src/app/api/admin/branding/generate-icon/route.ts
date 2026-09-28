@@ -145,10 +145,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const geminiApiKey =
+    const geminiApiKey = (
       process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      "";
+      ""
+    ).trim();
 
     // Si no hay API key de Gemini configurada, usar el preset solicitado o el mando gamer
     if (!geminiApiKey || geminiApiKey.includes("YOUR_") || geminiApiKey.length < 15) {
@@ -182,9 +184,9 @@ REGLAS DE DISEÑO:
 Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">...</svg>.`;
 
     const candidateModels = [
+      "gemini-2.0-flash",
       "gemini-1.5-flash",
       "gemini-1.5-flash-8b",
-      "gemini-2.0-flash",
       "gemini-1.5-pro",
     ];
 
@@ -196,7 +198,7 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
     for (const model of candidateModels) {
       try {
         const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
             headers: {
@@ -228,7 +230,7 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
           const candidatesTokens = json?.usageMetadata?.candidatesTokenCount;
           const totalTokens = json?.usageMetadata?.totalTokenCount;
 
-          void recordApiUsage({
+          await recordApiUsage({
             provider: "GEMINI",
             feature: "BRANDING_ICON",
             endpoint: "/api/admin/branding/generate-icon",
@@ -256,7 +258,7 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
     }
 
     if (!generatedSvg) {
-      void recordApiUsage({
+      await recordApiUsage({
         provider: "GEMINI",
         feature: "BRANDING_ICON",
         endpoint: "/api/admin/branding/generate-icon",

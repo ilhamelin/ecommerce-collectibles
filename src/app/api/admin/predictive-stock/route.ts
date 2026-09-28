@@ -281,10 +281,12 @@ export async function GET() {
 // POST: Calls Gemini AI to generate strategic diagnostic insights
 export async function POST() {
   try {
-    const geminiApiKey =
+    const geminiApiKey = (
       process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      "";
+      ""
+    ).trim();
 
     if (!geminiApiKey || geminiApiKey.includes("YOUR_") || geminiApiKey.length < 15) {
       return NextResponse.json(
@@ -357,22 +359,22 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
 }`;
 
     const candidateModels = [
+      "gemini-2.0-flash",
       "gemini-1.5-flash",
       "gemini-1.5-flash-8b",
-      "gemini-2.0-flash",
       "gemini-1.5-pro",
     ];
 
     const callStartTime = Date.now();
     let geminiRes: Response | null = null;
     let lastErrorText = "";
-    let usedModel = "gemini-1.5-flash";
+    let usedModel = candidateModels[0];
 
     for (const model of candidateModels) {
       try {
         usedModel = model;
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
             headers: {
@@ -404,7 +406,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
     const latencyMs = Date.now() - callStartTime;
 
     if (!geminiRes) {
-      void recordApiUsage({
+      await recordApiUsage({
         provider: "GEMINI",
         feature: "PREDICTIVE_STOCK",
         endpoint: "/api/admin/predictive-stock",
@@ -426,7 +428,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
     const candidatesTokens = data?.usageMetadata?.candidatesTokenCount;
     const totalTokens = data?.usageMetadata?.totalTokenCount;
 
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "GEMINI",
       feature: "PREDICTIVE_STOCK",
       endpoint: "/api/admin/predictive-stock",

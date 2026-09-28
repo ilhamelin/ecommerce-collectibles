@@ -6,10 +6,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const geminiApiKey =
+    const geminiApiKey = (
       process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
-      "";
+      ""
+    ).trim();
 
     // 1. Fetch current catalog to provide real context to the AI
     const firestoreProducts = await getProductsFromFirestore(false);
@@ -71,9 +73,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
 }`;
 
     const candidateModels = [
+      "gemini-2.0-flash",
       "gemini-1.5-flash",
       "gemini-1.5-flash-8b",
-      "gemini-2.0-flash",
       "gemini-1.5-pro",
     ];
     let geminiRes: Response | null = null;
@@ -84,7 +86,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
     for (const model of candidateModels) {
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
             headers: {
@@ -96,6 +98,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
               generationConfig: {
                 temperature: 0.3,
                 maxOutputTokens: 1400,
+                responseMimeType: "application/json",
               },
             }),
           }
@@ -115,7 +118,8 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
     }
 
     if (!geminiRes) {
-      void recordApiUsage({
+      console.warn(`[Radar API] All candidate models failed, last error:`, lastError);
+      await recordApiUsage({
         provider: "GEMINI",
         feature: "MARKET_RADAR",
         endpoint: "/api/admin/radar",
@@ -139,7 +143,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
     const candidatesTokens = geminiData?.usageMetadata?.candidatesTokenCount;
     const totalTokens = geminiData?.usageMetadata?.totalTokenCount;
 
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "GEMINI",
       feature: "MARKET_RADAR",
       endpoint: "/api/admin/radar",

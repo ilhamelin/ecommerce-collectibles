@@ -188,7 +188,7 @@ export default function ApiUsagePage() {
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-[#666666] mt-1 max-w-2xl">
-            Supervisión continua de consumo de tokens Google Gemini Flash/Pro, límites de cuota diaria, pasarelas de pago (Mercado Pago, Flow) y costos estimados en tiempo real.
+            Supervisión continua de consumo de tokens Google Gemini Flash/Pro, cuotas de Google AI Studio, latencia de red y telemetría de peticiones en tiempo real.
           </p>
         </div>
 
@@ -314,9 +314,9 @@ export default function ApiUsagePage() {
           {/* Gauge 1: TPM Tokens */}
           <div className="bg-[#0F1E33]/70 rounded-xl p-4 border border-white/15">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-bold text-white/90">Tokens (TPM / 250K Máx)</span>
+              <span className="font-bold text-white/90">Tokens (TPM / 1M Máx)</span>
               <span className="font-mono text-orange-300 font-bold">
-                {summary?.quota.dailyTokensUsed.toLocaleString() || "0"} / 250,000
+                {summary?.quota.dailyTokensUsed.toLocaleString() || "0"} / 1,000,000
               </span>
             </div>
             <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
@@ -331,23 +331,23 @@ export default function ApiUsagePage() {
             </div>
           </div>
 
-          {/* Gauge 2: Monthly Cost Budget */}
+          {/* Gauge 2: Cuota Diaria RPD (Requests Per Day) */}
           <div className="bg-[#0F1E33]/70 rounded-xl p-4 border border-white/15">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-bold text-white/90">Gasto Acumulado vs Presupuesto</span>
+              <span className="font-bold text-white/90">Cuota Diaria (RPD / 1,500 Máx)</span>
               <span className="font-mono text-emerald-300 font-bold">
-                ${summary?.quota.monthlyCostUsedUsd.toFixed(4) || "0.0000"} / ${summary?.quota.monthlyCostBudgetUsd.toFixed(2)} USD
+                {summary?.quota.currentRpd || 0} / {summary?.quota.rpdLimit || 1500} req/día
               </span>
             </div>
             <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
               <div
                 className="bg-emerald-400 bg-gradient-to-r from-emerald-400 to-teal-300 h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(1, Math.min(100, summary?.quota.monthlyCostUsagePct || 0))}%` }}
+                style={{ width: `${Math.max(1, Math.min(100, (((summary?.quota.currentRpd || 0) / (summary?.quota.rpdLimit || 1500)) * 100)))}%` }}
               ></div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-white/70 mt-1.5">
-              <span>{summary?.quota.monthlyCostUsagePct || 0}% del margen seguro ($25 USD)</span>
-              <span>~${Math.round((summary?.quota.monthlyCostUsedUsd || 0) * USD_TO_CLP_RATE)} CLP</span>
+              <span>{Math.round((((summary?.quota.currentRpd || 0) / (summary?.quota.rpdLimit || 1500)) * 100))}% consumido hoy</span>
+              <span className="text-emerald-300 font-semibold">Nivel gratuito Google AI</span>
             </div>
           </div>
 
@@ -356,21 +356,21 @@ export default function ApiUsagePage() {
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-bold text-white/90">Velocidad Actual (RPM)</span>
               <span className="font-mono text-white font-bold">
-                {summary?.quota.currentRpm || 0} / {summary?.quota.rpmLimit || 5} req/min
+                {summary?.quota.currentRpm || 0} / {summary?.quota.rpmLimit || 15} req/min
               </span>
             </div>
             <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  (summary?.quota.currentRpm || 0) >= (summary?.quota.rpmLimit || 5) ? "bg-amber-400" : "bg-emerald-400"
+                  (summary?.quota.currentRpm || 0) >= (summary?.quota.rpmLimit || 15) ? "bg-amber-400" : "bg-emerald-400"
                 }`}
                 style={{
-                  width: `${Math.min(100, (((summary?.quota.currentRpm || 0) / (summary?.quota.rpmLimit || 5)) * 100))}%`,
+                  width: `${Math.min(100, (((summary?.quota.currentRpm || 0) / (summary?.quota.rpmLimit || 15)) * 100))}%`,
                 }}
               ></div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-white/70 mt-1.5">
-              <span>RPD Hoy: {summary?.quota.currentRpd || 8} / {summary?.quota.rpdLimit || 20}</span>
+              <span>RPD Hoy: {summary?.quota.currentRpd || 0} / {summary?.quota.rpdLimit || 1500}</span>
               <span className="text-emerald-300 font-semibold flex items-center gap-1">
                 <Check className="w-3 h-3" /> Sin saturación
               </span>
@@ -379,9 +379,9 @@ export default function ApiUsagePage() {
         </div>
       </div>
 
-      {/* 4 Main KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Total Tokens */}
+      {/* Main KPI Cards (Synchronized with live production telemetry) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* KPI 1: Total Tokens Gemini */}
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-xs hover:border-[#1F3A5F]/30 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
@@ -403,63 +403,38 @@ export default function ApiUsagePage() {
           </div>
           <div className="mt-3 pt-3 border-t border-[#F0F0F0] text-[10px] text-[#64748B] flex items-center justify-between">
             <span>En {summary?.gemini.totalCalls || 0} consultas con IA</span>
-            <span className="font-semibold text-emerald-600">Flash 1.5</span>
+            <span className="font-semibold text-emerald-600">Flash 2.0 / 1.5</span>
           </div>
         </div>
 
-        {/* KPI 2: Estimated Cost USD & CLP */}
+        {/* KPI 2: Average Latency */}
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-xs hover:border-[#1F3A5F]/30 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
-              Costo Acumulado IA
-            </span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-[#1F3A5F] tracking-tight">
-              ${summary ? summary.gemini.estimatedCostUsd.toFixed(4) : "0.0000"}{" "}
-              <span className="text-xs font-bold text-[#64748B]">USD</span>
-            </div>
-            <div className="mt-1 text-xs font-bold text-emerald-600">
-              ≈ ${summary ? summary.gemini.estimatedCostClp.toLocaleString() : 0} CLP
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-[#F0F0F0] text-[10px] text-[#64748B] flex items-center justify-between">
-            <span>Tasa referencial: ${USD_TO_CLP_RATE} CLP/USD</span>
-            <span className="font-bold text-orange-600">Bajo Costo</span>
-          </div>
-        </div>
-
-        {/* KPI 3: Payment Gateways */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-xs hover:border-[#1F3A5F]/30 transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
-              Pasarelas de Pago
+              Latencia Media de Respuesta
             </span>
             <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-              <CreditCard className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-black text-[#1F3A5F] tracking-tight">
-              {(summary?.mercadopago.totalCalls || 0) + (summary?.flow.totalCalls || 0)}{" "}
-              <span className="text-xs font-bold text-[#64748B]">reqs</span>
+              {summary?.avgLatencyMs || 0}{" "}
+              <span className="text-xs font-bold text-[#64748B]">ms</span>
             </div>
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-[#666666]">
-              <span>MP: {summary?.mercadopago.totalCalls || 0}</span>
-              <span>•</span>
-              <span>Flow: {summary?.flow.totalCalls || 0}</span>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#666666]">
+              <span>Tiempo de respuesta promedio verificado en vivo</span>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-[#F0F0F0] text-[10px] text-[#64748B] flex items-center justify-between">
-            <span>Latencia prom: {Math.round(((summary?.mercadopago.avgLatencyMs || 0) + (summary?.flow.avgLatencyMs || 0)) / 2 || 350)}ms</span>
-            <span className="font-bold text-emerald-600">100% Ok</span>
+            <span>Conectividad directa</span>
+            <span className={`font-semibold ${summary && summary.avgLatencyMs < 1200 ? "text-emerald-600" : "text-amber-600"}`}>
+              {summary && summary.avgLatencyMs < 1200 ? "Excelente respuesta" : "Latencia estable"}
+            </span>
           </div>
         </div>
 
-        {/* KPI 4: Global Success Rate & Latency */}
+        {/* KPI 3: Global Success Rate & Uptime */}
         <div className="bg-white p-5 rounded-2xl border border-[#E5E5E5] shadow-xs hover:border-[#1F3A5F]/30 transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
@@ -476,13 +451,14 @@ export default function ApiUsagePage() {
                 : "100%"}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#666666]">
-              <Clock className="w-3.5 h-3.5 text-[#64748B]" />
-              <span>Latencia media: {summary?.avgLatencyMs || 0} ms</span>
+              <span>{summary?.successfulCalls || 0} exitosas • {summary?.failedCalls || 0} fallos</span>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-[#F0F0F0] text-[10px] text-[#64748B] flex items-center justify-between">
             <span>{summary?.failedCalls || 0} fallos registrados</span>
-            <span className="font-semibold text-emerald-600">Operativo</span>
+            <span className="font-semibold text-emerald-600">
+              {summary && summary.failedCalls === 0 ? "100% Operativo" : "Telemetría activa"}
+            </span>
           </div>
         </div>
       </div>

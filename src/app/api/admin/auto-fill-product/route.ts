@@ -1618,7 +1618,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           const pCount = geminiData?.usageMetadata?.promptTokenCount;
           const cCount = geminiData?.usageMetadata?.candidatesTokenCount;
           const tCount = geminiData?.usageMetadata?.totalTokenCount;
-          void recordApiUsage({
+          await recordApiUsage({
             provider: "GEMINI",
             feature: "AUTO_FILL_PRODUCT",
             endpoint: "/api/admin/auto-fill-product",
@@ -1810,7 +1810,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           }
         } else {
           // Gemini model returned error or no response
-          void recordApiUsage({
+          await recordApiUsage({
             provider: "GEMINI",
             feature: "AUTO_FILL_PRODUCT",
             endpoint: "/api/admin/auto-fill-product",
@@ -1823,7 +1823,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
         }
       } catch (geminiErr: any) {
         console.warn("[Auto-Fill API] Gemini API call failed, using fallback engine:", geminiErr);
-        void recordApiUsage({
+        await recordApiUsage({
           provider: "GEMINI",
           feature: "AUTO_FILL_PRODUCT",
           endpoint: "/api/admin/auto-fill-product",
@@ -1836,7 +1836,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       }
     } else {
       // Missing API key in environment
-      void recordApiUsage({
+      await recordApiUsage({
         provider: "GEMINI",
         feature: "AUTO_FILL_PRODUCT",
         endpoint: "/api/admin/auto-fill-product",

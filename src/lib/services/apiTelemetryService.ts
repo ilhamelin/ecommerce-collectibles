@@ -122,7 +122,7 @@ export function readTelemetryFromDisk(): ApiTelemetryRecord[] {
 /**
  * Writes telemetry records to memory, disk and Cloud Firestore.
  */
-export function writeTelemetryToDisk(records: ApiTelemetryRecord[]): void {
+export async function writeTelemetryToDisk(records: ApiTelemetryRecord[]): Promise<void> {
   const trimmed = records.slice(0, 1000);
   globalThis.__apiTelemetryGlobalStore = trimmed;
 
@@ -137,21 +137,22 @@ export function writeTelemetryToDisk(records: ApiTelemetryRecord[]): void {
     fs.writeFileSync(TELEMETRY_TMP_PATH, JSON.stringify(trimmed, null, 2), "utf-8");
   } catch {}
 
-  // 3. Persist asynchronously in Cloud Firestore across all Vercel instances
+  // 3. Persist synchronously in Cloud Firestore across all Vercel instances
   if (adminDb) {
-    adminDb
-      .collection(COLLECTIONS.KPI_SNAPSHOTS)
-      .doc("api_telemetry_store")
-      .set(
-        {
-          records: trimmed,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      )
-      .catch((err) => {
-        console.warn("[ApiTelemetryService] Firestore async save warning:", err);
-      });
+    try {
+      await adminDb
+        .collection(COLLECTIONS.KPI_SNAPSHOTS)
+        .doc("api_telemetry_store")
+        .set(
+          {
+            records: trimmed,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+    } catch (err) {
+      console.warn("[ApiTelemetryService] Firestore save warning:", err);
+    }
   }
 }
 
@@ -208,7 +209,7 @@ export async function recordApiUsage(
 
     // Prepend to show latest first
     const updated = [newRecord, ...records];
-    writeTelemetryToDisk(updated);
+    await writeTelemetryToDisk(updated);
 
     return newRecord;
   } catch (err) {
@@ -406,17 +407,17 @@ export async function getTelemetrySummary(
       avgLatencyMs: aftershipCalls > 0 ? Math.round(aftershipLatency / aftershipCalls) : 0,
     },
     quota: {
-      dailyTokenLimit: 250_000,
+      dailyTokenLimit: 1_000_000,
       dailyTokensUsed,
-      dailyTokenUsagePct: Math.min(100, Math.round((dailyTokensUsed / 250_000) * 100)),
+      dailyTokenUsagePct: Math.min(100, Math.round((dailyTokensUsed / 1_000_000) * 100)),
       monthlyCostBudgetUsd: monthlyBudgetUsd,
       monthlyCostUsedUsd,
       monthlyCostUsagePct,
-      rpmLimit: 5,
+      rpmLimit: 15,
       currentRpm,
-      tpmLimit: 250_000,
+      tpmLimit: 1_000_000,
       currentTpm,
-      rpdLimit: 20,
+      rpdLimit: 1500,
       currentRpd,
       projectName: "omnicollector-ai",
       tierName: "Nivel gratuito",

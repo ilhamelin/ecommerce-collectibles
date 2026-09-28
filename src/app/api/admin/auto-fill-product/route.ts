@@ -1351,6 +1351,8 @@ export async function POST(req: NextRequest) {
 
     const geminiApiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)?.trim();
     let lastErrorText = "";
+    let usedGeminiModel = "gemini-1.5-flash";
+    const autoFillStartTime = Date.now();
 
     if (geminiApiKey) {
       try {
@@ -1575,8 +1577,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           "gemini-1.5-pro",
         ];
         let geminiRes: Response | null = null;
-        const autoFillStartTime = Date.now();
-        let usedGeminiModel = candidates[0];
+        usedGeminiModel = candidates[0];
 
         for (const model of candidates) {
           try {

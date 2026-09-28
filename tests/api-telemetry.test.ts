@@ -116,7 +116,8 @@ describe("API Telemetry & AI Token Usage Suite", () => {
 
       // Check features breakdown
       expect(summary.gemini.byFeature).toBeDefined();
-      expect(summary.quota.dailyTokenLimit).toBe(1_000_000);
+      expect(summary.quota.dailyTokenLimit).toBe(250_000);
+      expect(summary.quota.projectName).toBe("omnicollector-ai");
       expect(summary.quota.monthlyCostBudgetUsd).toBe(25.0);
     });
 

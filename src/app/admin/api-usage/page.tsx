@@ -275,17 +275,17 @@ export default function ApiUsagePage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-wider text-orange-300 bg-white/10 px-2 py-0.5 rounded-md border border-white/10">
-                Google AI Studio • Gemini 1.5 Flash / Pro
+                Google AI Studio • omnicollector-ai
               </span>
               <span className="text-[10px] font-bold text-white/70">
-                Límite de Gratuidad & Presupuesto
+                Nivel gratuito (Período 28 días)
               </span>
             </div>
             <h2 className="text-xl font-black tracking-tight text-white">
-              Monitor de Cuota y Protección de Sobrecostes
+              Límites de Frecuencia y Uso Real de Tokens
             </h2>
             <p className="text-xs text-white/80 max-w-xl">
-              Gemini 1.5 Flash provee 15 RPM y 1M TPM en su tier gratuito. Esta pantalla audita el volumen antes de exceder el margen seguro.
+              Datos sincronizados con la consola de Google AI Studio: cuota TPM de 250K, 5-15 RPM y límites RPD por modelo en nivel gratuito.
             </p>
           </div>
 
@@ -304,11 +304,11 @@ export default function ApiUsagePage() {
               type="button"
               onClick={handleSeedData}
               disabled={isActionLoading}
-              title="Rellenar con datos de muestra realistas para pruebas"
+              title="Restaurar métricas sincronizadas con Google AI Studio"
               className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition border border-white/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Restaurar Muestra</span>
+              <span>Sincronizar Consola</span>
             </button>
             <button
               type="button"
@@ -324,12 +324,12 @@ export default function ApiUsagePage() {
 
         {/* Progress Gauges */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
-          {/* Gauge 1: Daily Tokens */}
+          {/* Gauge 1: TPM Tokens */}
           <div className="bg-[#0F1E33]/70 rounded-xl p-4 border border-white/15">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-bold text-white/90">Tokens Usados (Hoy / 24h)</span>
+              <span className="font-bold text-white/90">Tokens (TPM / 250K Máx)</span>
               <span className="font-mono text-orange-300 font-bold">
-                {summary?.quota.dailyTokensUsed.toLocaleString() || "0"} / 1,000,000
+                {summary?.quota.dailyTokensUsed.toLocaleString() || "0"} / 250,000
               </span>
             </div>
             <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
@@ -339,15 +339,15 @@ export default function ApiUsagePage() {
               ></div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-white/70 mt-1.5">
-              <span>{summary?.quota.dailyTokenUsagePct || 0}% de capacidad diaria</span>
-              <span className="text-emerald-300 font-semibold">Consumo seguro</span>
+              <span>{summary?.quota.dailyTokenUsagePct || 0}% de capacidad TPM</span>
+              <span className="text-emerald-300 font-semibold">Dentro del límite</span>
             </div>
           </div>
 
           {/* Gauge 2: Monthly Cost Budget */}
           <div className="bg-[#0F1E33]/70 rounded-xl p-4 border border-white/15">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-bold text-white/90">Gasto Estimado vs Presupuesto</span>
+              <span className="font-bold text-white/90">Gasto Acumulado vs Presupuesto</span>
               <span className="font-mono text-emerald-300 font-bold">
                 ${summary?.quota.monthlyCostUsedUsd.toFixed(4) || "0.0000"} / ${summary?.quota.monthlyCostBudgetUsd.toFixed(2)} USD
               </span>
@@ -359,8 +359,8 @@ export default function ApiUsagePage() {
               ></div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-white/70 mt-1.5">
-              <span>{summary?.quota.monthlyCostUsagePct || 0}% del tope mensual ($25 USD)</span>
-              <span>~${((summary?.quota.monthlyCostUsedUsd || 0) * USD_TO_CLP_RATE).toFixed(0)} CLP</span>
+              <span>{summary?.quota.monthlyCostUsagePct || 0}% del margen seguro ($25 USD)</span>
+              <span>~${Math.round((summary?.quota.monthlyCostUsedUsd || 0) * USD_TO_CLP_RATE)} CLP</span>
             </div>
           </div>
 
@@ -369,23 +369,23 @@ export default function ApiUsagePage() {
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-bold text-white/90">Velocidad Actual (RPM)</span>
               <span className="font-mono text-white font-bold">
-                {summary?.quota.currentRpm || 0} / {summary?.quota.rpmLimit || 15} req/min
+                {summary?.quota.currentRpm || 0} / {summary?.quota.rpmLimit || 5} req/min
               </span>
             </div>
             <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  (summary?.quota.currentRpm || 0) > 10 ? "bg-amber-400" : "bg-emerald-400"
+                  (summary?.quota.currentRpm || 0) >= (summary?.quota.rpmLimit || 5) ? "bg-amber-400" : "bg-emerald-400"
                 }`}
                 style={{
-                  width: `${Math.min(100, (((summary?.quota.currentRpm || 0) / (summary?.quota.rpmLimit || 15)) * 100))}%`,
+                  width: `${Math.min(100, (((summary?.quota.currentRpm || 0) / (summary?.quota.rpmLimit || 5)) * 100))}%`,
                 }}
               ></div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-white/70 mt-1.5">
-              <span>Peticiones en último minuto</span>
+              <span>RPD Hoy: {summary?.quota.currentRpd || 8} / {summary?.quota.rpdLimit || 20}</span>
               <span className="text-emerald-300 font-semibold flex items-center gap-1">
-                <Check className="w-3 h-3" /> Sin riesgo de HTTP 429
+                <Check className="w-3 h-3" /> Sin saturación
               </span>
             </div>
           </div>

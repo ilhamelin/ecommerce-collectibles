@@ -113,13 +113,12 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
       parts: [{ text: m.content }],
     }));
 
-    // Cascade of modern, active models
+    // Cascade of modern, active models (Google AI Studio omnicollector-ai)
     const candidateModels = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3.6-flash",
-      "gemini-flash-latest",
-      "gemini-3-flash-preview",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-2.0-flash",
+      "gemini-1.5-pro",
     ];
 
     let geminiRes: Response | null = null;

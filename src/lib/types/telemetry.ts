@@ -73,6 +73,12 @@ export interface ApiUsageSummary {
     monthlyCostUsagePct: number;
     rpmLimit: number;
     currentRpm: number;
+    tpmLimit: number;
+    currentTpm: number;
+    rpdLimit: number;
+    currentRpd: number;
+    projectName: string;
+    tierName: string;
   };
   recentLogs: ApiTelemetryRecord[];
 }

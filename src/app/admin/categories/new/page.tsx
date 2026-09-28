@@ -30,6 +30,8 @@ import {
   Save,
   HelpCircle,
   Eye,
+  GripVertical,
+  Wand2,
 } from "lucide-react";
 import {
   AVAILABLE_SUGGESTED_ICONS,
@@ -37,6 +39,7 @@ import {
   generateCategoryIcon,
   type CategoryIconItem,
 } from "@/lib/constants/categoryIcons";
+import { suggestCategorySpecifications } from "@/lib/constants/categorySpecificationSuggestions";
 import { categoryClient } from "@/lib/services/categoryClient";
 import type { CustomCategoryTemplateField } from "@/lib/types/domain";
 
@@ -146,6 +149,107 @@ export default function NewCategoryPage() {
       setIconGenerationNotice(`¡Icono generado con éxito a partir de "${name.trim()}"! (${generated.id})`);
       setTimeout(() => setIconGenerationNotice(null), 4000);
     }, 200);
+  };
+
+  // AI Specification Suggestion State & Handler
+  const [isSuggestingSpecs, setIsSuggestingSpecs] = useState(false);
+  const [specsSuggestionNotice, setSpecsSuggestionNotice] = useState<string | null>(null);
+
+  const handleSuggestSpecsWithAI = () => {
+    if (!name.trim()) {
+      setSpecsSuggestionNotice("Ingresa primero el Nombre de la Categoría para sugerir especificaciones con IA.");
+      setTimeout(() => setSpecsSuggestionNotice(null), 3500);
+      return;
+    }
+
+    setIsSuggestingSpecs(true);
+    setSpecsSuggestionNotice(null);
+
+    setTimeout(() => {
+      const suggestion = suggestCategorySpecifications(name, description);
+      setBasicFields(suggestion.basicFields);
+      setAdvancedFields(suggestion.advancedFields);
+      if (suggestion.subtypes.length > 0) {
+        setSubtypes(suggestion.subtypes);
+      }
+      setIsSuggestingSpecs(false);
+      setSpecsSuggestionNotice(`¡Especificaciones y subtipos sugeridos con IA para "${name.trim()}"!`);
+      setTimeout(() => setSpecsSuggestionNotice(null), 4500);
+    }, 250);
+  };
+
+  // Drag and drop reordering states for Basic Fields
+  const [draggedBasicIdx, setDraggedBasicIdx] = useState<number | null>(null);
+  const [dragOverBasicIdx, setDragOverBasicIdx] = useState<number | null>(null);
+
+  const handleDragStartBasic = (idx: number, e: React.DragEvent) => {
+    setDraggedBasicIdx(idx);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOverBasic = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverBasicIdx !== idx) {
+      setDragOverBasicIdx(idx);
+    }
+  };
+
+  const handleDropBasic = (toIdx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedBasicIdx === null || draggedBasicIdx === toIdx) {
+      setDraggedBasicIdx(null);
+      setDragOverBasicIdx(null);
+      return;
+    }
+    const updated = [...basicFields];
+    const [moved] = updated.splice(draggedBasicIdx, 1);
+    updated.splice(toIdx, 0, moved);
+    setBasicFields(updated);
+    setDraggedBasicIdx(null);
+    setDragOverBasicIdx(null);
+  };
+
+  const handleDragEndBasic = () => {
+    setDraggedBasicIdx(null);
+    setDragOverBasicIdx(null);
+  };
+
+  // Drag and drop reordering states for Advanced Fields
+  const [draggedAdvancedIdx, setDraggedAdvancedIdx] = useState<number | null>(null);
+  const [dragOverAdvancedIdx, setDragOverAdvancedIdx] = useState<number | null>(null);
+
+  const handleDragStartAdvanced = (idx: number, e: React.DragEvent) => {
+    setDraggedAdvancedIdx(idx);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOverAdvanced = (idx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverAdvancedIdx !== idx) {
+      setDragOverAdvancedIdx(idx);
+    }
+  };
+
+  const handleDropAdvanced = (toIdx: number, e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedAdvancedIdx === null || draggedAdvancedIdx === toIdx) {
+      setDraggedAdvancedIdx(null);
+      setDragOverAdvancedIdx(null);
+      return;
+    }
+    const updated = [...advancedFields];
+    const [moved] = updated.splice(draggedAdvancedIdx, 1);
+    updated.splice(toIdx, 0, moved);
+    setAdvancedFields(updated);
+    setDraggedAdvancedIdx(null);
+    setDragOverAdvancedIdx(null);
+  };
+
+  const handleDragEndAdvanced = () => {
+    setDraggedAdvancedIdx(null);
+    setDragOverAdvancedIdx(null);
   };
 
   // Auto-generate slug from name if not manually modified
@@ -500,62 +604,108 @@ export default function NewCategoryPage() {
 
           {/* STEP 3: Diseñador de Campos de Especificaciones Básicas */}
           <div className="p-6 rounded-2xl bg-[#092634] border border-[#004E72]/50 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-[#004E72]/40 pb-3">
-              <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[#004E72]/40 pb-3 gap-2.5">
+              <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#FF6E42]"></span>
-                3. Plantilla de Especificaciones Básicas
-              </h2>
-              <span className="text-xs text-[#9bb5c2]">Paso 3 de 4</span>
+                <h2 className="text-sm font-bold text-[#F9F9F9] uppercase tracking-wider">
+                  3. Plantilla de Especificaciones Básicas
+                </h2>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleSuggestSpecsWithAI}
+                  disabled={isSuggestingSpecs}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#FF6E42]/15 hover:bg-[#FF6E42]/25 text-[#FF6E42] border border-[#FF6E42]/40 transition hover:scale-105 active:scale-95 disabled:opacity-60 cursor-pointer shadow-sm group"
+                  title="Sugerir inputs con especificaciones sugeridas para la categoría a partir del Nombre de la Categoría"
+                >
+                  <Wand2 className={`w-3.5 h-3.5 ${isSuggestingSpecs ? "animate-spin text-[#FF6E42]" : "text-[#FF6E42] group-hover:rotate-12 transition-transform"}`} />
+                  <span>{isSuggestingSpecs ? "Sugiriendo con IA..." : "Sugerir con IA"}</span>
+                </button>
+                <span className="text-xs text-[#9bb5c2]">Paso 3 de 4</span>
+              </div>
             </div>
 
-            <p className="text-xs text-[#9bb5c2]">
-              Define los inputs principales que aparecerán en la cabecera técnica del producto.
-            </p>
+            {specsSuggestionNotice && (
+              <div className="text-[11px] font-medium text-[#FF6E42] bg-[#FF6E42]/10 border border-[#FF6E42]/30 px-3 py-1.5 rounded-lg flex items-center gap-2 animate-pulse">
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span>{specsSuggestionNotice}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-[#9bb5c2]">
+              <p>Define los inputs principales que aparecerán en la cabecera técnica del producto.</p>
+              <span className="text-[11px] text-[#9bb5c2]/80 hidden sm:inline">
+                Arrastra cualquier fila desde el icono lateral para reordenarla.
+              </span>
+            </div>
 
             <div className="space-y-2.5">
-              {basicFields.map((field, idx) => (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/50 items-center hover:border-[#004E72] transition"
-                >
-                  <div className="sm:col-span-5 space-y-1">
-                    <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
-                      Nombre del Input #{idx + 1} *
-                    </span>
-                    <input
-                      type="text"
-                      value={field.name}
-                      onChange={(e) => handleUpdateBasicField(field.id, { name: e.target.value })}
-                      placeholder="ej: Resolución, Capacidad"
-                      className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-6 space-y-1">
-                    <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
-                      Texto de Ayuda / Placeholder
-                    </span>
-                    <input
-                      type="text"
-                      value={field.placeholder || ""}
-                      onChange={(e) => handleUpdateBasicField(field.id, { placeholder: e.target.value })}
-                      placeholder="ej: 3840 x 2160 (4K UHD)"
-                      className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-1 flex items-end justify-center pt-2 sm:pt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveBasicField(field.id)}
-                      className="p-1.5 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 transition cursor-pointer"
-                      title="Eliminar campo"
+              {basicFields.map((field, idx) => {
+                const isDragging = draggedBasicIdx === idx;
+                const isDragOver = dragOverBasicIdx === idx;
+                return (
+                  <div
+                    key={field.id}
+                    draggable
+                    onDragStart={(e) => handleDragStartBasic(idx, e)}
+                    onDragOver={(e) => handleDragOverBasic(idx, e)}
+                    onDrop={(e) => handleDropBasic(idx, e)}
+                    onDragEnd={handleDragEndBasic}
+                    className={`grid grid-cols-1 sm:grid-cols-12 gap-2 p-2.5 rounded-xl border items-center transition cursor-default ${
+                      isDragging
+                        ? "opacity-35 border-dashed border-[#FF6E42] bg-[#004E72]/10"
+                        : isDragOver
+                        ? "border-[#FF6E42] bg-[#004E72]/40 shadow-lg scale-[1.01]"
+                        : "bg-[#004E72]/20 border-[#004E72]/50 hover:border-[#004E72]"
+                    }`}
+                  >
+                    <div
+                      className="sm:col-span-1 flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-white p-1"
+                      title="Arrastrar para mover arriba o abajo"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+
+                    <div className="sm:col-span-5 space-y-1">
+                      <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
+                        Nombre del Input #{idx + 1} *
+                      </span>
+                      <input
+                        type="text"
+                        value={field.name}
+                        onChange={(e) => handleUpdateBasicField(field.id, { name: e.target.value })}
+                        placeholder="ej: Resolución, Capacidad"
+                        className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-5 space-y-1">
+                      <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
+                        Texto de Ayuda / Placeholder
+                      </span>
+                      <input
+                        type="text"
+                        value={field.placeholder || ""}
+                        onChange={(e) => handleUpdateBasicField(field.id, { placeholder: e.target.value })}
+                        placeholder="ej: 3840 x 2160 (4K UHD)"
+                        className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-1 flex items-end justify-center pt-2 sm:pt-4">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBasicField(field.id)}
+                        className="p-1.5 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 transition cursor-pointer"
+                        title="Eliminar campo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Quick add basic field */}
@@ -595,54 +745,79 @@ export default function NewCategoryPage() {
               <span className="text-xs text-[#9bb5c2]">Paso 4 de 4</span>
             </div>
 
-            <p className="text-xs text-[#9bb5c2]">
-              Define los atributos especializados de ingeniería y detalles técnicos secundarios para este producto.
-            </p>
+            <div className="flex items-center justify-between text-xs text-[#9bb5c2]">
+              <p>Define los atributos especializados de ingeniería y detalles técnicos secundarios para este producto.</p>
+              <span className="text-[11px] text-[#9bb5c2]/80 hidden sm:inline">
+                Arrastra cualquier fila desde el icono lateral para reordenarla.
+              </span>
+            </div>
 
             <div className="space-y-2.5">
-              {advancedFields.map((field, idx) => (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-1 sm:grid-cols-12 gap-2 p-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/50 items-center hover:border-[#004E72] transition"
-                >
-                  <div className="sm:col-span-5 space-y-1">
-                    <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
-                      Nombre del Input Avanzado #{idx + 1} *
-                    </span>
-                    <input
-                      type="text"
-                      value={field.name}
-                      onChange={(e) => handleUpdateAdvancedField(field.id, { name: e.target.value })}
-                      placeholder="ej: Tecnología de Panel, Puertos"
-                      className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-6 space-y-1">
-                    <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
-                      Texto de Ayuda / Placeholder
-                    </span>
-                    <input
-                      type="text"
-                      value={field.placeholder || ""}
-                      onChange={(e) => handleUpdateAdvancedField(field.id, { placeholder: e.target.value })}
-                      placeholder="ej: QD-OLED / Mini LED"
-                      className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-1 flex items-end justify-center pt-2 sm:pt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveAdvancedField(field.id)}
-                      className="p-1.5 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 transition cursor-pointer"
-                      title="Eliminar campo"
+              {advancedFields.map((field, idx) => {
+                const isDragging = draggedAdvancedIdx === idx;
+                const isDragOver = dragOverAdvancedIdx === idx;
+                return (
+                  <div
+                    key={field.id}
+                    draggable
+                    onDragStart={(e) => handleDragStartAdvanced(idx, e)}
+                    onDragOver={(e) => handleDragOverAdvanced(idx, e)}
+                    onDrop={(e) => handleDropAdvanced(idx, e)}
+                    onDragEnd={handleDragEndAdvanced}
+                    className={`grid grid-cols-1 sm:grid-cols-12 gap-2 p-2.5 rounded-xl border items-center transition cursor-default ${
+                      isDragging
+                        ? "opacity-35 border-dashed border-[#FF6E42] bg-[#004E72]/10"
+                        : isDragOver
+                        ? "border-[#FF6E42] bg-[#004E72]/40 shadow-lg scale-[1.01]"
+                        : "bg-[#004E72]/20 border-[#004E72]/50 hover:border-[#004E72]"
+                    }`}
+                  >
+                    <div
+                      className="sm:col-span-1 flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-white p-1"
+                      title="Arrastrar para mover arriba o abajo"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <GripVertical className="w-4 h-4" />
+                    </div>
+
+                    <div className="sm:col-span-5 space-y-1">
+                      <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
+                        Nombre del Input Avanzado #{idx + 1} *
+                      </span>
+                      <input
+                        type="text"
+                        value={field.name}
+                        onChange={(e) => handleUpdateAdvancedField(field.id, { name: e.target.value })}
+                        placeholder="ej: Tecnología de Panel, Puertos"
+                        className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-5 space-y-1">
+                      <span className="text-[10px] font-semibold text-[#9bb5c2] uppercase tracking-wider block">
+                        Texto de Ayuda / Placeholder
+                      </span>
+                      <input
+                        type="text"
+                        value={field.placeholder || ""}
+                        onChange={(e) => handleUpdateAdvancedField(field.id, { placeholder: e.target.value })}
+                        placeholder="ej: QD-OLED / Mini LED"
+                        className="w-full px-3 py-1.5 rounded-lg bg-[#092634] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:outline-none focus:border-[#FF6E42]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-1 flex items-end justify-center pt-2 sm:pt-4">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAdvancedField(field.id)}
+                        className="p-1.5 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 transition cursor-pointer"
+                        title="Eliminar campo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Quick add advanced field */}

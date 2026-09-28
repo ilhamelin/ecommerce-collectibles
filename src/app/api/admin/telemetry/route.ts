@@ -63,14 +63,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "SEED") {
-      const seed = generateSeedTelemetryData();
-      writeTelemetryToDisk(seed);
-      const summary = await getTelemetrySummary("30d");
       return NextResponse.json({
-        success: true,
-        message: "Datos de telemetría restaurados con éxito",
-        data: summary,
-      });
+        success: false,
+        message: "La inyección de semillas simuladas ha sido deshabilitada para garantizar telemetría 100% verídica en tiempo real.",
+      }, { status: 400 });
     }
 
     if (action === "SIMULATE_CALL") {

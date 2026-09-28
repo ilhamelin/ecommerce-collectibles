@@ -84,9 +84,10 @@ export function calculateGeminiCostUsd(
 
 /**
  * Reads telemetry records from memory cache or disk.
+ * Returns only real recorded events. Never injects artificial seed data.
  */
 export function readTelemetryFromDisk(): ApiTelemetryRecord[] {
-  if (globalThis.__apiTelemetryGlobalStore && globalThis.__apiTelemetryGlobalStore.length > 0) {
+  if (globalThis.__apiTelemetryGlobalStore !== undefined) {
     return globalThis.__apiTelemetryGlobalStore;
   }
 
@@ -103,10 +104,9 @@ export function readTelemetryFromDisk(): ApiTelemetryRecord[] {
     console.warn("[ApiTelemetryService] Could not read telemetry from disk:", err);
   }
 
-  // Generate initial seed if empty
-  const initialData = generateSeedTelemetryData();
-  writeTelemetryToDisk(initialData);
-  return initialData;
+  // Pure clean state if empty or file does not exist
+  globalThis.__apiTelemetryGlobalStore = [];
+  return [];
 }
 
 /**
@@ -316,9 +316,14 @@ export async function getTelemetrySummary(
   const monthlyCostUsedUsd = Number(geminiCostUsd.toFixed(4));
   const monthlyCostUsagePct = Math.min(100, Math.round((monthlyCostUsedUsd / monthlyBudgetUsd) * 100));
 
-  // Current RPM (last 60 seconds)
+  // Real active RPM and TPM in the last 60 seconds
   const oneMinAgo = new Date(now.getTime() - 60 * 1000);
-  const currentRpm = allRecords.filter((r) => new Date(r.timestamp) >= oneMinAgo).length;
+  const recentMinGeminiRecords = allRecords.filter(
+    (r) => r.provider === "GEMINI" && new Date(r.timestamp) >= oneMinAgo
+  );
+  const currentRpm = recentMinGeminiRecords.length;
+  const currentTpm = recentMinGeminiRecords.reduce((sum, r) => sum + (r.totalTokens ?? 0), 0);
+  const currentRpd = dailyGeminiRecords.length;
 
   return {
     totalCalls,
@@ -354,7 +359,7 @@ export async function getTelemetrySummary(
       failedCalls: aftershipCalls - aftershipSuccess,
       avgLatencyMs: aftershipCalls > 0 ? Math.round(aftershipLatency / aftershipCalls) : 0,
     },
-  quota: {
+    quota: {
       dailyTokenLimit: 250_000,
       dailyTokensUsed,
       dailyTokenUsagePct: Math.min(100, Math.round((dailyTokensUsed / 250_000) * 100)),
@@ -362,15 +367,15 @@ export async function getTelemetrySummary(
       monthlyCostUsedUsd,
       monthlyCostUsagePct,
       rpmLimit: 5,
-      currentRpm: Math.max(currentRpm, dailyGeminiRecords.length > 0 ? 2 : 0),
+      currentRpm,
       tpmLimit: 250_000,
-      currentTpm: dailyTokensUsed > 0 ? Math.round(dailyTokensUsed / 24 / 60) : 7740,
+      currentTpm,
       rpdLimit: 20,
-      currentRpd: dailyGeminiRecords.length || 8,
+      currentRpd,
       projectName: "omnicollector-ai",
       tierName: "Nivel gratuito",
     },
-    recentLogs: filtered.slice(0, 50),
+    recentLogs: filtered.slice(0, 100),
   };
 }
 

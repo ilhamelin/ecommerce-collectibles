@@ -8,6 +8,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { db, isFirebaseConfigured } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { COLLECTIONS } from "@/lib/firebase/collections";
+import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 
 export const dynamic = "force-dynamic";
 
@@ -356,18 +357,20 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
 }`;
 
     const candidateModels = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3.6-flash",
-      "gemini-flash-latest",
-      "gemini-3-flash-preview",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-2.0-flash",
+      "gemini-1.5-pro",
     ];
 
+    const callStartTime = Date.now();
     let geminiRes: Response | null = null;
     let lastErrorText = "";
+    let usedModel = "gemini-1.5-flash";
 
     for (const model of candidateModels) {
       try {
+        usedModel = model;
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
           {
@@ -393,12 +396,25 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
         } else {
           lastErrorText = await res.text();
         }
-      } catch (err: any) {
-        lastErrorText = err.message || String(err);
+      } catch (err: unknown) {
+        lastErrorText = err instanceof Error ? err.message : String(err);
       }
     }
 
+    const latencyMs = Date.now() - callStartTime;
+
     if (!geminiRes) {
+      void recordApiUsage({
+        provider: "GEMINI",
+        feature: "PREDICTIVE_STOCK",
+        endpoint: "/api/admin/predictive-stock",
+        model: usedModel,
+        latencyMs,
+        statusCode: 502,
+        success: false,
+        errorMessage: lastErrorText,
+      }).catch(() => {});
+
       return NextResponse.json(
         { success: false, error: `Error con Gemini AI: ${lastErrorText || "Servicio no disponible"}` },
         { status: 502 }
@@ -406,6 +422,23 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
     }
 
     const data = await geminiRes.json();
+    const promptTokens = data?.usageMetadata?.promptTokenCount;
+    const candidatesTokens = data?.usageMetadata?.candidatesTokenCount;
+    const totalTokens = data?.usageMetadata?.totalTokenCount;
+
+    void recordApiUsage({
+      provider: "GEMINI",
+      feature: "PREDICTIVE_STOCK",
+      endpoint: "/api/admin/predictive-stock",
+      model: usedModel,
+      promptTokens,
+      candidatesTokens,
+      totalTokens,
+      latencyMs,
+      statusCode: 200,
+      success: true,
+    }).catch(() => {});
+
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const cleaned = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
     const aiReport = JSON.parse(cleaned);

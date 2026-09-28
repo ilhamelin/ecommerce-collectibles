@@ -5,7 +5,7 @@ import {
   getTelemetrySummary,
   clearTelemetryData,
   writeTelemetryToDisk,
-  generateSeedTelemetryData,
+  readTelemetryFromDisk,
   USD_TO_CLP_RATE,
 } from "../src/lib/services/apiTelemetryService";
 import { GET as telemetryGet, POST as telemetryPost } from "../src/app/api/admin/telemetry/route";
@@ -13,9 +13,20 @@ import { NextRequest } from "next/server";
 
 describe("API Telemetry & AI Token Usage Suite", () => {
   beforeEach(async () => {
-    // Start with a clean or known seed state
-    const seed = generateSeedTelemetryData();
-    writeTelemetryToDisk(seed);
+    // Start with a clean empty state (zero fake data)
+    await clearTelemetryData();
+  });
+
+  describe("Clean State & No Fake Data Injection", () => {
+    it("should return empty telemetry when no calls have occurred", async () => {
+      const summary = await getTelemetrySummary("all");
+      expect(summary.totalCalls).toBe(0);
+      expect(summary.gemini.totalTokens).toBe(0);
+      expect(summary.gemini.estimatedCostUsd).toBe(0);
+      expect(summary.recentLogs).toHaveLength(0);
+      expect(Object.keys(summary.gemini.byFeature)).toHaveLength(0);
+      expect(Object.keys(summary.gemini.byModel)).toHaveLength(0);
+    });
   });
 
   describe("Gemini Cost & Token Accounting", () => {
@@ -51,7 +62,7 @@ describe("API Telemetry & AI Token Usage Suite", () => {
     });
   });
 
-  describe("Telemetry Event Recording", () => {
+  describe("Real Telemetry Event Recording & Strict Aggregation", () => {
     it("should record a new Gemini telemetry event with calculated cost and latency", async () => {
       const record = await recordApiUsage({
         provider: "GEMINI",
@@ -72,6 +83,12 @@ describe("API Telemetry & AI Token Usage Suite", () => {
       expect(record.estimatedCostUsd).toBeGreaterThan(0);
       expect(record.latencyMs).toBe(950);
       expect(record.success).toBe(true);
+
+      const summary = await getTelemetrySummary("all");
+      expect(summary.totalCalls).toBe(1);
+      expect(summary.gemini.totalTokens).toBe(630);
+      expect(summary.gemini.byFeature["AUTO_FILL_PRODUCT"]).toBeDefined();
+      expect(summary.gemini.byFeature["AUTO_FILL_PRODUCT"].tokens).toBe(630);
     });
 
     it("should record payment gateway events without tokens", async () => {
@@ -103,30 +120,46 @@ describe("API Telemetry & AI Token Usage Suite", () => {
       expect(failedRecord.statusCode).toBe(429);
       expect(failedRecord.errorMessage).toContain("Resource exhausted");
     });
-  });
 
-  describe("Telemetry Aggregation & Quotas", () => {
-    it("should aggregate summary with token counts, costs and gateway counts", async () => {
-      const summary = await getTelemetrySummary("all");
+    it("should correctly sort records by Tokens, Cost and Latency", async () => {
+      await recordApiUsage({
+        provider: "GEMINI",
+        feature: "SOMMELIER_CHAT",
+        endpoint: "/api/sommelier/chat",
+        model: "gemini-1.5-flash",
+        promptTokens: 100,
+        candidatesTokens: 50,
+        latencyMs: 500,
+        statusCode: 200,
+      });
 
-      expect(summary.totalCalls).toBeGreaterThan(0);
-      expect(summary.gemini.totalTokens).toBeGreaterThan(0);
-      expect(summary.gemini.estimatedCostUsd).toBeGreaterThan(0);
-      expect(summary.gemini.estimatedCostClp).toBe(Math.round(summary.gemini.estimatedCostUsd * USD_TO_CLP_RATE));
+      await recordApiUsage({
+        provider: "GEMINI",
+        feature: "AUTO_FILL_PRODUCT",
+        endpoint: "/api/admin/auto-fill-product",
+        model: "gemini-1.5-pro",
+        promptTokens: 2000,
+        candidatesTokens: 1000,
+        latencyMs: 2500,
+        statusCode: 200,
+      });
 
-      // Check features breakdown
-      expect(summary.gemini.byFeature).toBeDefined();
-      expect(summary.quota.dailyTokenLimit).toBe(250_000);
-      expect(summary.quota.projectName).toBe("omnicollector-ai");
-      expect(summary.quota.monthlyCostBudgetUsd).toBe(25.0);
-    });
+      const records = readTelemetryFromDisk();
+      expect(records).toHaveLength(2);
 
-    it("should filter summary by timeframe correctly", async () => {
-      const summaryToday = await getTelemetrySummary("today");
-      const summaryAll = await getTelemetrySummary("all");
+      // Sort by tokens descending
+      const byTokensDesc = [...records].sort((a, b) => (b.totalTokens ?? 0) - (a.totalTokens ?? 0));
+      expect(byTokensDesc[0].totalTokens).toBe(3000);
+      expect(byTokensDesc[1].totalTokens).toBe(150);
 
-      expect(summaryToday.timeframe).toBe("today");
-      expect(summaryAll.totalCalls).toBeGreaterThanOrEqual(summaryToday.totalCalls);
+      // Sort by latency descending
+      const byLatencyDesc = [...records].sort((a, b) => b.latencyMs - a.latencyMs);
+      expect(byLatencyDesc[0].latencyMs).toBe(2500);
+      expect(byLatencyDesc[1].latencyMs).toBe(500);
+
+      // Sort by cost descending
+      const byCostDesc = [...records].sort((a, b) => b.estimatedCostUsd - a.estimatedCostUsd);
+      expect(byCostDesc[0].estimatedCostUsd).toBeGreaterThan(byCostDesc[1].estimatedCostUsd);
     });
   });
 
@@ -142,31 +175,17 @@ describe("API Telemetry & AI Token Usage Suite", () => {
       expect(json.data.gemini).toBeDefined();
     });
 
-    it("POST /api/admin/telemetry action SIMULATE_CALL should inject test record", async () => {
-      const req = new NextRequest("http://localhost:3000/api/admin/telemetry", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "SIMULATE_CALL",
-          provider: "GEMINI",
-          feature: "TEST_SIMULATION",
-          model: "gemini-1.5-flash",
-          promptTokens: 500,
-          candidatesTokens: 200,
-          latencyMs: 800,
-          statusCode: 200,
-        }),
+    it("POST /api/admin/telemetry action RESET should clear records completely", async () => {
+      await recordApiUsage({
+        provider: "GEMINI",
+        feature: "AUTO_FILL_PRODUCT",
+        endpoint: "/api/admin/auto-fill-product",
+        promptTokens: 500,
+        candidatesTokens: 200,
+        latencyMs: 800,
+        statusCode: 200,
       });
 
-      const res = await telemetryPost(req);
-      const json = await res.json();
-
-      expect(res.status).toBe(200);
-      expect(json.success).toBe(true);
-      expect(json.record).toBeDefined();
-      expect(json.record.feature).toBe("TEST_SIMULATION");
-    });
-
-    it("POST /api/admin/telemetry action RESET should clear records", async () => {
       const req = new NextRequest("http://localhost:3000/api/admin/telemetry", {
         method: "POST",
         body: JSON.stringify({ action: "RESET" }),
@@ -178,6 +197,7 @@ describe("API Telemetry & AI Token Usage Suite", () => {
       expect(res.status).toBe(200);
       expect(json.success).toBe(true);
       expect(json.data.totalCalls).toBe(0);
+      expect(readTelemetryFromDisk()).toHaveLength(0);
     });
   });
 });

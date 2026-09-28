@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 
 export const dynamic = "force-dynamic";
 
@@ -90,17 +91,20 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
 
     // Request to Google Gemini Vision with active, high-availability models
     const candidateModels = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3.6-flash",
-      "gemini-flash-latest",
-      "gemini-3-flash-preview",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-2.0-flash",
+      "gemini-1.5-pro",
     ];
+
+    const callStartTime = Date.now();
     let geminiRes: Response | null = null;
     let lastErrorText = "";
+    let usedModel = "gemini-1.5-flash";
 
     for (const model of candidateModels) {
       try {
+        usedModel = model;
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
           {
@@ -139,12 +143,25 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
           lastErrorText = await res.text();
           console.warn(`[Visual Search] Model ${model} returned ${res.status}:`, lastErrorText);
         }
-      } catch (err: any) {
-        lastErrorText = err.message || String(err);
+      } catch (err: unknown) {
+        lastErrorText = err instanceof Error ? err.message : String(err);
       }
     }
 
+    const latencyMs = Date.now() - callStartTime;
+
     if (!geminiRes) {
+      void recordApiUsage({
+        provider: "GEMINI",
+        feature: "VISUAL_SEARCH",
+        endpoint: "/api/catalog/visual-search",
+        model: usedModel,
+        latencyMs,
+        statusCode: 502,
+        success: false,
+        errorMessage: lastErrorText,
+      }).catch(() => {});
+
       return NextResponse.json(
         {
           success: false,
@@ -155,6 +172,23 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
     }
 
     const geminiData = await geminiRes.json();
+    const promptTokens = geminiData?.usageMetadata?.promptTokenCount;
+    const candidatesTokens = geminiData?.usageMetadata?.candidatesTokenCount;
+    const totalTokens = geminiData?.usageMetadata?.totalTokenCount;
+
+    void recordApiUsage({
+      provider: "GEMINI",
+      feature: "VISUAL_SEARCH",
+      endpoint: "/api/catalog/visual-search",
+      model: usedModel,
+      promptTokens,
+      candidatesTokens,
+      totalTokens,
+      latencyMs,
+      statusCode: 200,
+      success: true,
+    }).catch(() => {});
+
     const rawAiText =
       geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 

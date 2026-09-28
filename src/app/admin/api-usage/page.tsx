@@ -25,6 +25,11 @@ import {
   Truck,
   RotateCcw,
   Check,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  SlidersHorizontal,
+  ExternalLink,
 } from "lucide-react";
 import {
   ApiUsageSummary,
@@ -33,6 +38,8 @@ import {
 } from "@/lib/types/telemetry";
 
 type TimeframeType = "today" | "7d" | "30d" | "all";
+type SortFieldType = "timestamp" | "tokens" | "cost" | "latency";
+type SortDirectionType = "asc" | "desc";
 
 export default function ApiUsagePage() {
   const [timeframe, setTimeframe] = useState<TimeframeType>("30d");
@@ -42,9 +49,11 @@ export default function ApiUsagePage() {
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Filters for recent log table
+  // Filters & Sorting for recent log table
   const [logProviderFilter, setLogProviderFilter] = useState<string>("ALL");
   const [logSearchQuery, setLogSearchQuery] = useState<string>("");
+  const [sortField, setSortField] = useState<SortFieldType>("timestamp");
+  const [sortDirection, setSortDirection] = useState<SortDirectionType>("desc");
 
   const fetchTelemetry = useCallback(async (tf: TimeframeType = timeframe) => {
     setIsLoading(true);
@@ -74,35 +83,6 @@ export default function ApiUsagePage() {
     setTimeout(() => setActionSuccessMessage(null), 3500);
   };
 
-  const handleSimulateCall = async (provider: "GEMINI" | "MERCADOPAGO" | "FLOW" = "GEMINI") => {
-    setIsActionLoading(true);
-    try {
-      const res = await fetch("/api/admin/telemetry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "SIMULATE_CALL",
-          provider,
-          feature: provider === "GEMINI" ? "AUTO_FILL_PRODUCT" : "CHECKOUT",
-          model: provider === "GEMINI" ? "gemini-1.5-flash" : undefined,
-          promptTokens: provider === "GEMINI" ? 420 + Math.floor(Math.random() * 200) : undefined,
-          candidatesTokens: provider === "GEMINI" ? 180 + Math.floor(Math.random() * 100) : undefined,
-          latencyMs: 700 + Math.floor(Math.random() * 800),
-          statusCode: 200,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        showFeedback(`Llamada de prueba a ${provider} registrada`);
-        await fetchTelemetry(timeframe);
-      }
-    } catch {
-      setErrorMessage("Error al simular llamada de prueba");
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
   const handleResetData = async () => {
     if (!window.confirm("¿Estás seguro de que deseas limpiar todo el historial de telemetría registrado?")) {
       return;
@@ -126,30 +106,27 @@ export default function ApiUsagePage() {
     }
   };
 
-  const handleSeedData = async () => {
-    setIsActionLoading(true);
-    try {
-      const res = await fetch("/api/admin/telemetry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "SEED" }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        showFeedback("Datos de telemetría restaurados con éxito");
-        await fetchTelemetry(timeframe);
-      }
-    } catch {
-      setErrorMessage("Error al restaurar datos de muestra");
-    } finally {
-      setIsActionLoading(false);
+  const handleSortChange = (field: SortFieldType) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("desc"); // Metrics like tokens, cost, latency sort highest first by default
     }
   };
 
-  // Filtered recent logs
-  const filteredLogs = useMemo(() => {
+  const handleSortSelectChange = (value: string) => {
+    const [field, direction] = value.split("_") as [SortFieldType, SortDirectionType];
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  // Filtered and Sorted recent logs (100% strictly computed from real records)
+  const filteredAndSortedLogs = useMemo(() => {
     if (!summary?.recentLogs) return [];
-    return summary.recentLogs.filter((log: ApiTelemetryRecord) => {
+    
+    // 1. Filter
+    const matched = summary.recentLogs.filter((log: ApiTelemetryRecord) => {
       const matchesProvider = logProviderFilter === "ALL" || log.provider === logProviderFilter;
       const q = logSearchQuery.toLowerCase().trim();
       const matchesQuery =
@@ -159,7 +136,27 @@ export default function ApiUsagePage() {
         log.feature.toLowerCase().includes(q);
       return matchesProvider && matchesQuery;
     });
-  }, [summary, logProviderFilter, logSearchQuery]);
+
+    // 2. Sort
+    return matched.sort((a: ApiTelemetryRecord, b: ApiTelemetryRecord) => {
+      let comparison = 0;
+      if (sortField === "tokens") {
+        const aVal = a.totalTokens ?? -1;
+        const bVal = b.totalTokens ?? -1;
+        comparison = aVal - bVal;
+      } else if (sortField === "cost") {
+        const aVal = a.estimatedCostUsd ?? 0;
+        const bVal = b.estimatedCostUsd ?? 0;
+        comparison = aVal - bVal;
+      } else if (sortField === "latency") {
+        comparison = a.latencyMs - b.latencyMs;
+      } else {
+        // Default: timestamp
+        comparison = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      }
+      return sortDirection === "desc" ? -comparison : comparison;
+    });
+  }, [summary, logProviderFilter, logSearchQuery, sortField, sortDirection]);
 
   const featureLabels: Record<string, { label: string; desc: string }> = {
     AUTO_FILL_PRODUCT: { label: "Auto-Fill de Catálogo", desc: "Generación de ficha técnica y especificaciones con IA" },
@@ -170,7 +167,7 @@ export default function ApiUsagePage() {
     VISUAL_SEARCH: { label: "Búsqueda Visual por Imagen", desc: "Identificación de productos coleccionables por foto" },
     CHECKOUT: { label: "Pasarelas de Pago", desc: "Procesamiento con Mercado Pago y Flow" },
     TRACKING: { label: "Seguimiento de Envíos", desc: "Courier y sincronización AfterShip" },
-    TEST_SIMULATION: { label: "Prueba / Simulación", desc: "Llamada de test manual desde panel de admin" },
+    TEST_SIMULATION: { label: "Prueba / Verificación", desc: "Petición de verificación manual" },
     OTHER: { label: "Otras Operaciones", desc: "Peticiones varias" },
   };
 
@@ -289,32 +286,22 @@ export default function ApiUsagePage() {
             </p>
           </div>
 
-          {/* Quick Action Buttons */}
+          {/* Operational Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleSimulateCall("GEMINI")}
-              disabled={isActionLoading}
-              className="px-3.5 py-2 rounded-xl bg-[#FF6B35] hover:bg-[#e85a26] text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            <a
+              href="https://aistudio.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition border border-white/20 flex items-center gap-1.5 cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Probar Gemini (Ping)</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleSeedData}
-              disabled={isActionLoading}
-              title="Restaurar métricas sincronizadas con Google AI Studio"
-              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition border border-white/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Sincronizar Consola</span>
-            </button>
+              <span>Consola Google AI Studio</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
             <button
               type="button"
               onClick={handleResetData}
               disabled={isActionLoading}
-              title="Limpiar telemetría"
+              title="Limpiar telemetría registrada"
               className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 transition cursor-pointer disabled:opacity-50"
             >
               <Trash2 className="w-4 h-4" />
@@ -568,8 +555,14 @@ export default function ApiUsagePage() {
                   );
                 })
             ) : (
-              <div className="text-center py-8 text-xs text-[#666666]">
-                No hay registros de llamadas a Gemini en este período. Realiza una prueba o consulta en la tienda.
+              <div className="text-center py-10 px-4 rounded-xl border border-dashed border-[#E5E5E5] bg-[#FAFAFA] space-y-2">
+                <Sparkles className="w-6 h-6 text-[#FF6B35] mx-auto opacity-80" />
+                <div className="text-xs font-bold text-[#1F3A5F]">
+                  Sin consumo de IA registrado en este período
+                </div>
+                <p className="text-[11px] text-[#666666] max-w-md mx-auto">
+                  Este panel calcula el consumo exclusivamente con llamadas verdaderas. Al generar una ficha de producto con IA o consultar al Sommelier, verás el consumo de tokens y costo exacto reflejado aquí.
+                </p>
               </div>
             )}
           </div>
@@ -691,16 +684,39 @@ export default function ApiUsagePage() {
               Registro Reciente de Peticiones y Telemetría
             </h3>
             <p className="text-xs text-[#666666] mt-0.5">
-              Auditoría granular de cada llamada, latencia en milisegundos, código HTTP y consumo de tokens.
+              Auditoría granular de cada llamada real a Gemini y pasarelas de pago. Filtra y ordena por tokens, costo o latencia.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Sort Dropdown: Tokens, Cost, Latency, Timestamp */}
+            <div className="flex items-center gap-1.5 bg-[#F8F9FA] px-2.5 py-1 rounded-xl border border-[#E5E5E5]">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#64748B]" />
+              <label htmlFor="sort-select" className="text-[11px] font-bold text-[#64748B]">
+                Orden:
+              </label>
+              <select
+                id="sort-select"
+                value={`${sortField}_${sortDirection}`}
+                onChange={(e) => handleSortSelectChange(e.target.value)}
+                className="bg-transparent text-xs font-bold text-[#1F3A5F] focus:outline-hidden cursor-pointer"
+              >
+                <option value="timestamp_desc">Fecha: Más recientes</option>
+                <option value="timestamp_asc">Fecha: Más antiguos</option>
+                <option value="tokens_desc">Tokens: Mayor a menor (↓)</option>
+                <option value="tokens_asc">Tokens: Menor a mayor (↑)</option>
+                <option value="cost_desc">Costo: Mayor a menor (↓)</option>
+                <option value="cost_asc">Costo: Menor a mayor (↑)</option>
+                <option value="latency_desc">Latencia: Mayor a menor (↓)</option>
+                <option value="latency_asc">Latencia: Menor a mayor (↑)</option>
+              </select>
+            </div>
+
             {/* Filter by provider */}
             <select
               value={logProviderFilter}
               onChange={(e) => setLogProviderFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-[#E5E5E5] text-xs font-semibold text-[#1A1A1A] bg-white focus:outline-hidden focus:border-[#1F3A5F]"
+              className="px-3 py-1.5 rounded-xl border border-[#E5E5E5] text-xs font-semibold text-[#1A1A1A] bg-white focus:outline-hidden focus:border-[#1F3A5F] cursor-pointer"
             >
               <option value="ALL">Todos los proveedores</option>
               <option value="GEMINI">Google Gemini IA</option>
@@ -728,19 +744,96 @@ export default function ApiUsagePage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#F8F9FA] text-[#64748B] font-bold uppercase tracking-wider border-b border-[#F0F0F0] text-[10px]">
               <tr>
-                <th className="py-3 px-4">Fecha / Hora</th>
+                {/* Sortable: Timestamp */}
+                <th
+                  onClick={() => handleSortChange("timestamp")}
+                  className="py-3 px-4 cursor-pointer hover:bg-gray-100 transition select-none group"
+                  title="Ordenar por fecha"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Fecha / Hora</span>
+                    {sortField === "timestamp" ? (
+                      sortDirection === "desc" ? (
+                        <ArrowDown className="w-3 h-3 text-[#FF6B35]" />
+                      ) : (
+                        <ArrowUp className="w-3 h-3 text-[#FF6B35]" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition" />
+                    )}
+                  </div>
+                </th>
+
                 <th className="py-3 px-4">Proveedor</th>
                 <th className="py-3 px-4">Módulo / Endpoint</th>
                 <th className="py-3 px-4">Modelo / Detalle</th>
-                <th className="py-3 px-4 text-right">Tokens</th>
-                <th className="py-3 px-4 text-right">Costo Estimado</th>
-                <th className="py-3 px-4 text-right">Latencia</th>
+
+                {/* Sortable: Tokens */}
+                <th
+                  onClick={() => handleSortChange("tokens")}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition select-none group"
+                  title="Ordenar por consumo de Tokens"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Tokens</span>
+                    {sortField === "tokens" ? (
+                      sortDirection === "desc" ? (
+                        <ArrowDown className="w-3 h-3 text-[#FF6B35]" />
+                      ) : (
+                        <ArrowUp className="w-3 h-3 text-[#FF6B35]" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition" />
+                    )}
+                  </div>
+                </th>
+
+                {/* Sortable: Cost */}
+                <th
+                  onClick={() => handleSortChange("cost")}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition select-none group"
+                  title="Ordenar por Costo Estimado"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Costo Estimado</span>
+                    {sortField === "cost" ? (
+                      sortDirection === "desc" ? (
+                        <ArrowDown className="w-3 h-3 text-[#FF6B35]" />
+                      ) : (
+                        <ArrowUp className="w-3 h-3 text-[#FF6B35]" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition" />
+                    )}
+                  </div>
+                </th>
+
+                {/* Sortable: Latency */}
+                <th
+                  onClick={() => handleSortChange("latency")}
+                  className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition select-none group"
+                  title="Ordenar por Latencia"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Latencia</span>
+                    {sortField === "latency" ? (
+                      sortDirection === "desc" ? (
+                        <ArrowDown className="w-3 h-3 text-[#FF6B35]" />
+                      ) : (
+                        <ArrowUp className="w-3 h-3 text-[#FF6B35]" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-100 transition" />
+                    )}
+                  </div>
+                </th>
+
                 <th className="py-3 px-4 text-center">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F0F0]">
-              {filteredLogs.length > 0 ? (
-                filteredLogs.map((log: ApiTelemetryRecord) => {
+              {filteredAndSortedLogs.length > 0 ? (
+                filteredAndSortedLogs.map((log: ApiTelemetryRecord) => {
                   const date = new Date(log.timestamp);
                   const formattedDate = date.toLocaleString("es-CL", {
                     day: "2-digit",
@@ -851,8 +944,33 @@ export default function ApiUsagePage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-xs text-[#666666]">
-                    No se encontraron registros con los filtros seleccionados.
+                  <td colSpan={8} className="py-12 text-center text-xs">
+                    <div className="max-w-md mx-auto space-y-3">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-orange-50 flex items-center justify-center text-[#FF6B35]">
+                        <Clock className="w-6 h-6" />
+                      </div>
+                      <div className="text-sm font-bold text-[#1F3A5F]">
+                        Sin peticiones registradas aún
+                      </div>
+                      <p className="text-xs text-[#666666]">
+                        La telemetría está activa y a la escucha. Toda interacción real en la web (generación de ficha con IA, chat de Sommelier o pasarelas de pago) se auditará aquí en milisegundos y con el consumo exacto de tokens.
+                      </p>
+                      <div className="pt-2 flex items-center justify-center gap-3">
+                        <Link
+                          href="/admin/products"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#1F3A5F] hover:bg-[#162D4A] text-white text-xs font-bold transition shadow-xs"
+                        >
+                          Probar en Catálogo
+                        </Link>
+                        <Link
+                          href="/sommelier"
+                          target="_blank"
+                          className="px-3.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-[#FF6B35] text-xs font-bold transition border border-orange-200"
+                        >
+                          Consultar Sommelier IA
+                        </Link>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               )}

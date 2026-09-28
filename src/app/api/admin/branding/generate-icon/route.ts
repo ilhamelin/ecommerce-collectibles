@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
+import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 
 export const dynamic = "force-dynamic";
 
@@ -181,14 +182,16 @@ REGLAS DE DISEÑO:
 Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">...</svg>.`;
 
     const candidateModels = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3.6-flash",
-      "gemini-flash-latest",
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-2.0-flash",
+      "gemini-1.5-pro",
     ];
 
+    const callStartTime = Date.now();
     let generatedSvg = "";
     let modelUsed = "";
+    let lastErrorText = "";
 
     for (const model of candidateModels) {
       try {
@@ -221,15 +224,48 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
         if (geminiRes.ok) {
           const json = await geminiRes.json();
           const candidateText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          const promptTokens = json?.usageMetadata?.promptTokenCount;
+          const candidatesTokens = json?.usageMetadata?.candidatesTokenCount;
+          const totalTokens = json?.usageMetadata?.totalTokenCount;
+
+          void recordApiUsage({
+            provider: "GEMINI",
+            feature: "BRANDING_ICON",
+            endpoint: "/api/admin/branding/generate-icon",
+            model,
+            promptTokens,
+            candidatesTokens,
+            totalTokens,
+            latencyMs: Date.now() - callStartTime,
+            statusCode: 200,
+            success: true,
+          }).catch(() => {});
+
           if (candidateText && candidateText.includes("<svg") && candidateText.includes("</svg>")) {
             generatedSvg = sanitizeSvg(candidateText);
             modelUsed = model;
             break;
           }
+        } else {
+          lastErrorText = await geminiRes.text();
         }
-      } catch (geminiError) {
+      } catch (geminiError: unknown) {
+        lastErrorText = geminiError instanceof Error ? geminiError.message : String(geminiError);
         console.warn(`[GenerateIcon] Intento fallido con modelo ${model}:`, geminiError);
       }
+    }
+
+    if (!generatedSvg) {
+      void recordApiUsage({
+        provider: "GEMINI",
+        feature: "BRANDING_ICON",
+        endpoint: "/api/admin/branding/generate-icon",
+        model: modelUsed || candidateModels[0],
+        latencyMs: Date.now() - callStartTime,
+        statusCode: 502,
+        success: false,
+        errorMessage: lastErrorText,
+      }).catch(() => {});
     }
 
     // Si Gemini generó un SVG válido

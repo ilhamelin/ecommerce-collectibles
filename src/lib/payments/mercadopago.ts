@@ -1,5 +1,6 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ConfirmedOrderEntity } from "../types/domain";
+import { recordApiUsage } from "../services/apiTelemetryService";
 
 /**
  * Returns true if Mercado Pago credentials are configured in environment variables.
@@ -105,48 +106,71 @@ export async function createMercadoPagoPreference(
 
   const cleanRut = (order.customer.rut || "").replace(/[^0-9kK]/g, "").toUpperCase();
 
-  const response = await preference.create({
-    body: {
-      items,
-      payer: isSandbox
-        ? undefined
-        : {
-            name: firstName,
-            surname: lastName,
-            email: order.customer.email,
-            phone: {
-              number: order.customer.phone.replace(/[^0-9]/g, "").slice(-9),
+  const startTime = Date.now();
+  try {
+    const response = await preference.create({
+      body: {
+        items,
+        payer: isSandbox
+          ? undefined
+          : {
+              name: firstName,
+              surname: lastName,
+              email: order.customer.email,
+              phone: {
+                number: order.customer.phone.replace(/[^0-9]/g, "").slice(-9),
+              },
+              identification: cleanRut
+                ? {
+                    type: "RUT",
+                    number: cleanRut,
+                  }
+                : undefined,
+              address: {
+                street_name: order.customer.address,
+              },
             },
-            identification: cleanRut
-              ? {
-                  type: "RUT",
-                  number: cleanRut,
-                }
-              : undefined,
-            address: {
-              street_name: order.customer.address,
-            },
-          },
-      back_urls: {
-        success: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=approved`,
-        pending: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=pending`,
-        failure: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=failure`,
+        back_urls: {
+          success: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=approved`,
+          pending: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=pending`,
+          failure: `${baseUrl}/api/checkout/mercadopago/callback?orderId=${order.id}&status=failure`,
+        },
+        auto_return: baseUrl.startsWith("https://") ? "approved" : undefined,
+        notification_url: baseUrl.startsWith("https://") ? `${baseUrl}/api/checkout/mercadopago/webhook` : undefined,
+        external_reference: order.id,
+        statement_descriptor: "OMNICOLLECTOR",
+        payment_methods: {
+          installments: 6, // Mercado Pago Chile allows up to 6 installments without interest
+        },
       },
-      auto_return: baseUrl.startsWith("https://") ? "approved" : undefined,
-      notification_url: baseUrl.startsWith("https://") ? `${baseUrl}/api/checkout/mercadopago/webhook` : undefined,
-      external_reference: order.id,
-      statement_descriptor: "OMNICOLLECTOR",
-      payment_methods: {
-        installments: 6, // Mercado Pago Chile allows up to 6 installments without interest
-      },
-    },
-  });
+    });
 
-  return {
-    id: response.id || "",
-    initPoint: response.init_point || "",
-    sandboxInitPoint: response.sandbox_init_point || response.init_point || "",
-  };
+    void recordApiUsage({
+      provider: "MERCADOPAGO",
+      feature: "CHECKOUT",
+      endpoint: "/api/checkout/mercadopago",
+      latencyMs: Date.now() - startTime,
+      statusCode: 200,
+      success: true,
+    }).catch(() => {});
+
+    return {
+      id: response.id || "",
+      initPoint: response.init_point || "",
+      sandboxInitPoint: response.sandbox_init_point || response.init_point || "",
+    };
+  } catch (err: unknown) {
+    void recordApiUsage({
+      provider: "MERCADOPAGO",
+      feature: "CHECKOUT",
+      endpoint: "/api/checkout/mercadopago",
+      latencyMs: Date.now() - startTime,
+      statusCode: 500,
+      success: false,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    }).catch(() => {});
+    throw err;
+  }
 }
 
 /**

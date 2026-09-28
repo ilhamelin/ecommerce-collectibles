@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { ConfirmedOrderEntity } from "../types/domain";
+import { recordApiUsage } from "../services/apiTelemetryService";
 
 /**
  * Checks if Flow credentials are configured
@@ -59,6 +60,7 @@ export async function createFlowPaymentOrder(
   const s = signFlowParams(params, secretKey);
   params.s = s;
 
+  const startTime = Date.now();
   try {
     const formData = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => formData.append(k, String(v)));
@@ -68,7 +70,19 @@ export async function createFlowPaymentOrder(
       body: formData,
     });
 
+    const latencyMs = Date.now() - startTime;
     const data = await res.json();
+
+    void recordApiUsage({
+      provider: "FLOW",
+      feature: "CHECKOUT",
+      endpoint: "/api/checkout/flow",
+      latencyMs,
+      statusCode: res.status,
+      success: res.ok && Boolean(data.url && data.token),
+      errorMessage: !res.ok ? JSON.stringify(data) : undefined,
+    }).catch(() => {});
+
     if (data.url && data.token) {
       console.log(`[Flow] Orden creada exitosamente: flowOrder=${data.flowOrder}, token=${data.token}`);
       return {
@@ -83,7 +97,17 @@ export async function createFlowPaymentOrder(
       data,
     });
     return null;
-  } catch (err) {
+  } catch (err: unknown) {
+    void recordApiUsage({
+      provider: "FLOW",
+      feature: "CHECKOUT",
+      endpoint: "/api/checkout/flow",
+      latencyMs: Date.now() - startTime,
+      statusCode: 500,
+      success: false,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    }).catch(() => {});
+
     console.error("[Flow] Error connecting to Flow API:", err);
     return null;
   }

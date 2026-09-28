@@ -1807,10 +1807,44 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               },
             });
           }
+        } else {
+          // Gemini model returned error or no response
+          void recordApiUsage({
+            provider: "GEMINI",
+            feature: "AUTO_FILL_PRODUCT",
+            endpoint: "/api/admin/auto-fill-product",
+            model: usedGeminiModel,
+            latencyMs: Date.now() - autoFillStartTime,
+            statusCode: geminiRes ? geminiRes.status : 502,
+            success: false,
+            errorMessage: lastErrorText || "Model did not return successful response",
+          }).catch(() => {});
         }
       } catch (geminiErr: any) {
         console.warn("[Auto-Fill API] Gemini API call failed, using fallback engine:", geminiErr);
+        void recordApiUsage({
+          provider: "GEMINI",
+          feature: "AUTO_FILL_PRODUCT",
+          endpoint: "/api/admin/auto-fill-product",
+          model: usedGeminiModel,
+          latencyMs: Date.now() - autoFillStartTime,
+          statusCode: 500,
+          success: false,
+          errorMessage: geminiErr instanceof Error ? geminiErr.message : String(geminiErr),
+        }).catch(() => {});
       }
+    } else {
+      // Missing API key in environment
+      void recordApiUsage({
+        provider: "GEMINI",
+        feature: "AUTO_FILL_PRODUCT",
+        endpoint: "/api/admin/auto-fill-product",
+        model: "gemini-1.5-flash",
+        latencyMs: 1,
+        statusCode: 500,
+        success: false,
+        errorMessage: "Variable GEMINI_API_KEY no configurada en este entorno",
+      }).catch(() => {});
     }
 
     let geminiErrorDetail: string | null = null;

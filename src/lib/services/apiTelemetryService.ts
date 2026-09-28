@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import {
   TelemetryProvider,
   TelemetryFeature,
@@ -7,6 +8,8 @@ import {
   ApiUsageSummary,
   USD_TO_CLP_RATE,
 } from "@/lib/types/telemetry";
+import { adminDb } from "@/lib/firebase/admin";
+import { COLLECTIONS } from "@/lib/firebase/collections";
 
 export type {
   TelemetryProvider,
@@ -18,6 +21,7 @@ export { USD_TO_CLP_RATE };
 
 const DATA_DIR = path.join(process.cwd(), "src", "data");
 const TELEMETRY_DISK_PATH = path.join(DATA_DIR, "api_telemetry.json");
+const TELEMETRY_TMP_PATH = path.join(os.tmpdir(), "api_telemetry.json");
 
 // Gemini Pricing Reference (USD per 1,000,000 tokens)
 const GEMINI_PRICING: Record<string, { promptPerMillion: number; candidatePerMillion: number }> = {
@@ -39,19 +43,13 @@ function ensureDataDir(): void {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-  } catch (err) {
-    console.warn("[ApiTelemetryService] Could not ensure data directory:", err);
+  } catch {
+    // Read-only filesystem in Vercel - silent fallback
   }
 }
 
 /**
  * Calculates estimated USD cost for a Gemini API invocation based on token counts and model.
- *
- * @param model - Gemini model identifier (e.g. 'gemini-1.5-flash')
- * @param promptTokens - Number of input prompt tokens
- * @param candidatesTokens - Number of generated output tokens
- * @param totalTokens - Fallback total tokens if prompt/candidates are not separately provided
- * @returns Estimated cost in USD
  */
 export function calculateGeminiCostUsd(
   model?: string,
@@ -72,7 +70,6 @@ export function calculateGeminiCostUsd(
   }
 
   if (totalTokens && totalTokens > 0) {
-    // Balanced approximation: 60% prompt, 40% candidate
     const approxPrompt = totalTokens * 0.6;
     const approxCandidate = totalTokens * 0.4;
     const cost = (approxPrompt / 1_000_000) * pricing.promptPerMillion + (approxCandidate / 1_000_000) * pricing.candidatePerMillion;
@@ -83,44 +80,78 @@ export function calculateGeminiCostUsd(
 }
 
 /**
- * Reads telemetry records from memory cache or disk.
+ * Reads telemetry records from memory cache, Firestore or disk.
  * Returns only real recorded events. Never injects artificial seed data.
  */
 export function readTelemetryFromDisk(): ApiTelemetryRecord[] {
-  if (globalThis.__apiTelemetryGlobalStore !== undefined) {
+  if (globalThis.__apiTelemetryGlobalStore !== undefined && globalThis.__apiTelemetryGlobalStore.length > 0) {
     return globalThis.__apiTelemetryGlobalStore;
   }
 
+  // 1. Try local project disk
   try {
     if (fs.existsSync(TELEMETRY_DISK_PATH)) {
       const raw = fs.readFileSync(TELEMETRY_DISK_PATH, "utf-8");
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         globalThis.__apiTelemetryGlobalStore = parsed;
         return parsed;
       }
     }
-  } catch (err) {
-    console.warn("[ApiTelemetryService] Could not read telemetry from disk:", err);
-  }
+  } catch {}
+
+  // 2. Try tmp disk (Vercel serverless writable path)
+  try {
+    if (fs.existsSync(TELEMETRY_TMP_PATH)) {
+      const raw = fs.readFileSync(TELEMETRY_TMP_PATH, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        globalThis.__apiTelemetryGlobalStore = parsed;
+        return parsed;
+      }
+    }
+  } catch {}
 
   // Pure clean state if empty or file does not exist
-  globalThis.__apiTelemetryGlobalStore = [];
-  return [];
+  if (!globalThis.__apiTelemetryGlobalStore) {
+    globalThis.__apiTelemetryGlobalStore = [];
+  }
+  return globalThis.__apiTelemetryGlobalStore;
 }
 
 /**
- * Writes telemetry records to disk and updates in-memory singleton.
+ * Writes telemetry records to memory, disk and Cloud Firestore.
  */
 export function writeTelemetryToDisk(records: ApiTelemetryRecord[]): void {
+  const trimmed = records.slice(0, 1000);
+  globalThis.__apiTelemetryGlobalStore = trimmed;
+
+  // 1. Try local project disk
   try {
     ensureDataDir();
-    // Keep max 2,000 records to prevent memory/disk bloat
-    const trimmed = records.slice(0, 2000);
     fs.writeFileSync(TELEMETRY_DISK_PATH, JSON.stringify(trimmed, null, 2), "utf-8");
-    globalThis.__apiTelemetryGlobalStore = trimmed;
-  } catch (err) {
-    console.warn("[ApiTelemetryService] Could not write telemetry to disk:", err);
+  } catch {}
+
+  // 2. Try tmp dir (works in Vercel Serverless)
+  try {
+    fs.writeFileSync(TELEMETRY_TMP_PATH, JSON.stringify(trimmed, null, 2), "utf-8");
+  } catch {}
+
+  // 3. Persist asynchronously in Cloud Firestore across all Vercel instances
+  if (adminDb) {
+    adminDb
+      .collection(COLLECTIONS.KPI_SNAPSHOTS)
+      .doc("api_telemetry_store")
+      .set(
+        {
+          records: trimmed,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+      .catch((err) => {
+        console.warn("[ApiTelemetryService] Firestore async save warning:", err);
+      });
   }
 }
 
@@ -203,6 +234,21 @@ export async function recordApiUsage(
 export async function getTelemetrySummary(
   timeframe: "today" | "7d" | "30d" | "all" = "30d"
 ): Promise<ApiUsageSummary> {
+  // Sync from Cloud Firestore first (ensures multi-instance serverless lambdas in Vercel share fresh records)
+  if (adminDb) {
+    try {
+      const snap = await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("api_telemetry_store").get();
+      if (snap.exists) {
+        const docData = snap.data();
+        if (Array.isArray(docData?.records)) {
+          globalThis.__apiTelemetryGlobalStore = docData.records;
+        }
+      }
+    } catch (e) {
+      console.warn("[ApiTelemetryService] Could not sync telemetry from Firestore:", e);
+    }
+  }
+
   const allRecords = readTelemetryFromDisk();
 
   const now = new Date();
@@ -380,10 +426,17 @@ export async function getTelemetrySummary(
 }
 
 /**
- * Resets telemetry data to empty state.
+ * Resets telemetry data to empty state across disk and Firestore.
  */
 export async function clearTelemetryData(): Promise<void> {
   writeTelemetryToDisk([]);
+  if (adminDb) {
+    try {
+      await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("api_telemetry_store").delete();
+    } catch (e) {
+      console.warn("[ApiTelemetryService] Could not delete Firestore telemetry store:", e);
+    }
+  }
 }
 
 /**

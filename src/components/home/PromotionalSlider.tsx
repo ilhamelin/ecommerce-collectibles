@@ -26,6 +26,8 @@ import {
   SlideImagePosition,
   SlideImageBg,
 } from "@/lib/constants/sliderDefaults";
+import { catalogClient } from "@/lib/services/catalogClient";
+import type { ProductDomainEntity } from "@/lib/types/domain";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Clock,
@@ -99,30 +101,49 @@ function getImagePositionClass(pos?: SlideImagePosition): string {
   }
 }
 
-export function PromotionalSlider() {
-  const [slides, setSlides] = useState<PromoSlideData[]>(DEFAULT_PROMO_SLIDES);
+export interface PromotionalSliderProps {
+  initialProducts?: ProductDomainEntity[];
+}
+
+export function PromotionalSlider({ initialProducts }: PromotionalSliderProps = {}) {
+  const [slides, setSlides] = useState<PromoSlideData[]>(() => {
+    if (initialProducts && initialProducts.length === 0) return [];
+    return DEFAULT_PROMO_SLIDES;
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  // Fetch dynamic slides from admin configuration
+  // Fetch dynamic slides from admin configuration, verified against active products
   useEffect(() => {
     let isMounted = true;
-    fetch("/api/admin/slider")
-      .then((res) => res.json())
-      .then((json) => {
-        if (
-          isMounted &&
-          json.success &&
-          Array.isArray(json.data?.slides) &&
-          json.data.slides.length > 0
-        ) {
-          setSlides(json.data.slides);
-        }
-      })
-      .catch((err) => console.warn("Could not fetch custom slides:", err));
+
+    const loadSlides = () => {
+      fetch("/api/admin/slider")
+        .then((res) => res.json())
+        .then((json) => {
+          if (!isMounted) return;
+          if (json.success && Array.isArray(json.data?.slides)) {
+            setSlides(json.data.slides);
+          }
+        })
+        .catch((err) => console.warn("Could not fetch custom slides:", err));
+    };
+
+    loadSlides();
+
+    const unsub = catalogClient.subscribe((products) => {
+      if (!isMounted) return;
+      if (products.length === 0) {
+        setSlides([]);
+      } else {
+        loadSlides();
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsub();
     };
   }, []);
 
@@ -178,6 +199,10 @@ export function PromotionalSlider() {
     }
     touchStartX.current = null;
   };
+
+  if (!slides || slides.length === 0) {
+    return null;
+  }
 
   return (
     <section

@@ -195,8 +195,15 @@ function CatalogContent() {
         if (!isCancelled) setLoading(false);
       });
 
+    const unsubCatalog = catalogClient.subscribe((prods) => {
+      if (!isCancelled && Array.isArray(prods)) {
+        setProducts(prods);
+      }
+    });
+
     return () => {
       isCancelled = true;
+      unsubCatalog();
     };
   }, []);
 

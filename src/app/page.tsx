@@ -163,12 +163,12 @@ export default async function StorefrontHomePage() {
 
   try {
     const [firestoreProducts, firestoreDeleted, firestoreCustom] = await Promise.all([
-      getProductsFromFirestore().catch(() => []),
+      getProductsFromFirestore().catch(() => null),
       getDeletedNativeCategoriesFromFirestore().catch(() => []),
       getCustomCategoriesFromFirestore().catch(() => []),
     ]);
 
-    if (firestoreProducts && firestoreProducts.length > 0) {
+    if (firestoreProducts !== null) {
       initialProducts = firestoreProducts;
     } else {
       initialProducts = CatalogRepository.getInstance().getAll();
@@ -197,7 +197,7 @@ export default async function StorefrontHomePage() {
   return (
     <div className="space-y-12 sm:space-y-16 pb-20 relative">
       {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
-      <PromotionalSlider />
+      <PromotionalSlider initialProducts={initialProducts} />
 
       {/* 2. VISUAL CATEGORY EXPLORER BAR */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

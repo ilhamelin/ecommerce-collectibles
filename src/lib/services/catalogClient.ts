@@ -144,4 +144,62 @@ export const catalogClient = {
     memoryCatalogCache = null;
     inFlightCatalogPromise = null;
   },
+
+  /**
+   * Subscribes to catalog changes (create/update/delete).
+   */
+  subscribe(listener: (products: ProductDomainEntity[]) => void): () => void {
+    catalogListeners.add(listener);
+    return () => {
+      catalogListeners.delete(listener);
+    };
+  },
+
+  /**
+   * Notifies all components of catalog updates and broadcasts across tabs.
+   */
+  notifyListeners(products?: ProductDomainEntity[]): void {
+    if (products) {
+      memoryCatalogCache = {
+        data: products,
+        timestamp: Date.now(),
+      };
+      catalogListeners.forEach((l) => l(products));
+    } else {
+      this.invalidateCache();
+      this.getCatalog(true).then((prods) => {
+        catalogListeners.forEach((l) => l(prods));
+      });
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("omnicollector_catalog_changed"));
+      try {
+        localStorage.setItem("omnicollector_catalog_changed", String(Date.now()));
+      } catch {
+        // Ignore localStorage quota/access errors
+      }
+    }
+  },
 };
+
+type CatalogListener = (products: ProductDomainEntity[]) => void;
+const catalogListeners = new Set<CatalogListener>();
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === "omnicollector_catalog_changed") {
+      catalogClient.invalidateCache();
+      catalogClient.getCatalog(true).then((prods) => {
+        catalogListeners.forEach((l) => l(prods));
+      });
+    }
+  });
+
+  window.addEventListener("omnicollector_catalog_changed", () => {
+    catalogClient.invalidateCache();
+    catalogClient.getCatalog(true).then((prods) => {
+      catalogListeners.forEach((l) => l(prods));
+    });
+  });
+}

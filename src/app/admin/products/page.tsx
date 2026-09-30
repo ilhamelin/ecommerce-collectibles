@@ -38,6 +38,7 @@ import { getAdminHeaders } from "@/lib/auth/security";
 import { useAuthStore } from "@/lib/store/authStore";
 import { getProductCategoryInfo } from "@/lib/utils/category";
 import { categoryClient } from "@/lib/services/categoryClient";
+import { catalogClient } from "@/lib/services/catalogClient";
 import { toast } from "@/lib/store/toastStore";
 
 export default function AdminProductsListPage() {
@@ -103,6 +104,7 @@ export default function AdminProductsListPage() {
         setDeleteMsg(`¡Producto ${targetSku} eliminado con éxito de Cloud Firestore y del catálogo!`);
         toast.success("Producto eliminado", `SKU ${targetSku} eliminado de Cloud Firestore.`);
         setTimeout(() => setDeleteMsg(null), 5000);
+        catalogClient.notifyListeners();
         // Refresh with fresh database query to ensure absolute sync
         loadProducts(false);
       } else {
@@ -130,6 +132,7 @@ export default function AdminProductsListPage() {
       .then((data) => {
         if (data.success && Array.isArray(data.data?.products)) {
           setProducts(data.data.products);
+          catalogClient.notifyListeners(data.data.products);
         }
       })
       .catch((err) => console.error("Error cargando productos:", err))

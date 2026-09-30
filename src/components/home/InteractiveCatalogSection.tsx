@@ -85,19 +85,31 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
     return [...nativeFiltered, ...customTabs];
   }, [deletedNativeCategories, customCategories]);
 
-  // Refresco silencioso en segundo plano con deduplicación de red
+  // Sincronización reactiva con initialProducts cuando el servidor actualiza el estado
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
+  // Refresco silencioso en segundo plano con deduplicación de red y eventos en vivo
   useEffect(() => {
     let isCancelled = false;
     catalogClient.getCatalog()
       .then((prods) => {
-        if (!isCancelled && Array.isArray(prods) && prods.length > 0) {
+        if (!isCancelled && Array.isArray(prods)) {
           setProducts(prods);
         }
       })
       .catch(() => {});
 
+    const unsub = catalogClient.subscribe((prods) => {
+      if (!isCancelled && Array.isArray(prods)) {
+        setProducts(prods);
+      }
+    });
+
     return () => {
       isCancelled = true;
+      unsub();
     };
   }, []);
 

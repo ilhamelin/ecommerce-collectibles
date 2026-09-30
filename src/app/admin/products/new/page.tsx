@@ -1462,8 +1462,8 @@ export default function NewProductAdminPage() {
         setErrorMsg(data.error || "Ocurrió un error al registrar el producto");
       } else {
         const prod = data.data.product;
-        // Invalidate client catalog cache so new product appears immediately across site
-        catalogClient.invalidateCache();
+        // Invalidate and broadcast client catalog cache so new product appears immediately across site
+        catalogClient.notifyListeners();
 
         // Background client sync to Firestore if not confirmed by server
         if (!data.data?.syncedToFirestore) {

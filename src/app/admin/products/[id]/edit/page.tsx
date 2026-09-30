@@ -562,6 +562,7 @@ export default function EditProductAdminPage() {
         deleteProductFromFirestoreClient(productId).catch((e) =>
           console.warn("[Client Delete Sync]", e)
         );
+        catalogClient.notifyListeners();
         toast.success("Producto eliminado", `SKU ${sku} eliminado con éxito de Cloud Firestore.`);
         router.push("/admin/products");
       } else {

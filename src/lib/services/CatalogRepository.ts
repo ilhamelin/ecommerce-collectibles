@@ -188,8 +188,8 @@ export class CatalogRepository {
   }
 
   public syncWithFirestore(products: ProductDomainEntity[]): void {
-    if (!products || products.length === 0) return;
     this.store.products.clear();
+    if (!products || products.length === 0) return;
     for (const p of products) {
       this.store.products.set(p.id, p);
     }

@@ -157,19 +157,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: { product: sanitizeProductData(product) } });
     }
 
-    // Try fetching products from Firestore; if empty or unconfigured, fallback to local repo
+    // Try fetching products from Firestore; if available, Firestore is the authoritative source
     const fresh = searchParams.get("fresh") === "true" || searchParams.get("admin") === "true";
     const firestoreProducts = await getProductsFromFirestore(fresh);
 
-    // If Firestore has products, sync the local repository so fallbacks never show deleted zombie items
-    if (firestoreProducts && firestoreProducts.length > 0) {
+    // If Firestore is configured/accessible (even if 0 products exist because all were deleted)
+    if (firestoreProducts !== null) {
       repo.syncWithFirestore(firestoreProducts.map(sanitizeProductData));
+      const products = firestoreProducts.map(sanitizeProductData);
+      const response = NextResponse.json({
+        success: true,
+        data: {
+          products,
+          total: products.length,
+          source: "FIRESTORE_CLOUD",
+        },
+      });
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      response.headers.set("Pragma", "no-cache");
+      response.headers.set("Expires", "0");
+      return response;
     }
 
-    const rawProducts = (firestoreProducts && firestoreProducts.length > 0)
-      ? firestoreProducts
-      : repo.getAll();
-
+    const rawProducts = repo.getAll();
     const products = rawProducts.map(sanitizeProductData);
 
     const response = NextResponse.json({
@@ -177,7 +187,7 @@ export async function GET(request: NextRequest) {
       data: {
         products,
         total: products.length,
-        source: (firestoreProducts && firestoreProducts.length > 0) ? "FIRESTORE_CLOUD" : "LOCAL_FALLBACK",
+        source: "LOCAL_FALLBACK",
       },
     });
 
@@ -510,7 +520,7 @@ export async function DELETE(request: NextRequest) {
 
     // 3. Immediately re-sync local repo with fresh Firestore state if available
     const freshProducts = await getProductsFromFirestore(true);
-    if (freshProducts && freshProducts.length > 0) {
+    if (freshProducts !== null) {
       repo.syncWithFirestore(freshProducts);
     }
 

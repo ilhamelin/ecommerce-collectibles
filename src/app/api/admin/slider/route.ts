@@ -3,7 +3,9 @@ import { DEFAULT_PROMO_SLIDES, PromoSlideData } from "@/lib/constants/sliderDefa
 import {
   getSliderSettingsFromFirestore,
   saveSliderSettingsToFirestore,
+  getProductsFromFirestore,
 } from "@/lib/firebase/firestore";
+import { formatCLP } from "@/lib/utils/currency";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 
 // In-memory fallback cache to ensure instant reactivity even if Firestore is offline
@@ -11,15 +13,95 @@ let inMemorySlides: PromoSlideData[] = [...DEFAULT_PROMO_SLIDES];
 
 export async function GET(request: NextRequest) {
   try {
-    const firestoreSlides = await getSliderSettingsFromFirestore();
+    const { searchParams } = new URL(request.url);
+    const isAdminView = searchParams.get("admin") === "true";
 
-    if (firestoreSlides && Array.isArray(firestoreSlides) && firestoreSlides.length > 0) {
-      inMemorySlides = firestoreSlides as PromoSlideData[];
+    const [firestoreSlides, firestoreProducts] = await Promise.all([
+      getSliderSettingsFromFirestore(),
+      getProductsFromFirestore(true),
+    ]);
+
+    // Raw candidate slides from DB or default
+    const candidateSlides: PromoSlideData[] =
+      firestoreSlides && Array.isArray(firestoreSlides) && firestoreSlides.length > 0
+        ? (firestoreSlides as PromoSlideData[])
+        : inMemorySlides;
+
+    // If Firestore products are accessible
+    if (firestoreProducts !== null) {
+      // If 0 products exist in the store:
+      if (firestoreProducts.length === 0) {
+        if (!isAdminView) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              slides: [],
+              total: 0,
+              source: "FIRESTORE_EMPTY_CATALOG",
+            },
+          });
+        }
+      }
+
+      // Synchronize slides against real products:
+      // Filter out any slide whose linked product or /product/ link does NOT exist in the database!
+      const validSlides = candidateSlides.filter((slide) => {
+        // 1. If slide explicitly links to a SKU/ID:
+        if (slide.linkedProductSku) {
+          const skuLower = slide.linkedProductSku.toLowerCase().trim();
+          return firestoreProducts.some(
+            (p) => p.sku.toLowerCase().trim() === skuLower || p.id.toLowerCase().trim() === skuLower
+          );
+        }
+
+        // 2. If slide CTA points to /product/xxx:
+        if (slide.primaryCtaHref && slide.primaryCtaHref.startsWith("/product/")) {
+          const pathTarget = slide.primaryCtaHref.replace("/product/", "").split("?")[0].toLowerCase().trim();
+          return firestoreProducts.some(
+            (p) =>
+              p.sku.toLowerCase().trim() === pathTarget ||
+              p.id.toLowerCase().trim() === pathTarget ||
+              p.sku.toLowerCase().replace(/_/g, "-") === pathTarget
+          );
+        }
+
+        // 3. If it's a generic slide (e.g. /catalog) without a specific product link:
+        // Only keep if the store actually has products!
+        if (firestoreProducts.length === 0) {
+          return false;
+        }
+        return true;
+      }).map((slide) => {
+        // Live sync of product details (price, badge, image) if linked product exists
+        if (slide.linkedProductSku) {
+          const skuLower = slide.linkedProductSku.toLowerCase().trim();
+          const p = firestoreProducts.find(
+            (prod) => prod.sku.toLowerCase().trim() === skuLower || prod.id.toLowerCase().trim() === skuLower
+          );
+          if (p) {
+            let formattedPrice = formatCLP(p.price);
+            if (p.isPreOrder) {
+              const depositRate = p.figureMetadata?.minimumDepositPercent || 0.2;
+              formattedPrice = `Pie Inicial: ${formatCLP(Math.round(p.price * depositRate))}`;
+            }
+            return {
+              ...slide,
+              productBadge: slide.productBadge || p.name,
+              productPrice: formattedPrice,
+              image: p.imageUrl || (p.images && p.images[0]) || slide.image,
+              primaryCtaHref: `/product/${p.sku.toLowerCase()}`,
+            };
+          }
+        }
+        return slide;
+      });
+
       return NextResponse.json({
         success: true,
         data: {
-          slides: firestoreSlides,
-          source: "FIRESTORE",
+          slides: validSlides,
+          total: validSlides.length,
+          source: "FIRESTORE_VERIFIED",
         },
       });
     }
@@ -27,7 +109,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        slides: inMemorySlides,
+        slides: candidateSlides,
+        total: candidateSlides.length,
         source: "DEFAULT_FALLBACK",
       },
     });
@@ -36,7 +119,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        slides: inMemorySlides,
+        slides: [],
+        total: 0,
         source: "IN_MEMORY_FALLBACK",
       },
     });

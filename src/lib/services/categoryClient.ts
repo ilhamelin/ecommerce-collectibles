@@ -24,10 +24,38 @@ export const NATIVE_CATEGORY_IDS = [
 
 const CATEGORIES_CACHE_KEY = "omnicollector_custom_categories_cache";
 const DELETED_NATIVE_CACHE_KEY = "omnicollector_deleted_native_categories_cache";
+const CATEGORIES_EVENT = "omnicollector_categories_changed";
 let inMemoryCache: CustomCategoryEntity[] | null = null;
 let inMemoryDeletedNative: string[] | null = null;
 let lastFetchTime = 0;
-const CACHE_TTL_MS = 15000; // 15 seconds client-side cache
+const CACHE_TTL_MS = 10000; // 10 seconds client-side cache
+
+const listeners = new Set<() => void>();
+
+function notifyListeners() {
+  for (const listener of listeners) {
+    try {
+      listener();
+    } catch (e) {
+      console.warn("[categoryClient] Error in category change listener:", e);
+    }
+  }
+  if (typeof window !== "undefined") {
+    try {
+      window.dispatchEvent(new CustomEvent(CATEGORIES_EVENT));
+    } catch {}
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === CATEGORIES_CACHE_KEY || e.key === DELETED_NATIVE_CACHE_KEY) {
+      inMemoryCache = null;
+      inMemoryDeletedNative = null;
+      notifyListeners();
+    }
+  });
+}
 
 function mergeCategoryLists(
   primary: CustomCategoryEntity[],
@@ -197,6 +225,7 @@ export const categoryClient = {
           } catch {}
         }
 
+        notifyListeners();
         return { success: true, category: savedCategory };
       }
 
@@ -239,6 +268,7 @@ export const categoryClient = {
           } catch {}
         }
 
+        notifyListeners();
         return res.ok;
       }
 
@@ -268,6 +298,7 @@ export const categoryClient = {
         } catch {}
       }
 
+      notifyListeners();
       return res.ok;
     } catch {
       return false;
@@ -299,10 +330,21 @@ export const categoryClient = {
         } catch {}
       }
 
+      notifyListeners();
       return res.ok;
     } catch {
       return false;
     }
+  },
+
+  /**
+   * Subscribes to category updates across components.
+   */
+  subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
 
   /**
@@ -318,6 +360,7 @@ export const categoryClient = {
         localStorage.removeItem(DELETED_NATIVE_CACHE_KEY);
       } catch {}
     }
+    notifyListeners();
   },
 };
 

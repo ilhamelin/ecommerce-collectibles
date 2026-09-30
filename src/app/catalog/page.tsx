@@ -33,10 +33,12 @@ import {
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { formatCLP } from "@/lib/utils/currency";
 import { PRICE_PRESETS } from "@/lib/constants/catalog";
-import { ProductDomainEntity } from "@/lib/types/domain";
+import { ProductDomainEntity, CustomCategoryEntity } from "@/lib/types/domain";
 import { VisualSearchModal } from "@/components/catalog/VisualSearchModal";
 import { getProductCategoryInfo } from "@/lib/utils/category";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { categoryClient } from "@/lib/services/categoryClient";
+import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
 
 const CUSTOM_CATEGORIES_METADATA: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; bannerBadge: string; bannerTitle: string; bannerDesc: string }> = {
   CONSOLE: {
@@ -132,6 +134,33 @@ function CatalogContent() {
   const [merchTypeFilter, setMerchTypeFilter] = useState<string>("ALL");
   const [audioFormatFilter, setAudioFormatFilter] = useState<string>("ALL");
 
+  // Dynamic custom categories and deleted native exclusions from DB
+  const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
+  const [deletedNativeCategories, setDeletedNativeCategories] = useState<string[]>([]);
+
+  // Sync custom and deleted native categories from categoryClient
+  useEffect(() => {
+    let active = true;
+    const syncCats = () => {
+      Promise.all([
+        categoryClient.getDeletedNativeCategories(),
+        categoryClient.getCategories(),
+      ]).then(([deleted, custom]) => {
+        if (!active) return;
+        if (Array.isArray(deleted)) setDeletedNativeCategories(deleted);
+        if (Array.isArray(custom)) setCustomCategories(custom);
+      });
+    };
+
+    syncCats();
+    const unsubscribe = categoryClient.subscribe(syncCats);
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
   // Visual search modal state
   const [isVisualSearchOpen, setIsVisualSearchOpen] = useState(false);
 
@@ -213,6 +242,16 @@ function CatalogContent() {
         }
         counts.OTHER++;
       }
+
+      // Count custom categories by name and id
+      const cLabel = (p as any).customCategoryLabel;
+      const cType = (p as any).customSpecifications?.categoryType;
+      if (cLabel) {
+        counts[cLabel] = (counts[cLabel] || 0) + 1;
+      }
+      if (cType) {
+        counts[cType] = (counts[cType] || 0) + 1;
+      }
     }
     return counts;
   }, [products]);
@@ -282,9 +321,21 @@ function CatalogContent() {
           // Direct type match
         } else if (product.type === "OTHER") {
           const customKey = getProductCustomCategoryKey(product);
+          const pLabel = (product.customCategoryLabel || "").toLowerCase();
+          const pType = (product.customSpecifications?.categoryType || "").toLowerCase();
+          const targetLower = selectedCategory.toLowerCase();
+          const matchedEntity = customCategories.find(
+            (c) => c.id === selectedCategory || c.name.toLowerCase() === targetLower
+          );
+
           if (selectedCategory === "OTHER") {
             // Match any other category
-          } else if (selectedCategory === customKey) {
+          } else if (
+            selectedCategory === customKey ||
+            pLabel === targetLower ||
+            pType === targetLower ||
+            (matchedEntity && (pLabel === matchedEntity.name.toLowerCase() || pType === matchedEntity.id.toLowerCase()))
+          ) {
             // Match specific custom category
           } else {
             return false;
@@ -624,7 +675,9 @@ function CatalogContent() {
             { id: "FIGURE", label: "Figuras de Escala", icon: Sparkles, count: categoryCounts.FIGURE },
             { id: "COLLECTIBLE", label: "TCG & Rarezas PSA", icon: Trophy, count: categoryCounts.COLLECTIBLE },
             { id: "BUNDLE", label: "Bundles Compuestos", icon: Layers, count: categoryCounts.BUNDLE },
-          ].map((cat) => {
+          ]
+            .filter((c) => c.id === "ALL" || !deletedNativeCategories.includes(c.id))
+            .map((cat) => {
             const isSelected = selectedCategory === cat.id;
             const Icon = cat.icon;
             return (
@@ -661,13 +714,21 @@ function CatalogContent() {
             Nuevas Categorías Especializadas
           </label>
           {[
-            { id: "CONSOLE", label: "Consolas", icon: Tv, count: categoryCounts.CONSOLE },
-            { id: "HARDWARE", label: "Hardware & Componentes", icon: Cpu, count: categoryCounts.HARDWARE },
-            { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones, count: categoryCounts.GAMING_ACCESSORY },
-            { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt, count: categoryCounts.APPAREL },
-            { id: "BOOK", label: "Manga / Artbook", icon: BookOpen, count: categoryCounts.BOOK },
-            { id: "MERCH", label: "Merchandising", icon: Gift, count: categoryCounts.MERCH },
-            { id: "AUDIO", label: "Audio / OST", icon: Disc3, count: categoryCounts.AUDIO },
+            ...([
+              { id: "CONSOLE", label: "Consolas", icon: Tv, count: categoryCounts.CONSOLE || 0 },
+              { id: "HARDWARE", label: "Hardware & Componentes", icon: Cpu, count: categoryCounts.HARDWARE || 0 },
+              { id: "GAMING_ACCESSORY", label: "Accesorio Gaming", icon: Headphones, count: categoryCounts.GAMING_ACCESSORY || 0 },
+              { id: "APPAREL", label: "Ropa & Estilo", icon: Shirt, count: categoryCounts.APPAREL || 0 },
+              { id: "BOOK", label: "Manga / Artbook", icon: BookOpen, count: categoryCounts.BOOK || 0 },
+              { id: "MERCH", label: "Merchandising", icon: Gift, count: categoryCounts.MERCH || 0 },
+              { id: "AUDIO", label: "Audio / OST", icon: Disc3, count: categoryCounts.AUDIO || 0 },
+            ].filter((c) => !deletedNativeCategories.includes(c.id))),
+            ...customCategories.map((c) => ({
+              id: c.id,
+              label: c.name,
+              icon: getCategoryIconComponent(c.iconName),
+              count: categoryCounts[c.id] || categoryCounts[c.name] || 0,
+            })),
           ].map((cat) => {
             const isSelected = selectedCategory === cat.id;
             const Icon = cat.icon;

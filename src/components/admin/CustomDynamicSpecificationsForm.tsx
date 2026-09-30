@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useId, useCallback } from "react";
+import React, { useState, useEffect, useRef, useId, useCallback } from "react";
 import {
   Tag,
   Plus,
@@ -183,6 +183,65 @@ export const CustomDynamicSpecificationsForm: React.FC<CustomDynamicSpecificatio
     },
     [categoryName, onChange, value]
   );
+
+  // Sync fields whenever customCategoryTemplate changes or is fetched from Firestore
+  const templateKey = customCategoryTemplate
+    ? `${customCategoryTemplate.id}_${customCategoryTemplate.updatedAt || customCategoryTemplate.createdAt || ""}`
+    : "";
+  const lastTemplateKeyRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!customCategoryTemplate) return;
+    if (lastTemplateKeyRef.current === templateKey) return;
+    lastTemplateKeyRef.current = templateKey;
+
+    let nextSubtypes = subtypes;
+    let nextSelectedSubtype = selectedSubtype;
+
+    if (customCategoryTemplate.availableSubtypes && customCategoryTemplate.availableSubtypes.length > 0) {
+      nextSubtypes = customCategoryTemplate.availableSubtypes;
+      setSubtypes(nextSubtypes);
+      if (!selectedSubtype || !customCategoryTemplate.availableSubtypes.includes(selectedSubtype)) {
+        nextSelectedSubtype = customCategoryTemplate.availableSubtypes[0] || "";
+        setSelectedSubtype(nextSelectedSubtype);
+      }
+    }
+
+    const existingValues: Record<string, string> = {};
+    (value.basicSpecs || value.customDynamic?.basicSpecs || basicSpecs || []).forEach((s) => {
+      if (s.name) existingValues[s.name.toLowerCase().trim()] = s.value;
+    });
+    (value.advancedSpecs || value.customDynamic?.advancedSpecs || advancedSpecs || []).forEach((s) => {
+      if (s.name) existingValues[s.name.toLowerCase().trim()] = s.value;
+    });
+    if (value.custom) {
+      Object.entries(value.custom).forEach(([k, v]) => {
+        existingValues[k.toLowerCase().trim()] = String(v);
+      });
+    }
+
+    let nextBasic = basicSpecs;
+    if (customCategoryTemplate.basicSpecFields && customCategoryTemplate.basicSpecFields.length > 0) {
+      nextBasic = customCategoryTemplate.basicSpecFields.map((f) => ({
+        id: f.id || generateId(),
+        name: f.name,
+        value: existingValues[f.name.toLowerCase().trim()] ?? (f.defaultValue || ""),
+      }));
+      setBasicSpecs(nextBasic);
+    }
+
+    let nextAdvanced = advancedSpecs;
+    if (customCategoryTemplate.advancedSpecFields && customCategoryTemplate.advancedSpecFields.length > 0) {
+      nextAdvanced = customCategoryTemplate.advancedSpecFields.map((f) => ({
+        id: f.id || generateId(),
+        name: f.name,
+        value: existingValues[f.name.toLowerCase().trim()] ?? (f.defaultValue || ""),
+      }));
+      setAdvancedSpecs(nextAdvanced);
+    }
+
+    syncToParent(nextSubtypes, nextSelectedSubtype, nextBasic, nextAdvanced);
+  }, [customCategoryTemplate, templateKey, syncToParent]);
 
   // Subtype handlers
   const handleAddSubtype = () => {

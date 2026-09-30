@@ -40,6 +40,9 @@ import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandi
 import { DEFAULT_ANNOUNCEMENT_DATA, StoreAnnouncementData } from "@/lib/constants/announcementDefaults";
 import { getProductCategoryInfo } from "@/lib/utils/category";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { categoryClient } from "@/lib/services/categoryClient";
+import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
+import type { CustomCategoryEntity } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
 
 let cachedBranding: StoreBrandingData | null = null;
@@ -55,6 +58,10 @@ function StoreNavbarContent() {
   const totals = getTotals();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Dynamic custom categories and deleted native exclusions
+  const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
+  const [deletedNativeCategories, setDeletedNativeCategories] = useState<string[]>([]);
 
   const wishlistCount = mounted
     ? currentUser
@@ -112,6 +119,29 @@ function StoreNavbarContent() {
     };
   }, [isDropdownOpen]);
 
+  // Sync custom categories & deleted native categories from categoryClient
+  useEffect(() => {
+    let active = true;
+    const syncCategories = () => {
+      Promise.all([
+        categoryClient.getDeletedNativeCategories(),
+        categoryClient.getCategories(),
+      ]).then(([deleted, custom]) => {
+        if (!active) return;
+        if (Array.isArray(deleted)) setDeletedNativeCategories(deleted);
+        if (Array.isArray(custom)) setCustomCategories(custom);
+      });
+    };
+
+    syncCategories();
+    const unsubscribe = categoryClient.subscribe(syncCategories);
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
   // Fetch dynamic product counts per category with in-flight deduplication & micro-cache
   useEffect(() => {
     let isCancelled = false;
@@ -140,6 +170,13 @@ function StoreNavbarContent() {
             counts[catKey]++;
           } else {
             counts.OTHER++;
+          }
+
+          if (p.customCategoryLabel) {
+            counts[p.customCategoryLabel] = (counts[p.customCategoryLabel] || 0) + 1;
+          }
+          if (p.customSpecifications?.categoryType) {
+            counts[p.customSpecifications.categoryType] = (counts[p.customSpecifications.categoryType] || 0) + 1;
           }
         }
         setCategoryCounts(counts);
@@ -222,7 +259,7 @@ function StoreNavbarContent() {
     { href: "/catalog?category=CONSOLE", label: "Consolas", icon: Tv, categoryKey: "CONSOLE" },
     { href: "/catalog?category=HARDWARE", label: "Hardware", icon: Cpu, categoryKey: "HARDWARE" },
     { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios", icon: Headphones, categoryKey: "GAMING_ACCESSORY" },
-  ];
+  ].filter((item) => !item.categoryKey || !deletedNativeCategories.includes(item.categoryKey));
 
   const quickNavCategories = [
     { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", categoryKey: "VIDEO_GAME" },
@@ -232,7 +269,7 @@ function StoreNavbarContent() {
     { href: "/catalog?category=CONSOLE", label: "Consolas", categoryKey: "CONSOLE" },
     { href: "/catalog?category=HARDWARE", label: "Hardware", categoryKey: "HARDWARE" },
     { href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios", categoryKey: "GAMING_ACCESSORY" },
-  ];
+  ].filter((item) => !deletedNativeCategories.includes(item.categoryKey));
 
   const coreCategories = [
     {
@@ -271,9 +308,9 @@ function StoreNavbarContent() {
       gradient: "from-emerald-500 to-teal-600",
       count: categoryCounts.BUNDLE,
     },
-  ];
+  ].filter((item) => !deletedNativeCategories.includes(item.key));
 
-  const specializedCategories = [
+  const nativeSpecialized = [
     { key: "CONSOLE", href: "/catalog?category=CONSOLE", label: "Consolas", icon: Tv, count: categoryCounts.CONSOLE },
     { key: "HARDWARE", href: "/catalog?category=HARDWARE", label: "Hardware & PC", icon: Cpu, count: categoryCounts.HARDWARE },
     { key: "GAMING_ACCESSORY", href: "/catalog?category=GAMING_ACCESSORY", label: "Accesorios Gaming", icon: Headphones, count: categoryCounts.GAMING_ACCESSORY },
@@ -281,6 +318,19 @@ function StoreNavbarContent() {
     { key: "BOOK", href: "/catalog?category=BOOK", label: "Manga & Artbooks", icon: BookOpen, count: categoryCounts.BOOK },
     { key: "MERCH", href: "/catalog?category=MERCH", label: "Merchandising", icon: Gift, count: categoryCounts.MERCH },
     { key: "AUDIO", href: "/catalog?category=AUDIO", label: "Audio & OST", icon: Disc3, count: categoryCounts.AUDIO },
+  ].filter((item) => !deletedNativeCategories.includes(item.key));
+
+  const customSpecialized = customCategories.map((c) => ({
+    key: c.id,
+    href: `/catalog?category=${encodeURIComponent(c.id)}`,
+    label: c.name,
+    icon: getCategoryIconComponent(c.iconName),
+    count: categoryCounts[c.id] || categoryCounts[c.name] || 0,
+  }));
+
+  const specializedCategories = [
+    ...nativeSpecialized,
+    ...customSpecialized,
     { key: "OTHER", href: "/catalog?category=OTHER", label: "Otras Categorías", icon: Boxes, count: categoryCounts.OTHER },
   ];
 

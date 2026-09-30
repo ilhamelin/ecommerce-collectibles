@@ -162,7 +162,9 @@ export async function getCustomCategoriesFromFirestoreClient(): Promise<CustomCa
     const colRef = collection(db, COLLECTIONS.CUSTOM_CATEGORIES);
     const snap = await getDocs(colRef);
     if (!snap.empty) {
-      return snap.docs.map((d) => d.data() as CustomCategoryEntity);
+      return snap.docs
+        .filter((d) => d.id !== "_deleted_native_categories_" && !d.id.startsWith("_"))
+        .map((d) => d.data() as CustomCategoryEntity);
     }
     return [];
   } catch (err) {

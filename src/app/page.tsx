@@ -23,9 +23,10 @@ import {
 } from "lucide-react";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
 import { InteractiveCatalogSection } from "@/components/home/InteractiveCatalogSection";
-import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { getProductsFromFirestore, getDeletedNativeCategoriesFromFirestore, getCustomCategoriesFromFirestore } from "@/lib/firebase/firestore";
+import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
 import { CatalogRepository } from "@/lib/services/CatalogRepository";
-import type { ProductDomainEntity } from "@/lib/types/domain";
+import type { ProductDomainEntity, CustomCategoryEntity } from "@/lib/types/domain";
 
 // Revalidación Incremental (ISR) cada 2 minutos en Edge/Vercel
 export const revalidate = 120;
@@ -157,18 +158,41 @@ const CATEGORIES_NAV = [
 export default async function StorefrontHomePage() {
   // Carga paralela resiliente en el servidor (RSC)
   let initialProducts: ProductDomainEntity[] = [];
+  let deletedIds: string[] = [];
+  let customCategories: CustomCategoryEntity[] = [];
 
   try {
-    const firestoreProducts = await getProductsFromFirestore();
+    const [firestoreProducts, firestoreDeleted, firestoreCustom] = await Promise.all([
+      getProductsFromFirestore().catch(() => []),
+      getDeletedNativeCategoriesFromFirestore().catch(() => []),
+      getCustomCategoriesFromFirestore().catch(() => []),
+    ]);
+
     if (firestoreProducts && firestoreProducts.length > 0) {
       initialProducts = firestoreProducts;
     } else {
       initialProducts = CatalogRepository.getInstance().getAll();
     }
+    deletedIds = firestoreDeleted || [];
+    customCategories = firestoreCustom || [];
   } catch (err) {
     console.warn("[StorefrontHomePage] Fallback to local catalog store:", err);
     initialProducts = CatalogRepository.getInstance().getAll();
   }
+
+  const activeCategoriesNav = [
+    ...CATEGORIES_NAV.filter((cat) => !deletedIds.includes(cat.id)),
+    ...customCategories.map((c) => ({
+      id: c.id,
+      title: c.name,
+      subtitle: c.description || "Categoría Especializada",
+      href: `/catalog?category=${c.slug || c.id}`,
+      icon: getCategoryIconComponent(c.iconName),
+      badge: "Nueva",
+      accent: "hover:border-[#FF6B35]/50 hover:bg-orange-50/30",
+      iconBg: "bg-orange-50 text-[#FF6B35] border-orange-200/60",
+    })),
+  ];
 
   return (
     <div className="space-y-12 sm:space-y-16 pb-20 relative">
@@ -187,7 +211,7 @@ export default async function StorefrontHomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {CATEGORIES_NAV.map((cat) => {
+          {activeCategoriesNav.map((cat) => {
             const IconComponent = cat.icon;
             return (
               <Link

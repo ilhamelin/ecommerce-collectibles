@@ -124,17 +124,22 @@ export default function NewProductAdminPage() {
   const [deleteSuccessMessage, setDeleteSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    categoryClient.getCategories().then((cats) => {
-      if (Array.isArray(cats)) {
-        setCustomCategories(cats);
-      }
-    });
+    const refreshCategories = () => {
+      categoryClient.getCategories().then((cats) => {
+        if (Array.isArray(cats)) {
+          setCustomCategories(cats);
+        }
+      });
 
-    categoryClient.getDeletedNativeCategories().then((deletedIds) => {
-      if (Array.isArray(deletedIds)) {
-        setDeletedNativeCategories(deletedIds);
-      }
-    });
+      categoryClient.getDeletedNativeCategories().then((deletedIds) => {
+        if (Array.isArray(deletedIds)) {
+          setDeletedNativeCategories(deletedIds);
+        }
+      });
+    };
+
+    refreshCategories();
+    const unsubscribe = categoryClient.subscribe(refreshCategories);
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -151,6 +156,8 @@ export default function NewProductAdminPage() {
         });
       }
     }
+
+    return () => unsubscribe();
   }, []);
 
   const selectedCustomCategory = customCategories.find(

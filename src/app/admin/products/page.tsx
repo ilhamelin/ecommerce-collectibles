@@ -32,11 +32,12 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
-import { ProductDomainEntity, ProductType } from "@/lib/types/domain";
+import { ProductDomainEntity, ProductType, CustomCategoryEntity } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { useAuthStore } from "@/lib/store/authStore";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { categoryClient } from "@/lib/services/categoryClient";
 import { toast } from "@/lib/store/toastStore";
 
 export default function AdminProductsListPage() {
@@ -45,6 +46,30 @@ export default function AdminProductsListPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("ALL");
+  const [deletedNativeCategories, setDeletedNativeCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
+
+  // Sync custom and deleted native categories from categoryClient
+  useEffect(() => {
+    let active = true;
+    const syncCats = () => {
+      Promise.all([
+        categoryClient.getDeletedNativeCategories(),
+        categoryClient.getCategories(),
+      ]).then(([deleted, custom]) => {
+        if (!active) return;
+        if (Array.isArray(deleted)) setDeletedNativeCategories(deleted);
+        if (Array.isArray(custom)) setCustomCategories(custom);
+      });
+    };
+
+    syncCats();
+    const unsub = categoryClient.subscribe(syncCats);
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, []);
   const [firebaseStatus, setFirebaseStatus] = useState<{
     mode: "FIREBASE_CLOUD" | "LOCAL_FALLBACK";
     message: string;
@@ -168,9 +193,24 @@ export default function AdminProductsListPage() {
       // Category filter matching standard types and custom categories
       if (selectedType !== "ALL") {
         const catKey = p.type !== "OTHER" ? p.type : getProductCategoryInfo(p).key;
+        const pLabel = (p.customCategoryLabel || "").toLowerCase();
+        const pType = (p.customSpecifications?.categoryType || "").toLowerCase();
+        const targetLower = selectedType.toLowerCase();
+
+        const matchedCustom = customCategories.find(
+          (c) => c.id === selectedType || c.name.toLowerCase() === targetLower
+        );
+
         if (selectedType === "OTHER") {
           if (p.type !== "OTHER") return false;
-        } else if (catKey !== selectedType) {
+        } else if (
+          catKey === selectedType ||
+          pLabel === targetLower ||
+          pType === targetLower ||
+          (matchedCustom && (pLabel === matchedCustom.name.toLowerCase() || pType === matchedCustom.id.toLowerCase()))
+        ) {
+          // match
+        } else {
           return false;
         }
       }
@@ -225,7 +265,7 @@ export default function AdminProductsListPage() {
     });
 
     return list;
-  }, [products, selectedType, searchQuery, sortKey, sortOrder]);
+  }, [products, selectedType, searchQuery, sortKey, sortOrder, customCategories]);
 
   // Real-time counts for categories
   const adminCategoryCounts = useMemo(() => {
@@ -251,6 +291,14 @@ export default function AdminProductsListPage() {
       }
       if (p.type === "OTHER") {
         counts.OTHER++;
+      }
+
+      // Count custom categories by name and id
+      if (p.customCategoryLabel) {
+        counts[p.customCategoryLabel] = (counts[p.customCategoryLabel] || 0) + 1;
+      }
+      if (p.customSpecifications?.categoryType) {
+        counts[p.customSpecifications.categoryType] = (counts[p.customSpecifications.categoryType] || 0) + 1;
       }
     }
     return counts;
@@ -538,45 +586,48 @@ export default function AdminProductsListPage() {
                   Todas las Categorías ({adminCategoryCounts.ALL})
                 </option>
                 <optgroup label="── Categorías Principales ──" className="bg-[#092634] text-[#FF6E42] font-bold">
-                  <option value="VIDEO_GAME" className="bg-[#092634] text-[#F9F9F9]">
-                    🎮 Videojuegos ({adminCategoryCounts.VIDEO_GAME})
-                  </option>
-                  <option value="FIGURE" className="bg-[#092634] text-[#F9F9F9]">
-                    🎎 Figuras de Escala ({adminCategoryCounts.FIGURE})
-                  </option>
-                  <option value="COLLECTIBLE" className="bg-[#092634] text-[#F9F9F9]">
-                    🏆 TCG & Rarezas PSA ({adminCategoryCounts.COLLECTIBLE})
-                  </option>
-                  <option value="BUNDLE" className="bg-[#092634] text-[#F9F9F9]">
-                    📦 Bundles Compuestos ({adminCategoryCounts.BUNDLE})
-                  </option>
+                  {[
+                    { id: "VIDEO_GAME", label: "🎮 Videojuegos", count: adminCategoryCounts.VIDEO_GAME || 0 },
+                    { id: "FIGURE", label: "🎎 Figuras de Escala", count: adminCategoryCounts.FIGURE || 0 },
+                    { id: "COLLECTIBLE", label: "🏆 TCG & Rarezas PSA", count: adminCategoryCounts.COLLECTIBLE || 0 },
+                    { id: "BUNDLE", label: "📦 Bundles Compuestos", count: adminCategoryCounts.BUNDLE || 0 },
+                  ]
+                    .filter((c) => !deletedNativeCategories.includes(c.id))
+                    .map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-[#092634] text-[#F9F9F9]">
+                        {cat.label} ({cat.count})
+                      </option>
+                    ))}
                 </optgroup>
                 <optgroup label="── Categorías Especializadas ──" className="bg-[#092634] text-[#FF6E42] font-bold">
-                  <option value="CONSOLE" className="bg-[#092634] text-[#F9F9F9]">
-                    🕹️ Consolas ({adminCategoryCounts.CONSOLE})
-                  </option>
-                  <option value="HARDWARE" className="bg-[#092634] text-[#F9F9F9]">
-                    🖥️ Hardware & Componentes ({adminCategoryCounts.HARDWARE})
-                  </option>
-                  <option value="GAMING_ACCESSORY" className="bg-[#092634] text-[#F9F9F9]">
-                    🎧 Accesorios Gaming ({adminCategoryCounts.GAMING_ACCESSORY})
-                  </option>
-                  <option value="APPAREL" className="bg-[#092634] text-[#F9F9F9]">
-                    👕 Ropa & Estilo ({adminCategoryCounts.APPAREL})
-                  </option>
-                  <option value="BOOK" className="bg-[#092634] text-[#F9F9F9]">
-                    📖 Manga / Artbooks ({adminCategoryCounts.BOOK})
-                  </option>
-                  <option value="MERCH" className="bg-[#092634] text-[#F9F9F9]">
-                    🎁 Merchandising ({adminCategoryCounts.MERCH})
-                  </option>
-                  <option value="AUDIO" className="bg-[#092634] text-[#F9F9F9]">
-                    💿 Audio / OST ({adminCategoryCounts.AUDIO})
-                  </option>
+                  {[
+                    { id: "CONSOLE", label: "🕹️ Consolas", count: adminCategoryCounts.CONSOLE || 0 },
+                    { id: "HARDWARE", label: "🖥️ Hardware & Componentes", count: adminCategoryCounts.HARDWARE || 0 },
+                    { id: "GAMING_ACCESSORY", label: "🎧 Accesorios Gaming", count: adminCategoryCounts.GAMING_ACCESSORY || 0 },
+                    { id: "APPAREL", label: "👕 Ropa & Estilo", count: adminCategoryCounts.APPAREL || 0 },
+                    { id: "BOOK", label: "📖 Manga / Artbooks", count: adminCategoryCounts.BOOK || 0 },
+                    { id: "MERCH", label: "🎁 Merchandising", count: adminCategoryCounts.MERCH || 0 },
+                    { id: "AUDIO", label: "💿 Audio / OST", count: adminCategoryCounts.AUDIO || 0 },
+                  ]
+                    .filter((c) => !deletedNativeCategories.includes(c.id))
+                    .map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-[#092634] text-[#F9F9F9]">
+                        {cat.label} ({cat.count})
+                      </option>
+                    ))}
                   <option value="OTHER" className="bg-[#092634] text-[#F9F9F9]">
-                    🧩 Otras Categorías ({adminCategoryCounts.OTHER})
+                    🧩 Otras Categorías ({adminCategoryCounts.OTHER || 0})
                   </option>
                 </optgroup>
+                {customCategories.length > 0 && (
+                  <optgroup label="── Categorías Creadas en BD ──" className="bg-[#092634] text-[#00E5FF] font-bold">
+                    {customCategories.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-[#092634] text-[#F9F9F9]">
+                        ✨ {c.name} ({adminCategoryCounts[c.id] || adminCategoryCounts[c.name] || 0})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               <ChevronDown className="w-4 h-4 text-[#9bb5c2] absolute right-3 top-3.5 pointer-events-none" />
             </div>

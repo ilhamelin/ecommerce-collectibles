@@ -1178,13 +1178,17 @@ export async function restoreProductStockAtomic(
  * ============================================================================
  */
 
+const DELETED_NATIVE_DOC_ID = "_deleted_native_categories_";
+
 export async function getCustomCategoriesFromFirestore(): Promise<CustomCategoryEntity[]> {
   try {
     // 1. Server Admin SDK
     if (typeof window === "undefined" && adminDb) {
       const snap = await adminDb.collection(COLLECTIONS.CUSTOM_CATEGORIES).get();
       if (!snap.empty) {
-        return snap.docs.map((d) => d.data() as CustomCategoryEntity);
+        return snap.docs
+          .filter((d) => d.id !== DELETED_NATIVE_DOC_ID && !d.id.startsWith("_"))
+          .map((d) => d.data() as CustomCategoryEntity);
       }
     }
 
@@ -1193,7 +1197,9 @@ export async function getCustomCategoriesFromFirestore(): Promise<CustomCategory
       const colRef = collection(db, COLLECTIONS.CUSTOM_CATEGORIES);
       const snap = await getDocs(colRef);
       if (!snap.empty) {
-        return snap.docs.map((d) => d.data() as CustomCategoryEntity);
+        return snap.docs
+          .filter((d) => d.id !== DELETED_NATIVE_DOC_ID && !d.id.startsWith("_"))
+          .map((d) => d.data() as CustomCategoryEntity);
       }
     }
 
@@ -1239,6 +1245,71 @@ export async function deleteCustomCategoryFromFirestore(categoryId: string): Pro
     return false;
   } catch (err) {
     console.error("[Firestore] Error deleting custom category:", err);
+    return false;
+  }
+}
+
+/**
+ * Retrieves the list of deleted native category IDs from Cloud Firestore (Server SDK).
+ */
+export async function getDeletedNativeCategoriesFromFirestore(): Promise<string[]> {
+  try {
+    if (typeof window === "undefined" && adminDb) {
+      const docSnap = await adminDb
+        .collection(COLLECTIONS.CUSTOM_CATEGORIES)
+        .doc(DELETED_NATIVE_DOC_ID)
+        .get();
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data && Array.isArray(data.ids)) {
+          return data.ids as string[];
+        }
+      }
+    }
+
+    if (db && isFirebaseConfigured()) {
+      const snap = await getDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, DELETED_NATIVE_DOC_ID));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && Array.isArray(data.ids)) {
+          return data.ids as string[];
+        }
+      }
+    }
+
+    return [];
+  } catch (err) {
+    console.warn("[Firestore] Error reading deleted native categories:", err);
+    return [];
+  }
+}
+
+/**
+ * Persists the list of deleted native category IDs to Cloud Firestore (Server SDK).
+ */
+export async function saveDeletedNativeCategoriesToFirestore(ids: string[]): Promise<boolean> {
+  try {
+    const payload = {
+      ids,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (typeof window === "undefined" && adminDb) {
+      await adminDb
+        .collection(COLLECTIONS.CUSTOM_CATEGORIES)
+        .doc(DELETED_NATIVE_DOC_ID)
+        .set(payload, { merge: true });
+      return true;
+    }
+
+    if (db && isFirebaseConfigured()) {
+      await setDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, DELETED_NATIVE_DOC_ID), payload, { merge: true });
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    console.error("[Firestore] Error persisting deleted native categories:", err);
     return false;
   }
 }

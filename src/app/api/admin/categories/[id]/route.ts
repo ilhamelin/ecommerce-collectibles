@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteCustomCategoryFromFirestore } from "@/lib/firebase/firestore";
+import {
+  deleteCustomCategoryFromFirestore,
+  getDeletedNativeCategoriesFromFirestore,
+  saveDeletedNativeCategoriesToFirestore,
+} from "@/lib/firebase/firestore";
 import {
   deleteCategoryFromDisk,
   deleteNativeCategoryOnDisk,
   restoreNativeCategoryOnDisk,
+  readDeletedNativeCategoriesFromDisk,
 } from "@/lib/services/categoryDiskService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 
@@ -54,18 +59,34 @@ export async function DELETE(
     const isRestore = request.nextUrl.searchParams.get("restore") === "true";
 
     if (isNative) {
+      // 1. Fetch current list from Firestore + disk fallback
+      const [firestoreDeleted, diskDeleted] = await Promise.all([
+        getDeletedNativeCategoriesFromFirestore().catch(() => [] as string[]),
+        Promise.resolve(readDeletedNativeCategoriesFromDisk()),
+      ]);
+
+      const currentDeleted = Array.from(new Set([...firestoreDeleted, ...diskDeleted]));
+
       if (isRestore) {
+        const nextDeleted = currentDeleted.filter((item) => item !== upperId);
         restoreNativeCategoryOnDisk(upperId);
+        await saveDeletedNativeCategoriesToFirestore(nextDeleted);
+
         return NextResponse.json({
           success: true,
           message: `Categoría predeterminada ${upperId} restaurada exitosamente.`,
+          data: { deletedNativeCategories: nextDeleted },
         });
       }
 
+      const nextDeleted = Array.from(new Set([...currentDeleted, upperId]));
       deleteNativeCategoryOnDisk(upperId);
+      await saveDeletedNativeCategoriesToFirestore(nextDeleted);
+
       return NextResponse.json({
         success: true,
         message: `Categoría predeterminada ${upperId} eliminada exitosamente.`,
+        data: { deletedNativeCategories: nextDeleted },
       });
     }
 

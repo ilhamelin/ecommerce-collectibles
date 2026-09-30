@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getCustomCategoriesFromFirestore,
   saveCustomCategoryToFirestore,
+  getDeletedNativeCategoriesFromFirestore,
+  saveDeletedNativeCategoriesToFirestore,
 } from "@/lib/firebase/firestore";
 import {
   readCategoriesFromDisk,
   saveCategoryToDisk,
   writeCategoriesToDisk,
   readDeletedNativeCategoriesFromDisk,
+  writeDeletedNativeCategoriesToDisk,
 } from "@/lib/services/categoryDiskService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 import type { CustomCategoryEntity } from "@/lib/types/domain";
@@ -16,30 +19,38 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const deletedNativeCategories = readDeletedNativeCategoriesFromDisk();
+    // 1. Fetch custom categories and deleted native categories from Firestore
+    const [firestoreCats, firestoreDeleted] = await Promise.all([
+      getCustomCategoriesFromFirestore().catch((e) => {
+        console.warn("[CATEGORIES_GET] Firestore categories read error:", e);
+        return [] as CustomCategoryEntity[];
+      }),
+      getDeletedNativeCategoriesFromFirestore().catch((e) => {
+        console.warn("[CATEGORIES_GET] Firestore deleted native read error:", e);
+        return [] as string[];
+      }),
+    ]);
 
-    // 1. Try Firestore first
-    const firestoreData = await getCustomCategoriesFromFirestore();
-    if (firestoreData && Array.isArray(firestoreData) && firestoreData.length > 0) {
-      writeCategoriesToDisk(firestoreData);
-      return NextResponse.json({
-        success: true,
-        data: {
-          categories: firestoreData,
-          deletedNativeCategories,
-          source: "FIRESTORE",
-        },
-      });
+    const diskDeleted = readDeletedNativeCategoriesFromDisk();
+    const diskCats = readCategoriesFromDisk();
+
+    // Merge deleted categories with priority to persistent data
+    const combinedDeleted = Array.from(new Set([...firestoreDeleted, ...diskDeleted]));
+    if (combinedDeleted.length > 0) {
+      writeDeletedNativeCategoriesToDisk(combinedDeleted);
     }
 
-    // 2. Fallback to server disk persistence
-    const diskCategories = readCategoriesFromDisk();
+    const finalCategories = firestoreCats.length > 0 ? firestoreCats : diskCats;
+    if (firestoreCats.length > 0) {
+      writeCategoriesToDisk(firestoreCats);
+    }
+
     return NextResponse.json({
       success: true,
       data: {
-        categories: diskCategories,
-        deletedNativeCategories,
-        source: "DISK_STORAGE",
+        categories: finalCategories,
+        deletedNativeCategories: combinedDeleted,
+        source: firestoreCats.length > 0 ? "FIRESTORE" : "DISK_STORAGE",
       },
     });
   } catch (error) {

@@ -20,8 +20,10 @@ import {
   Disc3,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
-import type { ProductDomainEntity } from "@/lib/types/domain";
+import type { ProductDomainEntity, CustomCategoryEntity } from "@/lib/types/domain";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { categoryClient } from "@/lib/services/categoryClient";
+import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
 
 // Interactive filter tabs
 const TABS = [
@@ -46,6 +48,42 @@ export interface InteractiveCatalogSectionProps {
 export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalogSectionProps) {
   const [products, setProducts] = useState<ProductDomainEntity[]>(initialProducts);
   const [activeTab, setActiveTab] = useState<string>("ALL");
+  const [deletedNativeCategories, setDeletedNativeCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
+
+  // Sync categories and deleted native exclusions from DB
+  useEffect(() => {
+    let active = true;
+    const syncCats = () => {
+      Promise.all([
+        categoryClient.getDeletedNativeCategories(),
+        categoryClient.getCategories(),
+      ]).then(([deleted, custom]) => {
+        if (!active) return;
+        if (Array.isArray(deleted)) setDeletedNativeCategories(deleted);
+        if (Array.isArray(custom)) setCustomCategories(custom);
+      });
+    };
+
+    syncCats();
+    const unsub = categoryClient.subscribe(syncCats);
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, []);
+
+  const activeTabs = useMemo(() => {
+    const nativeFiltered = TABS.filter(
+      (t) => t.id === "ALL" || !deletedNativeCategories.includes(t.id)
+    );
+    const customTabs = customCategories.map((c) => ({
+      id: c.id,
+      label: `✨ ${c.name}`,
+      icon: getCategoryIconComponent(c.iconName),
+    }));
+    return [...nativeFiltered, ...customTabs];
+  }, [deletedNativeCategories, customCategories]);
 
   // Refresco silencioso en segundo plano con deduplicación de red
   useEffect(() => {
@@ -72,8 +110,18 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
       if (p.type === activeTab) return true;
       if (p.type === "OTHER") {
         const cat = (p.customSpecifications?.categoryType || "").toUpperCase();
-        if (cat === activeTab) return true;
+        if (cat === activeTab.toUpperCase()) return true;
         const lbl = (p.customCategoryLabel || "").toLowerCase();
+        const tabLower = activeTab.toLowerCase();
+        if (lbl === tabLower) return true;
+
+        const matchedCustom = customCategories.find(
+          (c) => c.id === activeTab || c.name.toLowerCase() === tabLower
+        );
+        if (matchedCustom && (lbl === matchedCustom.name.toLowerCase() || cat === matchedCustom.id.toUpperCase())) {
+          return true;
+        }
+
         if (activeTab === "GAMING_ACCESSORY" && (lbl.includes("accesorio") || p.type === "ACCESSORY")) return true;
         if (activeTab === "CONSOLE" && lbl.includes("consola")) return true;
         if (activeTab === "HARDWARE" && lbl.includes("hardware")) return true;
@@ -84,7 +132,7 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
       }
       return false;
     });
-  }, [products, activeTab]);
+  }, [products, activeTab, customCategories]);
 
   // Secciones especializadas
   const preOrderFigures = useMemo(() => {
@@ -134,7 +182,7 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
 
         {/* Botones selectores de categoría */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {TABS.map((tab) => {
+          {activeTabs.map((tab) => {
             const isSelected = activeTab === tab.id;
             return (
               <button

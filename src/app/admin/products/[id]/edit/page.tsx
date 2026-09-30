@@ -54,14 +54,30 @@ import {
   CollectibleCondition,
   Authenticator,
   CustomCategorySpecifications,
+  CustomCategoryEntity,
 } from "@/lib/types/domain";
 import { CustomSpecificationsForm } from "@/components/admin/CustomSpecificationsForm";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { categoryClient } from "@/lib/services/categoryClient";
 import { WORLDWIDE_AGE_RATINGS, normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 import { toast } from "@/lib/store/toastStore";
+
+const ALL_PRODUCT_CATEGORIES = [
+  { id: "FIGURE", label: "Figuras de Escala" },
+  { id: "VIDEO_GAME", label: "Videojuegos" },
+  { id: "COLLECTIBLE", label: "TCG & Rarezas PSA" },
+  { id: "HARDWARE", label: "Hardware & Componentes" },
+  { id: "CONSOLE", label: "Consolas de Videojuegos" },
+  { id: "GAMING_ACCESSORY", label: "Accesorios Gaming" },
+  { id: "APPAREL", label: "Ropa & Estilo" },
+  { id: "BOOK", label: "Manga / Libros" },
+  { id: "MERCH", label: "Merchandising" },
+  { id: "AUDIO", label: "Audio / OST" },
+  { id: "BUNDLE", label: "Bundle Compuesto" },
+] as const;
 
 const CUSTOM_CATEGORY_PRESETS = [
   "Consolas",
@@ -88,6 +104,41 @@ export default function EditProductAdminPage() {
   const [type, setType] = useState<ProductType>("FIGURE");
   const [customCategoryLabel, setCustomCategoryLabel] = useState("");
   const [customSpecifications, setCustomSpecifications] = useState<CustomCategorySpecifications>({});
+
+  // Dynamic Custom and Deleted Native Categories from Firestore
+  const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
+  const [deletedNativeCategories, setDeletedNativeCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    const refreshCategories = () => {
+      categoryClient.getCategories().then((cats) => {
+        if (Array.isArray(cats)) setCustomCategories(cats);
+      });
+      categoryClient.getDeletedNativeCategories().then((deletedIds) => {
+        if (Array.isArray(deletedIds)) setDeletedNativeCategories(deletedIds);
+      });
+    };
+
+    refreshCategories();
+    const unsubscribe = categoryClient.subscribe(refreshCategories);
+    return () => unsubscribe();
+  }, []);
+
+  // Filtered active native categories
+  const activeNativeCategories = useMemo(() => {
+    return ALL_PRODUCT_CATEGORIES.filter((item) => !deletedNativeCategories.includes(item.id));
+  }, [deletedNativeCategories]);
+
+  // Selected custom category entity loaded from DB
+  const selectedCustomCategory = useMemo(() => {
+    if (!customCategoryLabel && type !== "OTHER") return undefined;
+    return customCategories.find(
+      (c) =>
+        c.name.toLowerCase() === (customCategoryLabel || "").toLowerCase() ||
+        c.id === customCategoryLabel ||
+        c.slug === customCategoryLabel
+    );
+  }, [customCategories, customCategoryLabel, type]);
 
   const isCustomOrSpecializedCategory = useMemo(() => {
     return [
@@ -1509,40 +1560,65 @@ export default function EditProductAdminPage() {
                   Categoría de Producto *
                 </label>
                 <select
-                  value={type}
+                  id="admin-edit-category-select"
+                  value={
+                    type === "OTHER" && selectedCustomCategory
+                      ? `CUSTOM_${selectedCustomCategory.id}`
+                      : type
+                  }
                   onChange={(e) => {
-                    const newType = e.target.value as ProductType;
-                    setType(newType);
-                    if (newType === "HARDWARE" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Hardware & Componentes");
-                    } else if (newType === "CONSOLE" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Consolas");
-                    } else if (newType === "GAMING_ACCESSORY" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Accesorio Gaming");
-                    } else if (newType === "APPAREL" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Ropa & Estilo");
-                    } else if (newType === "BOOK" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Manga / Artbook");
-                    } else if (newType === "MERCH" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Merchandising");
-                    } else if (newType === "AUDIO" && !customCategoryLabel) {
-                      setCustomCategoryLabel("Audio / OST");
+                    const val = e.target.value;
+                    if (val.startsWith("CUSTOM_")) {
+                      const catId = val.replace("CUSTOM_", "");
+                      const found = customCategories.find((c) => c.id === catId);
+                      setType("OTHER");
+                      if (found) {
+                        setCustomCategoryLabel(found.name);
+                      }
+                    } else if (val === "OTHER") {
+                      setType("OTHER");
+                      setCustomCategoryLabel("");
+                    } else {
+                      const newType = val as ProductType;
+                      setType(newType);
+                      if (newType === "HARDWARE" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Hardware & Componentes");
+                      } else if (newType === "CONSOLE" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Consolas");
+                      } else if (newType === "GAMING_ACCESSORY" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Accesorio Gaming");
+                      } else if (newType === "APPAREL" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Ropa & Estilo");
+                      } else if (newType === "BOOK" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Manga / Artbook");
+                      } else if (newType === "MERCH" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Merchandising");
+                      } else if (newType === "AUDIO" && !customCategoryLabel) {
+                        setCustomCategoryLabel("Audio / OST");
+                      }
                     }
                   }}
                   className="w-full px-3 py-2 rounded-xl bg-[#05161f] border border-[#004E72]/60 text-xs text-[#F9F9F9] focus:border-[#FF6E42] focus:outline-none cursor-pointer font-medium"
                 >
-                  <option value="FIGURE">Figuras de Escala</option>
-                  <option value="VIDEO_GAME">Videojuegos</option>
-                  <option value="COLLECTIBLE">TCG & Rarezas PSA</option>
-                  <option value="HARDWARE">Hardware & Componentes</option>
-                  <option value="CONSOLE">Consolas de Videojuegos</option>
-                  <option value="GAMING_ACCESSORY">Accesorios Gaming</option>
-                  <option value="APPAREL">Ropa & Estilo</option>
-                  <option value="BOOK">Manga / Libros</option>
-                  <option value="MERCH">Merchandising</option>
-                  <option value="AUDIO">Audio / OST</option>
-                  <option value="BUNDLE">Bundle Compuesto</option>
-                  <option value="OTHER">+ Otra Categoría / Personalizada</option>
+                  <optgroup label="── Categorías Principales ──">
+                    {activeNativeCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {customCategories.length > 0 && (
+                    <optgroup label="── Categorías Creadas en BD ──">
+                      {customCategories.map((cat) => (
+                        <option key={cat.id} value={`CUSTOM_${cat.id}`}>
+                          ✨ {cat.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="── Otra / Personalizada ──">
+                    <option value="OTHER">+ Otra Categoría Libre</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -1558,7 +1634,16 @@ export default function EditProductAdminPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {CUSTOM_CATEGORY_PRESETS.map((preset) => (
+                    {CUSTOM_CATEGORY_PRESETS.filter((preset) => {
+                      if (preset === "Consolas" && deletedNativeCategories.includes("CONSOLE")) return false;
+                      if (preset === "Hardware & Componentes" && deletedNativeCategories.includes("HARDWARE")) return false;
+                      if (preset === "Accesorio Gaming" && deletedNativeCategories.includes("GAMING_ACCESSORY")) return false;
+                      if (preset === "Ropa & Estilo" && deletedNativeCategories.includes("APPAREL")) return false;
+                      if (preset === "Manga / Artbook" && deletedNativeCategories.includes("BOOK")) return false;
+                      if (preset === "Merchandising" && deletedNativeCategories.includes("MERCH")) return false;
+                      if (preset === "Audio / OST" && deletedNativeCategories.includes("AUDIO")) return false;
+                      return true;
+                    }).map((preset) => (
                       <button
                         key={preset}
                         type="button"
@@ -1579,6 +1664,23 @@ export default function EditProductAdminPage() {
                         }`}
                       >
                         {preset}
+                      </button>
+                    ))}
+                    {customCategories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setCustomCategoryLabel(cat.name);
+                          setType("OTHER");
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
+                          customCategoryLabel.toLowerCase() === cat.name.toLowerCase()
+                            ? "bg-[#FF6E42] text-[#092634] border-[#FF6E42]"
+                            : "bg-[#092634] text-[#9bb5c2] border-[#004E72]/60 hover:text-white"
+                        }`}
+                      >
+                        ✨ {cat.name}
                       </button>
                     ))}
                   </div>
@@ -3117,7 +3219,7 @@ export default function EditProductAdminPage() {
                   : type === "AUDIO"
                   ? "Audio / OST"
                   : "")
-              }
+              customCategoryTemplate={selectedCustomCategory}
               value={customSpecifications}
               onChange={setCustomSpecifications}
             />

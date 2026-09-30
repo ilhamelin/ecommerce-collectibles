@@ -3220,6 +3220,7 @@ export default function EditProductAdminPage() {
                   : type === "AUDIO"
                   ? "Audio / OST"
                   : "")
+              }
               customCategoryTemplate={selectedCustomCategory}
               value={customSpecifications}
               onChange={setCustomSpecifications}

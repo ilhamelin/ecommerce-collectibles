@@ -39,6 +39,8 @@ describe("Auto-fill live transport", () => {
     const events: AutoFillEvent[] = [];
     const result = await readAutoFillResponse(response, event => events.push(event));
     expect(result.data.engine).toBe("SMART_KNOWLEDGE_ENGINE");
+    expect(result.data.originalPrice).toBeUndefined();
+    expect(Number(result.data.price) % 100).toBe(0);
     expect(events.some(event => event.kind === "progress" && event.message.includes("heurístico"))).toBe(true);
     expect(events.some(event => event.kind === "field" && event.field === "description")).toBe(true);
     expect(events.at(-1)?.kind).toBe("result");

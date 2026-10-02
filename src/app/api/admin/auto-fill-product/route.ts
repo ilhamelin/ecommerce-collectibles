@@ -1,3 +1,4 @@
+import { normalizeAutoFillSalePrice } from "@/lib/utils/autoFillPrice";
 import type { AutoFillEvent } from "@/lib/services/autoFillStream";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeProductAgeRating } from "@/lib/constants/ageRatings";
@@ -1430,7 +1431,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
   "customCategoryLabel": "${customCategoryLabel || ""}",
   "description": "Descripción comercial y técnica detallada en español para coleccionistas en Chile (2 párrafos)",
   "price": precio_en_pesos_chilenos_CLP_entero,
-  "originalPrice": precio_normal_ligeramente_mayor_en_CLP_entero,
+  "originalPrice": null,
   "costPrice": costo_estimado_en_CLP_entero,
   "stockAvailable": numero_entre_3_y_15,
   "isPreOrder": true_o_false,
@@ -1799,6 +1800,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
             // Normalize and enforce official regulatory ageRating of the product
             parsed.ageRating = normalizeProductAgeRating(parsed.ageRating, parsed.type);
 
+            parsed.price = normalizeAutoFillSalePrice(Number(parsed.price));
+            delete parsed.originalPrice;
             return NextResponse.json({
               success: true,
               data: {
@@ -1862,6 +1865,8 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     // Fallback to Smart Heuristic Collector Engine (with admin selected category priority)
     report("Aplicando el motor heurístico local: sugerencias por reglas, sin búsqueda externa.");
     const fallbackResult = generateWithSmartEngine(productName, selectedType, customCategoryLabel);
+    fallbackResult.price = normalizeAutoFillSalePrice(fallbackResult.price);
+    delete fallbackResult.originalPrice;
     return NextResponse.json({
       success: true,
       data: {

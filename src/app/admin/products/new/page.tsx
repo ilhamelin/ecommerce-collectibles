@@ -1,4 +1,5 @@
 "use client";
+import { normalizeAutoFillSalePrice } from "@/lib/utils/autoFillPrice";
 import { readAutoFillResponse, type AutoFillEvent } from "@/lib/services/autoFillStream";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
@@ -498,7 +499,7 @@ export default function NewProductAdminPage() {
       if (field === "name" && typeof value === "string") setName(value);
       if (field === "sku" && typeof value === "string") setSku(value);
       if (field === "description" && typeof value === "string") setDescription(value);
-      if (field === "price" && typeof value === "number") setPrice(value);
+      if (field === "price" && typeof value === "number") setPrice(normalizeAutoFillSalePrice(value));
       if (field === "costPrice" && typeof value === "number") setCostPrice(value);
       setAutoFillRun(run => run ? { ...run, fields: [...(run.fields || []), field], events: [...(run.events || []), `Dato recibido: ${field} → ${typeof value === "object" ? "Ficha técnica estructurada" : String(value).slice(0, 180)}`] } : null);
     }
@@ -690,8 +691,7 @@ export default function NewProductAdminPage() {
 
     // 5. Datos Generales & Comerciales
     if (d.description) setDescription(d.description);
-    if (typeof d.price === "number") setPrice(d.price);
-    if (typeof d.originalPrice === "number") setOriginalPrice(d.originalPrice);
+    if (typeof d.price === "number") setPrice(normalizeAutoFillSalePrice(d.price));
     if (typeof d.costPrice === "number") setCostPrice(d.costPrice);
     if (typeof d.stockAvailable === "number") setStockAvailable(d.stockAvailable);
     if (typeof d.isPreOrder === "boolean") setIsPreOrder(d.isPreOrder);

@@ -180,7 +180,7 @@ export async function middleware(req: NextRequest) {
   res.headers.set("X-XSS-Protection", "1; mode=block");
   res.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), payment=(self 'https://www.mercadopago.com' 'https://sdk.mercadopago.com')"
+    'camera=(), microphone=(), geolocation=(), payment=(self "https://www.mercadopago.com" "https://sdk.mercadopago.com")'
   );
 
   return res;

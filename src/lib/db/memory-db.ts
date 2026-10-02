@@ -149,7 +149,11 @@ export class MemoryTransactionalStore {
     try {
       const { getProductsFromFirestore } = await import("../firebase/firestore");
       const all = await getProductsFromFirestore();
-      if (all && all.length > 0) {
+      if (all !== null) {
+        const liveIds = new Set(all.map(product => product.id));
+        for (const id of this.products.keys()) {
+          if (!liveIds.has(id)) this.products.delete(id);
+        }
         for (const prod of all) {
           const existing = this.products.get(prod.id);
           if (existing) {

@@ -47,6 +47,7 @@ export async function planStockChanges(transaction: CommerceTransaction, items: 
     let product = documents.get(productId);
     if (!product) {
       product = await transaction.read(`products/${productId}`) || undefined;
+      if (!product && direction === 1) return; // Never recreate a deleted product during cancellation.
       if (!product) throw new NotFoundError(`Producto '${productId}' no encontrado en Firestore.`);
       documents.set(productId, product);
     }

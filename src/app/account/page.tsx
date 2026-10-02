@@ -43,7 +43,9 @@ import {
 import { useAuthStore, UserAddress, SavedPaymentMethod } from "@/lib/store/authStore";
 import { useCartStore } from "@/lib/store/cartStore";
 import { formatCLP } from "@/lib/utils/currency";
-import { ConfirmedOrderEntity } from "@/lib/types/domain";
+import { catalogClient } from "@/lib/services/catalogClient";
+import { pruneOrderProductReferences, createProductReferenceIndex } from "@/lib/services/productReferences";
+import { ProductDomainEntity, ConfirmedOrderEntity } from "@/lib/types/domain";
 import { toast } from "@/lib/store/toastStore";
 
 const CHILEAN_REGIONS = [
@@ -82,17 +84,17 @@ function AccountContent() {
   const { addItem } = useCartStore();
 
   const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS">("ORDERS");
-  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<ProductDomainEntity[] | null>(null);
   const [addedWishlistId, setAddedWishlistId] = useState<string | null>(null);
 
   // Live Alerts State (Stock & Price Drops subscribed by user)
-  const [userAlerts, setUserAlerts] = useState<any[]>([]);
+  const [rawUserAlerts, setUserAlerts] = useState<any[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
   const [cancellingAlertId, setCancellingAlertId] = useState<string | null>(null);
   const [alertSuccessMsg, setAlertSuccessMsg] = useState<string | null>(null);
 
   // Live Orders State (Connected directly to database & Firestore)
-  const [userOrders, setUserOrders] = useState<ConfirmedOrderEntity[]>([]);
+  const [rawUserOrders, setUserOrders] = useState<ConfirmedOrderEntity[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState<"ALL" | "IN_PROGRESS" | "DISPATCHED" | "DELIVERED" | "CANCELLED">("ALL");
   const [copiedTracking, setCopiedTracking] = useState<string | null>(null);
@@ -112,18 +114,11 @@ function AccountContent() {
     }
   }, [tabParam, settledParam]);
 
-  // Load latest products from server to resolve any newly created items
   useEffect(() => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data?.products)) {
-          setCatalogProducts(data.data.products);
-        }
-      })
-      .catch(() => {});
-    // Refresh user profile from Firestore on mount
-    refreshUserFromFirestore().catch(() => {});
+    const unsubscribe = catalogClient.subscribe(setCatalogProducts);
+    // Successful requests notify subscribers; failures never trigger destructive cleanup.
+    void catalogClient.getCatalog(true);
+    return unsubscribe;
   }, []);
 
   // Fetch real-time orders for the active user
@@ -134,25 +129,10 @@ function AccountContent() {
       const res = await fetch(`/api/orders?email=${encodeURIComponent(currentUser.email.toLowerCase().trim())}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.data?.orders)) {
-        // Merge with any orders saved locally in store
         const fetchedOrders: ConfirmedOrderEntity[] = data.data.orders;
-        const localOrders: ConfirmedOrderEntity[] = currentUser.orders || [];
-
-        const orderMap = new Map<string, ConfirmedOrderEntity>();
-        // First add local orders
-        for (const ord of localOrders) {
-          const key = ord.id || ord.orderNumber;
-          orderMap.set(key, ord);
-        }
-        // Then overwrite with fetched orders from Firestore (latest status)
-        for (const ord of fetchedOrders) {
-          const key = ord.id || ord.orderNumber;
-          orderMap.set(key, ord);
-        }
-
-        const merged = Array.from(orderMap.values());
-        merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-        setUserOrders(merged);
+        setUserOrders(fetchedOrders);
+        const user = useAuthStore.getState().currentUser;
+        if (user?.id === currentUser.id) useAuthStore.setState({ currentUser: { ...user, orders: fetchedOrders } });
       } else {
         setUserOrders(currentUser.orders || []);
       }
@@ -356,6 +336,10 @@ function AccountContent() {
     logout();
     router.push("/");
   };
+
+  const userOrders = catalogProducts === null ? rawUserOrders : pruneOrderProductReferences(rawUserOrders, catalogProducts);
+
+  const userAlerts = catalogProducts === null ? rawUserAlerts : rawUserAlerts.filter(alert => createProductReferenceIndex(catalogProducts).has(alert));
 
   // Filtered orders calculation
   const filteredOrders = userOrders.filter((ord) => {
@@ -1128,7 +1112,7 @@ function AccountContent() {
 
               {(() => {
                 const wishlistIds = currentUser.wishlist || [];
-                const wishlistItems = catalogProducts.filter((p) => wishlistIds.includes(p.id));
+                const wishlistItems = (catalogProducts || []).filter((p) => wishlistIds.includes(p.id));
 
                 if (wishlistItems.length === 0) {
                   return (
@@ -1757,13 +1741,13 @@ function AccountContent() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {userAlerts.map((alt) => {
-                    const matchedProd = catalogProducts.find(
+                    const matchedProd = (catalogProducts || []).find(
                       (p) => p.sku === alt.productSku || p.id === alt.productId
                     );
                     const img =
                       alt.productImageUrl ||
                       matchedProd?.images?.[0] ||
-                      matchedProd?.image ||
+                      matchedProd?.imageUrl ||
                       "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=600";
                     const price = alt.productPrice || matchedProd?.price || 0;
                     const dateFormatted = new Date(alt.createdAt).toLocaleDateString("es-CL", {

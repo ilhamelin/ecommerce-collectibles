@@ -1,3 +1,6 @@
+import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { cleanupPersistedProductReferences } from "@/lib/firebase/productReferenceCleanup";
+import { pruneOrderProductReferences } from "@/lib/services/productReferences";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getUserFromFirestore,
@@ -21,6 +24,13 @@ export async function GET(request: NextRequest) {
       // 1. Try Firestore first
       const firestoreUser = await getUserFromFirestore(identifier);
       if (firestoreUser) {
+        const products = await getProductsFromFirestore(true);
+        if (products !== null) {
+          const ids = new Set(products.map(product => product.id));
+          firestoreUser.wishlist = (firestoreUser.wishlist || []).filter(id => ids.has(id));
+          firestoreUser.orders = pruneOrderProductReferences(firestoreUser.orders || [], products);
+          await cleanupPersistedProductReferences(products, firestoreUser.id);
+        }
         const isPermAdmin = isConfiguredAdminEmail(firestoreUser.email);
         const resolvedRole = isPermAdmin ? "ADMIN" : (firestoreUser.role || "CUSTOMER");
         return NextResponse.json({

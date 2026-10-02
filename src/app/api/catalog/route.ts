@@ -1,3 +1,5 @@
+import { isFirebaseConfigured } from "@/lib/firebase/config";
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
 import { NextResponse } from "next/server";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
@@ -9,6 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const store = MemoryTransactionalStore.getInstance();
   const persisted = await getProductsFromFirestore(true);
+  if (persisted === null && (isFirebaseConfigured() || isFirebaseAdminConfigured())) return NextResponse.json({ success: false, error: "Catálogo temporalmente no disponible" }, { status: 503 });
   if (persisted !== null) CatalogRepository.getInstance().syncWithFirestore(persisted);
   store.sweepExpiredReservations();
 

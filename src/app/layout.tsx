@@ -1,3 +1,4 @@
+import { ProductReferenceSync } from "@/components/common/ProductReferenceSync";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { StoreNavbar } from "@/components/layout/StoreNavbar";
@@ -37,6 +38,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[#F7F7F5] text-[#1A1A1A] antialiased selection:bg-[#FF6B35] selection:text-white flex flex-col justify-between pb-14 sm:pb-0 overflow-x-hidden">
         <div className="flex-1 flex flex-col">
+          <ProductReferenceSync />
           <StoreNavbar />
           <CartDrawer />
           <main className="flex-1">{children}</main>

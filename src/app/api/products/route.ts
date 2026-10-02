@@ -1,3 +1,6 @@
+import { isFirebaseConfigured } from "@/lib/firebase/config";
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { cleanupPersistedProductReferences } from "@/lib/firebase/productReferenceCleanup";
 import { NextRequest, NextResponse } from "next/server";
 import { CreateProductSchema, UpdateProductSchema } from "@/lib/validations/schemas";
 import { CatalogRepository } from "@/lib/services/CatalogRepository";
@@ -133,7 +136,12 @@ export async function GET(request: NextRequest) {
     const repo = CatalogRepository.getInstance();
 
     if (skuOrSlug) {
-      // Check Firestore first if available, then fallback to local repo
+      if (isFirebaseConfigured() || isFirebaseAdminConfigured()) {
+        const products = await getProductsFromFirestore(true);
+        if (products === null) return NextResponse.json({ success: false, error: "Catálogo temporalmente no disponible" }, { status: 503 });
+        repo.syncWithFirestore(products);
+      }
+      // Check Firestore first if available, then fallback to the synchronized repository
       let firestoreProduct = await getProductByIdOrSkuFromFirestore(skuOrSlug);
       if (!firestoreProduct && skuOrSlug.startsWith("vg-")) {
         firestoreProduct = await getProductByIdOrSkuFromFirestore("fig-" + skuOrSlug.slice(3));
@@ -179,6 +187,9 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
+    if (isFirebaseConfigured() || isFirebaseAdminConfigured()) {
+      return NextResponse.json({ success: false, error: "Catálogo temporalmente no disponible" }, { status: 503 });
+    }
     const rawProducts = repo.getAll();
     const products = rawProducts.map(sanitizeProductData);
 
@@ -514,6 +525,9 @@ export async function DELETE(request: NextRequest) {
     // 1. Delete from Firestore
     const deletedInFirestore = await deleteProductFromFirestore(id);
 
+    if (!deletedInFirestore && (isFirebaseConfigured() || isFirebaseAdminConfigured())) {
+      return NextResponse.json({ success: false, error: "No se pudo eliminar el producto de la base de datos" }, { status: 503 });
+    }
     // 2. Delete from local repository
     const repo = CatalogRepository.getInstance();
     repo.deleteProduct(id);
@@ -522,6 +536,7 @@ export async function DELETE(request: NextRequest) {
     const freshProducts = await getProductsFromFirestore(true);
     if (freshProducts !== null) {
       repo.syncWithFirestore(freshProducts);
+      await cleanupPersistedProductReferences(freshProducts);
     }
 
     return NextResponse.json({

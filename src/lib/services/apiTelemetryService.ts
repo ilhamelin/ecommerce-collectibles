@@ -8,7 +8,7 @@ import {
   ApiUsageSummary,
   USD_TO_CLP_RATE,
 } from "@/lib/types/telemetry";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, getFirebaseAdminUnavailableMessage } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 
 export type {
@@ -191,7 +191,7 @@ export async function recordApiUsage(
       timestamp: new Date().toISOString(),
     };
 
-    if (!adminDb && process.env.VERCEL) throw new Error("Firebase Admin no configurado: telemetría no persistida");
+    if (!adminDb && process.env.VERCEL) throw new Error(getFirebaseAdminUnavailableMessage());
 
     // Prepend to show latest first
     const updated = [newRecord, ...records];
@@ -245,7 +245,7 @@ export async function getTelemetrySummary(
     globalThis.__apiTelemetryGlobalStore = allRecords;
   } else {
     if (process.env.VERCEL) {
-      throw new Error("La persistencia requiere FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY en Vercel.");
+      throw new Error(getFirebaseAdminUnavailableMessage());
     }
     allRecords = readTelemetryFromDisk();
   }

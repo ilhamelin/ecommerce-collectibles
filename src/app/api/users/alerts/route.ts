@@ -1,3 +1,5 @@
+import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { createProductReferenceIndex } from "@/lib/services/productReferences";
 import { NextRequest, NextResponse } from "next/server";
 import { alertService } from "@/lib/services/alertService";
 
@@ -20,7 +22,10 @@ export async function GET(req: NextRequest) {
     const cleanEmail = email ? email.toLowerCase().trim() : "";
     const cleanUserId = userId ? userId.trim() : "";
 
+    const products = await getProductsFromFirestore(true);
+    const index = products === null ? null : createProductReferenceIndex(products);
     const alerts = allAlerts.filter((a) => {
+      if (index && !index.has(a)) return false;
       if (a.active === false) return false;
       if (cleanEmail && a.email && a.email.toLowerCase().trim() === cleanEmail) return true;
       if (cleanUserId && a.userId && a.userId === cleanUserId) return true;

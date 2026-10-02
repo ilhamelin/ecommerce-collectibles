@@ -50,18 +50,14 @@ export async function getProductsFromFirestore(bypassCache = false): Promise<Pro
     // 1. Check Server Admin SDK first
     if (typeof window === "undefined" && adminDb) {
       const snapshot = await adminDb.collection(COLLECTIONS.PRODUCTS).get();
-      if (!snapshot.empty) {
-        result = snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
-      }
+      result = snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
     }
 
     // 2. Check Client SDK
     if (!result && db && isFirebaseConfigured()) {
       const colRef = collection(db, COLLECTIONS.PRODUCTS);
       const snapshot = await getDocs(colRef);
-      if (!snapshot.empty) {
-        result = snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
-      }
+      result = snapshot.docs.map((doc) => doc.data() as ProductDomainEntity);
     }
 
     if (result) {
@@ -238,9 +234,7 @@ export async function deleteProductFromFirestore(productId: string): Promise<boo
 
     // Server Admin SDK
     if (typeof window === "undefined" && adminDb) {
-      try {
-        await adminDb.collection(COLLECTIONS.PRODUCTS).doc(cleanId).delete();
-      } catch {}
+      await adminDb.collection(COLLECTIONS.PRODUCTS).doc(cleanId).delete();
 
       // Delete by 'sku'
       const skuSnap = await adminDb
@@ -266,9 +260,7 @@ export async function deleteProductFromFirestore(productId: string): Promise<boo
 
     // Client SDK
     if (db && isFirebaseConfigured()) {
-      try {
-        await deleteDoc(doc(db, COLLECTIONS.PRODUCTS, cleanId));
-      } catch {}
+      await deleteDoc(doc(db, COLLECTIONS.PRODUCTS, cleanId));
 
       // In case ID was SKU
       const qSku = query(
@@ -479,7 +471,7 @@ export async function getAllOrdersFromFirestore(): Promise<ConfirmedOrderEntity[
     return [];
   } catch (err) {
     console.warn("[Firestore] Error reading all orders:", err);
-    return [];
+    throw err;
   }
 }
 

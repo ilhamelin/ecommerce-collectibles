@@ -118,3 +118,10 @@ it("cancelling and then deleting a committed order restores inventory only once"
   expect(db.get("products/one").stockAvailable).toBe(5);
   expect(db.get("orders/ord-one")).toBeUndefined();
 });
+
+it("restoring a deleted product never recreates its catalog document", async () => {
+  const db = database({});
+  const writes = await db.run(tx => planStockChanges(tx, [{ productId: "deleted", quantity: 1 }], 1));
+  expect(writes).toEqual([]);
+  expect(db.get("products/deleted")).toBeUndefined();
+});

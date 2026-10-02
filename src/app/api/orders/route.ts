@@ -1,5 +1,8 @@
+import { isFirebaseConfigured } from "@/lib/firebase/config";
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { pruneOrderProductReferences } from "@/lib/services/productReferences";
 import { NextRequest, NextResponse } from "next/server";
-import { getAllOrdersFromFirestore } from "@/lib/firebase/firestore";
+import { getAllOrdersFromFirestore, getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 
@@ -16,7 +19,7 @@ export async function GET(req: NextRequest) {
     let orders: ConfirmedOrderEntity[] = await getAllOrdersFromFirestore();
 
     // 2. Fallback to memory store if Firestore is empty or mock
-    if (orders.length === 0) {
+    if (orders.length === 0 && !isFirebaseConfigured() && !isFirebaseAdminConfigured()) {
       const memoryStore = MemoryTransactionalStore.getInstance();
       orders = Array.from(memoryStore.orders.values());
     }
@@ -43,6 +46,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (emailFilter) {
+      const products = await getProductsFromFirestore(true);
+      if (products !== null) allOrders = pruneOrderProductReferences(allOrders, products);
+    }
     // 6. Apply Status filter
     if (statusFilter && statusFilter !== "ALL") {
       allOrders = allOrders.filter(

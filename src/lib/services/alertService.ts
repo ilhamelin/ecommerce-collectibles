@@ -1,3 +1,5 @@
+import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { createProductReferenceIndex } from "./productReferences";
 import fs from "fs";
 import path from "path";
 import { adminDb } from "@/lib/firebase/admin";
@@ -226,7 +228,9 @@ export const alertService = {
       }
     }
 
-    const merged = Array.from(alertsMap.values());
+    const products = await getProductsFromFirestore(true);
+    const index = products === null ? null : createProductReferenceIndex(products);
+    const merged = Array.from(alertsMap.values()).filter(alert => !index || index.has(alert));
     merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
     // Keep memory and disk synchronized with active, non-deleted list

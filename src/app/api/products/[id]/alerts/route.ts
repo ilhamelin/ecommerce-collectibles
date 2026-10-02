@@ -1,3 +1,5 @@
+import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { NextRequest, NextResponse } from "next/server";
 import { sendProductAlertEmail } from "@/lib/services/emailService";
 import { alertService } from "@/lib/services/alertService";
@@ -20,7 +22,16 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const productId = params.id;
+    let productId = params.id;
+    const products = await getProductsFromFirestore(true);
+    if (products === null && (adminDb || isFirebaseConfigured())) {
+      return NextResponse.json({ success: false, error: "Catálogo temporalmente no disponible" }, { status: 503 });
+    }
+    if (products !== null) {
+      const product = products.find(p => p.id === productId || p.sku.toLowerCase() === productId.toLowerCase());
+      if (!product) return NextResponse.json({ success: false, error: "El producto ya no existe" }, { status: 404 });
+      productId = product.id;
+    }
     const body = await req.json();
     const {
       email,

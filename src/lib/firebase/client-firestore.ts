@@ -1,5 +1,5 @@
 import { db, isFirebaseConfigured } from "./config";
-import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, collection, getDocs, updateDoc, arrayRemove } from "firebase/firestore";
 import { COLLECTIONS } from "./collections";
 import type { UserAccount } from "../store/authStore";
 import type { ProductDomainEntity, CustomCategoryEntity } from "../types/domain";
@@ -245,3 +245,16 @@ export async function saveDeletedNativeCategoriesToFirestoreClient(ids: string[]
 }
 
 
+
+/** Removes only invalid IDs, preserving favorites added concurrently on another device. */
+export async function removeWishlistReferencesClient(userId: string, ids: string[]): Promise<boolean> {
+  if (!ids.length) return true;
+  if (!db || !isFirebaseConfigured()) return false;
+  try {
+    await updateDoc(doc(db, COLLECTIONS.USERS, userId), { wishlist: arrayRemove(...ids) });
+    return true;
+  } catch (error: unknown) {
+    console.warn("[Firebase Client] Wishlist reference cleanup failed", error);
+    return false;
+  }
+}

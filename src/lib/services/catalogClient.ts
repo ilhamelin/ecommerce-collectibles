@@ -81,6 +81,7 @@ export const catalogClient = {
           timestamp: Date.now(),
         };
 
+        catalogListeners.forEach(listener => listener(products));
         return products;
       } catch (err: unknown) {
         console.warn("[catalogClient] Error fetching catalog:", err);
@@ -108,7 +109,7 @@ export const catalogClient = {
     const clean = identifier.toLowerCase().trim();
 
     // 1. Check current memory cache first
-    if (memoryCatalogCache) {
+    if (memoryCatalogCache && Date.now() - memoryCatalogCache.timestamp < DEFAULT_TTL_MS) {
       const match = memoryCatalogCache.data.find(
         (p) =>
           p.sku.toLowerCase() === clean ||
@@ -175,9 +176,7 @@ export const catalogClient = {
       catalogListeners.forEach((l) => l(products));
     } else {
       this.invalidateCache();
-      this.getCatalog(true).then((prods) => {
-        catalogListeners.forEach((l) => l(prods));
-      });
+      void this.getCatalog(true);
     }
 
     if (typeof window !== "undefined") {
@@ -198,17 +197,13 @@ if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     if (e.key === "omnicollector_catalog_changed") {
       catalogClient.invalidateCache();
-      catalogClient.getCatalog(true).then((prods) => {
-        catalogListeners.forEach((l) => l(prods));
-      });
+      void catalogClient.getCatalog(true);
     }
   });
 
   window.addEventListener("omnicollector_catalog_changed", (event) => {
     if ((event as CustomEvent<{ source?: string }>).detail?.source === "catalogClient") return;
     catalogClient.invalidateCache();
-    catalogClient.getCatalog(true).then((prods) => {
-      catalogListeners.forEach((l) => l(prods));
-    });
+    void catalogClient.getCatalog(true);
   });
 }

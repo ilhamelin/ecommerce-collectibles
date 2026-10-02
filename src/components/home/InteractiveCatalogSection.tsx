@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence } from "motion/react";
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -215,9 +216,11 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
         {/* Grilla responsiva de productos - Renderizada de inmediato sin skeletons iniciales */}
         {tabFilteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            <AnimatePresence initial={false} mode="sync">
             {tabFilteredProducts.map((prod) => (
               <ProductCard key={prod.id || prod.sku} product={prod} />
             ))}
+            </AnimatePresence>
           </div>
         ) : (
           <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-stone-300">

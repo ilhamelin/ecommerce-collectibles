@@ -1,5 +1,9 @@
 "use client";
 
+import { Swiper, SwiperSlide } from "swiper/react";
+import { A11y } from "swiper/modules";
+import type { Swiper as SwiperInstance } from "swiper";
+import { useReducedMotion } from "motion/react";
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
@@ -18,7 +22,8 @@ function getProductCategoryKey(p: Partial<ProductDomainEntity>): string {
 }
 
 export function RelatedProductsSlider({ currentProduct, allProducts }: RelatedProductsSliderProps) {
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<SwiperInstance | null>(null);
+  const reducedMotion = useReducedMotion();
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -169,29 +174,13 @@ export function RelatedProductsSlider({ currentProduct, allProducts }: RelatedPr
     return scored.slice(0, 10).map((s) => s.item);
   }, [currentProduct, liveProducts]);
 
-  const updateScrollButtons = () => {
-    if (!sliderRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
-    setCanScrollLeft(scrollLeft > 10);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+  const updateScrollButtons = (swiper: SwiperInstance) => {
+    setCanScrollLeft(!swiper.isBeginning && !swiper.isLocked);
+    setCanScrollRight(!swiper.isEnd && !swiper.isLocked);
   };
-
-  useEffect(() => {
-    updateScrollButtons();
-    const node = sliderRef.current;
-    if (node) {
-      node.addEventListener("scroll", updateScrollButtons);
-      return () => node.removeEventListener("scroll", updateScrollButtons);
-    }
-  }, [related]);
-
   const scroll = (direction: "left" | "right") => {
-    if (!sliderRef.current) return;
-    const scrollAmount = 320;
-    sliderRef.current.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    });
+    if (direction === "left") sliderRef.current?.slidePrev();
+    else sliderRef.current?.slideNext();
   };
 
   const categoryKey = getProductCategoryKey(currentProduct);
@@ -272,21 +261,27 @@ export function RelatedProductsSlider({ currentProduct, allProducts }: RelatedPr
         </div>
       </div>
 
-      {/* Slider Track */}
-      <div
-        ref={sliderRef}
-        className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 pt-1 scroll-smooth snap-x snap-mandatory no-scrollbar"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      <Swiper
+        modules={[A11y]}
+        slidesPerView="auto"
+        spaceBetween={20}
+        speed={reducedMotion ? 0 : 350}
+        watchOverflow
+        className="related-products-swiper !pb-4 !pt-1"
+        a11y={{ containerMessage: "Productos relacionados", slideLabelMessage: "Producto {{index}} de {{slidesLength}}" }}
+        onSwiper={swiper => { sliderRef.current = swiper; updateScrollButtons(swiper); }}
+        onSlideChange={updateScrollButtons}
+        onResize={updateScrollButtons}
+        onUpdate={updateScrollButtons}
+        onLock={updateScrollButtons}
+        onUnlock={updateScrollButtons}
       >
-        {related.map((item) => (
-          <div
-            key={item.id}
-            className="min-w-[260px] sm:min-w-[280px] max-w-[280px] shrink-0 snap-start"
-          >
-            <ProductCard product={item as any} />
-          </div>
+        {related.map(item => (
+          <SwiperSlide key={item.id} className="!w-[260px] sm:!w-[280px] !h-auto">
+            <ProductCard product={item} />
+          </SwiperSlide>
         ))}
-      </div>
+      </Swiper>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+import { motion, useReducedMotion } from "motion/react";
 import React from "react";
 import { Terminal, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -14,6 +16,7 @@ export interface AutoFillRun {
 
 /** Displays observed request events, without simulating model reasoning or progress. */
 export function AutoFillConsole({ run }: { run: AutoFillRun | null }) {
+  const reducedMotion = useReducedMotion();
   const busy = run?.stage === "reading" || run?.stage === "requesting";
   return (
     <section aria-label="Consola de autocompletado" className="relative overflow-hidden rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-[#03141d] via-[#071923] to-[#211030] shadow-[0_0_30px_#22d3ee15]">
@@ -28,7 +31,7 @@ export function AutoFillConsole({ run }: { run: AutoFillRun | null }) {
         {!run ? <p>Introduce un nombre o selecciona una imagen. Aquí verás los eventos reales de tu solicitud.</p> : <>
           <p><span className="text-slate-500">[entrada]</span> {run.source}</p>
           {run.stage === "reading" ? <p className="text-cyan-200">Leyendo la imagen seleccionada…</p> : <p><span className="text-slate-500">[solicitud]</span> {run.stage === "error" && !run.engine ? "Solicitud interrumpida." : "Autocompletado solicitado."}</p>}
-          {!!run.events?.length && <ol className="max-h-64 space-y-2 overflow-y-auto border-l border-cyan-400/30 pl-3">{run.events.map((message, index) => <li key={index} className="text-slate-200"><span className="mr-2 text-fuchsia-300">{String(index + 1).padStart(2, "0")}</span>{message}</li>)}</ol>}
+          {!!run.events?.length && <ol className="max-h-64 space-y-2 overflow-y-auto border-l border-cyan-400/30 pl-3">{run.events.map((message, index) => <motion.li initial={{ opacity: 0, x: reducedMotion ? 0 : -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: reducedMotion ? 0 : 0.18 }} key={index} className="text-slate-200"><span className="mr-2 text-fuchsia-300">{String(index + 1).padStart(2, "0")}</span>{message}</motion.li>)}</ol>}
           {run.stage === "requesting" && <p className="text-cyan-200">Esperando respuesta del servidor…</p>}
           {run.stage === "success" && <>
             <p className="text-emerald-300">[motor] {run.engine === "GEMINI_AI" ? "Google Gemini" : "Motor heurístico · sin generación de Gemini"}</p>

@@ -1,3 +1,4 @@
+import "swiper/css";
 import { ProductReferenceSync } from "@/components/common/ProductReferenceSync";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";

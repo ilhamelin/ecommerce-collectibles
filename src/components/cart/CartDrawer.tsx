@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { DialogSurface } from "@/components/common/DialogSurface";
 import { FREE_SHIPPING_THRESHOLD_CLP } from "@/lib/constants/shipping";
 import React, { useState } from "react";
@@ -27,6 +28,7 @@ import { formatCLP } from "@/lib/utils/currency";
 import { toast } from "@/lib/store/toastStore";
 
 export function CartDrawer() {
+  const reducedMotion = useReducedMotion();
   const router = useRouter();
   const {
     items,
@@ -170,7 +172,7 @@ export function CartDrawer() {
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
-        <div className="w-screen max-w-lg bg-[#F7F7F5] collector-drawer border-l border-[#E5E5E5] shadow-2xl flex flex-col justify-between">
+        <motion.div initial={{ x: reducedMotion ? 0 : "100%" }} animate={{ x: 0 }} transition={{ duration: reducedMotion ? 0 : 0.25, ease: "easeOut" }} className="w-screen max-w-lg bg-[#F7F7F5] collector-drawer border-l border-[#E5E5E5] shadow-2xl flex flex-col justify-between">
           {/* Header */}
           <div className="p-6 border-b border-[#E5E5E5] flex items-center justify-between bg-[#1F3A5F] [&_h2]:text-white [&_button]:text-white">
             <div className="flex items-center gap-2 text-[#1A1A1A]">
@@ -582,7 +584,7 @@ export function CartDrawer() {
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </DialogSurface>
   );

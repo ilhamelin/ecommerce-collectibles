@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import React, { useState } from "react";
 import Link from "next/link";
 import { DialogSurface } from "@/components/common/DialogSurface";
@@ -32,6 +33,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const reducedMotion = useReducedMotion();
   const { addItem } = useCartStore();
   const { toggleWishlist, isProductWishlisted } = useAuthStore();
   const [quickView, setQuickView] = useState(false);
@@ -136,7 +138,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="collector-product-card relative group rounded-3xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/60 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl hover:shadow-[#1F3A5F]/10">
+    <motion.div layout={!reducedMotion} initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.98 }} whileHover={reducedMotion ? undefined : { y: -4 }} transition={{ duration: reducedMotion ? 0 : 0.22 }} className="collector-product-card relative group rounded-3xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/60 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl hover:shadow-[#1F3A5F]/10">
       {/* Ephemeral Toast Feedback */}
       {wishlistToast && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-[#FF6B35] text-white text-[10px] font-black tracking-wide shadow-xl pointer-events-none whitespace-nowrap animate-bounce">
@@ -214,7 +216,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <button type="button" onClick={() => { trackClick(); setQuickView(true); }} aria-label={`Vista rápida de ${product.name}`} className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold text-[#1F3A5F] shadow-sm transition sm:translate-y-2 sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"><Eye size={15} />Vista rápida</button>
           {/* Floating Heart Button */}
-          <button
+          <motion.button
+            animate={{ scale: isLiked && !reducedMotion ? 1.08 : 1 }}
+            whileTap={reducedMotion ? undefined : { scale: 0.9 }}
             type="button"
             onClick={handleToggleWishlist}
             aria-label={isLiked ? "Quitar de favoritos" : "Guardar en favoritos"}
@@ -230,7 +234,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 isLiked ? "fill-white text-white" : "text-current"
               }`}
             />
-          </button>
+          </motion.button>
         </div>
 
         {/* Product Info */}
@@ -368,6 +372,6 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       </DialogSurface>}
-    </div>
+    </motion.div>
   );
 }

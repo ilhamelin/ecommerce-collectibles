@@ -154,8 +154,8 @@ body {
 .store-dialog::backdrop { background: rgb(16 33 58 / .48); backdrop-filter: blur(5px); }
 .quick-view-dialog { width: min(56rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); border-radius: 1.5rem; overflow-y: auto; box-shadow: 0 30px 90px #10213a44; }
 .cart-dialog { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; background: transparent; }
-.collector-drawer { animation: collector-slide-in .25s ease-out; }
-.collector-product-card:hover { transform: translateY(-4px); }
+
+
 .collector-category:hover { transform: translateY(-3px); }
 .editorial-feature img { transition: transform .5s ease; }
 .editorial-feature:hover img { transform: scale(1.04); }
@@ -166,3 +166,6 @@ body {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   .collector-product-card:hover, .collector-category:hover, .editorial-feature:hover img { transform: none; }
 }
+
+.product-photo-swiper .swiper-wrapper, .product-photo-swiper .swiper-slide { height: 100%; }
+.related-products-swiper .collector-product-card { height: 100%; }

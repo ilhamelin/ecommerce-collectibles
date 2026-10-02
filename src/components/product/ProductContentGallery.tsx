@@ -1,5 +1,9 @@
 "use client";
 
+import { Swiper, SwiperSlide } from "swiper/react";
+import { A11y, Keyboard } from "swiper/modules";
+import type { Swiper as SwiperInstance } from "swiper";
+import { useReducedMotion } from "motion/react";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   ChevronLeft,
@@ -22,6 +26,8 @@ export function ProductContentGallery({
   productName,
   sku,
 }: ProductContentGalleryProps) {
+  const swiperRef = useRef<SwiperInstance | null>(null);
+  const reducedMotion = useReducedMotion();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isGridModalOpen, setIsGridModalOpen] = useState(false);
@@ -30,6 +36,20 @@ export function ProductContentGallery({
 
   const thumbnailsContainerRef = useRef<HTMLDivElement>(null);
   const activeThumbnailRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    swiperRef.current?.slideTo(selectedIndex, reducedMotion ? 0 : 300);
+  }, [selectedIndex, reducedMotion]);
+  useEffect(() => {
+    setSelectedIndex(index => Math.min(index, Math.max(0, images.length - 1)));
+  }, [images.length]);
+
+  // Keep only one keyboard handler active while a gallery overlay is open.
+  useEffect(() => {
+    const keyboard = swiperRef.current?.keyboard;
+    if (isLightboxOpen || isGridModalOpen) keyboard?.disable();
+    else keyboard?.enable();
+  }, [isLightboxOpen, isGridModalOpen]);
 
   const total = images.length;
   const currentImage = images[selectedIndex] || images[0];
@@ -52,13 +72,13 @@ export function ProductContentGallery({
   useEffect(() => {
     if (activeThumbnailRef.current) {
       activeThumbnailRef.current.scrollIntoView({
-        behavior: "smooth",
+        behavior: reducedMotion ? "auto" : "smooth",
         inline: "center",
         block: "nearest",
       });
     }
     updateScrollBounds();
-  }, [selectedIndex, updateScrollBounds]);
+  }, [selectedIndex, updateScrollBounds, reducedMotion]);
 
   // Next / Previous helpers
   const handlePrev = useCallback(() => {
@@ -74,7 +94,7 @@ export function ProductContentGallery({
     const el = thumbnailsContainerRef.current;
     if (!el) return;
     const scrollAmount = direction === "left" ? -280 : 280;
-    el.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    el.scrollBy({ left: scrollAmount, behavior: reducedMotion ? "auto" : "smooth" });
     setTimeout(updateScrollBounds, 300);
   };
 
@@ -95,29 +115,6 @@ export function ProductContentGallery({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isLightboxOpen, isGridModalOpen, handlePrev, handleNext]);
-
-  // Touch swipe support
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return;
-    const diff = touchStartX.current - touchEndX.current;
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) handleNext();
-      else handlePrev();
-    }
-    touchStartX.current = null;
-    touchEndX.current = null;
-  };
 
   if (!images || images.length === 0) return null;
 
@@ -172,27 +169,28 @@ export function ProductContentGallery({
       {/* Main Active Viewer (Uncropped, Responsive Aspect Ratio) */}
       <div
         className="relative w-full aspect-[16/10] sm:aspect-[16/9] max-h-[580px] rounded-2xl overflow-hidden bg-[#0A0F17] border-2 border-[#E5E5E5] shadow-xl group flex items-center justify-center select-none"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        {/* Ambient Blurred Backdrop */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <img
-            src={currentImage}
-            alt=""
-            aria-hidden="true"
-            className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
-          />
-          <div className="absolute inset-0 bg-[#0A0F17]/50" />
-        </div>
-
-        {/* Main High-Res Image - 100% visible, zero cropping */}
-        <img
-          src={currentImage}
-          alt={`Captura ${selectedIndex + 1} de ${productName}`}
-          className="relative z-10 max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-300 group-hover:scale-[1.01]"
-        />
+        <Swiper
+          modules={[A11y, Keyboard]}
+          className="product-photo-swiper h-full w-full"
+          slidesPerView={1}
+          speed={reducedMotion ? 0 : 300}
+          rewind
+          watchOverflow
+          keyboard={{ enabled: !isLightboxOpen && !isGridModalOpen, onlyInViewport: true }}
+          a11y={{ containerMessage: `Galería de ${productName}`, slideLabelMessage: "Imagen {{index}} de {{slidesLength}}" }}
+          onSwiper={swiper => { swiperRef.current = swiper; swiper.slideTo(selectedIndex, 0); }}
+          onSlideChange={swiper => setSelectedIndex(swiper.activeIndex)}
+        >
+          {images.map((image, index) => (
+            <SwiperSlide key={`${image}-${index}`}>
+              <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
+                <img src={image} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl" />
+                <img src={image} alt={`Captura ${index + 1} de ${productName}`} className="relative h-full w-full object-contain" loading={index === 0 ? "eager" : "lazy"} />
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
 
         {/* Previous / Next Arrows on Main Viewer */}
         {total > 1 && (
@@ -289,6 +287,7 @@ export function ProductContentGallery({
                       : "border border-[#E5E5E5] opacity-70 hover:opacity-100 hover:border-[#FF6B35]"
                   }`}
                   aria-label={`Ver captura ${idx + 1} de ${total}`}
+                  aria-pressed={isActive}
                 >
                   <img
                     src={img}

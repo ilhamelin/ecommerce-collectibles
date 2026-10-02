@@ -65,6 +65,7 @@ import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
 import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
+import { AutoFillConsole, type AutoFillRun } from "@/components/admin/AutoFillConsole";
 import { categoryClient } from "@/lib/services/categoryClient";
 import { WORLDWIDE_AGE_RATINGS, normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 
@@ -270,19 +271,6 @@ export default function NewProductAdminPage() {
       alert("Error inesperado al eliminar la categoría.");
     } finally {
       setIsDeletingCategory(false);
-    }
-  };
-
-  const handleRestoreNativeCategory = async (catId: string) => {
-    try {
-      const ok = await categoryClient.restoreNativeCategory(catId);
-      if (ok) {
-        setDeletedNativeCategories((prev) => prev.filter((id) => id !== catId));
-        setDeleteSuccessMessage("Categoría predeterminada restaurada exitosamente.");
-        setTimeout(() => setDeleteSuccessMessage(null), 4000);
-      }
-    } catch (err) {
-      console.error("[handleRestoreNativeCategory]", err);
     }
   };
 
@@ -499,6 +487,8 @@ export default function NewProductAdminPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [createdProduct, setCreatedProduct] = useState<ProductDomainEntity | null>(null);
 
+  const [autoFillRun, setAutoFillRun] = useState<AutoFillRun | null>(null);
+
   // AI Auto-Fill State
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isAutoFillingWithImage, setIsAutoFillingWithImage] = useState(false);
@@ -515,6 +505,7 @@ export default function NewProductAdminPage() {
       if (!confirmReset) return;
     }
 
+    setAutoFillRun(null);
     setSku("");
     setName("");
     setDescription("");
@@ -815,13 +806,17 @@ export default function NewProductAdminPage() {
       setCustomSpecifications(d.customSpecifications);
     }
 
+    setAutoFillRun((run) => run ? {
+      ...run, stage: "success", finishedAt: Date.now(), engine: d.engine,
+      fields: Object.entries(d).filter(([key, value]) => !["engine", "geminiErrorDetail"].includes(key) && value != null && value !== "").map(([key]) => key),
+    } : null);
     setAiEngineUsed(d.engine || "SMART_KNOWLEDGE_ENGINE");
     setAiEngineErrorDetail(d.geminiErrorDetail || null);
     const engineLabel = d.engine === "GEMINI_AI" ? "Google Gemini AI" : "Motor Heurístico Especializado";
     const actionLabel = fromImage
       ? `¡Producto identificado por imagen y rellenado exitosamente con ${engineLabel}!`
       : `¡Ficha generada exitosamente con ${engineLabel}!`;
-    setAutoFillSuccessMsg(`${actionLabel} Todos los campos fueron completados.`);
+    setAutoFillSuccessMsg(`${actionLabel} Revisa los datos sugeridos antes de guardar.`);
     setTimeout(() => setAutoFillSuccessMsg(null), 8000);
   };
 
@@ -831,6 +826,7 @@ export default function NewProductAdminPage() {
       return;
     }
 
+    setAutoFillRun({ source: name.trim(), startedAt: Date.now(), stage: "requesting" });
     setIsAutoFilling(true);
     setErrorMsg(null);
     setAutoFillSuccessMsg(null);
@@ -858,6 +854,7 @@ export default function NewProductAdminPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al autocompletar con IA.";
       setErrorMsg(msg);
+      setAutoFillRun((run) => run ? { ...run, stage: "error", error: msg, finishedAt: Date.now() } : null);
     } finally {
       setIsAutoFilling(false);
     }
@@ -875,6 +872,7 @@ export default function NewProductAdminPage() {
       return;
     }
 
+    setAutoFillRun({ source: file.name, startedAt: Date.now(), stage: "reading" });
     setIsAutoFillingWithImage(true);
     setErrorMsg(null);
     setAutoFillSuccessMsg(null);
@@ -883,6 +881,7 @@ export default function NewProductAdminPage() {
     reader.onload = async () => {
       try {
         const base64Data = reader.result as string;
+        setAutoFillRun((run) => run ? { ...run, stage: "requesting" } : null);
 
         const chosenType = hasUserManuallySelectedType ? type : undefined;
         const chosenCustomCategory = hasUserManuallySelectedType ? customCategoryLabel : undefined;
@@ -909,6 +908,7 @@ export default function NewProductAdminPage() {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Error al procesar la imagen con IA.";
         setErrorMsg(msg);
+        setAutoFillRun((run) => run ? { ...run, stage: "error", error: msg, finishedAt: Date.now() } : null);
       } finally {
         setIsAutoFillingWithImage(false);
       }
@@ -917,6 +917,7 @@ export default function NewProductAdminPage() {
     reader.onerror = () => {
       setIsAutoFillingWithImage(false);
       setErrorMsg("No se pudo leer el archivo de imagen seleccionado.");
+      setAutoFillRun((run) => run ? { ...run, stage: "error", error: "No se pudo leer la imagen.", finishedAt: Date.now() } : null);
     };
 
     reader.readAsDataURL(file);
@@ -1611,21 +1612,6 @@ export default function NewProductAdminPage() {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Botón para Restaurar Categorías Predeterminadas Eliminadas si existen */}
-                {deletedNativeCategories.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      deletedNativeCategories.forEach((id) => handleRestoreNativeCategory(id));
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#00E5FF] bg-[#004E72]/30 border border-[#00E5FF]/40 hover:bg-[#00E5FF]/20 transition shadow-sm active:scale-95 cursor-pointer"
-                    title="Restaurar todas las categorías predeterminadas que fueron eliminadas"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restaurar ({deletedNativeCategories.length})</span>
-                  </button>
-                )}
-
                 {/* Botón para Eliminar Categoría seleccionada o elegir una para eliminar */}
                 <button
                   type="button"
@@ -1831,6 +1817,8 @@ export default function NewProductAdminPage() {
                 </button>
               </div>
             </div>
+
+            <AutoFillConsole run={autoFillRun} />
 
             {autoFillSuccessMsg && (
               <div className="p-3.5 rounded-xl bg-[#004E72]/30 border border-emerald-500/50 text-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in-50 shadow-md">

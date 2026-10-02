@@ -476,9 +476,9 @@ function StoreNavbarContent() {
 
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
             {branding.logoMode === "image" && branding.logoImageUrl ? (
               <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200 shadow-md flex items-center justify-center bg-white group-hover:scale-105 transition">
                 <img
@@ -518,11 +518,11 @@ function StoreNavbarContent() {
               </div>
             )}
             <div>
-              <span className="text-xl font-black tracking-tight text-[#1F3A5F]">
+              <span className="text-base sm:text-xl font-black tracking-tight text-[#1F3A5F]">
                 {branding.titlePrefix || "OMNI"}
                 <span className="text-[#FF6B35]">{branding.titleHighlight || "COLLECTOR"}</span>
               </span>
-              <span className="block text-[10px] uppercase tracking-widest text-[#666666] font-medium">
+              <span className="block text-[8px] sm:text-[10px] uppercase tracking-wider sm:tracking-widest text-[#666666] font-medium">
                 {branding.subtitle || "Chile • Nicho Coleccionista"}
               </span>
             </div>

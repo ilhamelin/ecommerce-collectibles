@@ -21,6 +21,7 @@ import {
   Trophy,
   Puzzle,
 } from "lucide-react";
+import { EditorialHero, CollectionShelves } from "@/components/home/EditorialShowcase";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
 import { InteractiveCatalogSection } from "@/components/home/InteractiveCatalogSection";
 import { getProductsFromFirestore, getDeletedNativeCategoriesFromFirestore, getCustomCategoriesFromFirestore } from "@/lib/firebase/firestore";
@@ -197,29 +198,31 @@ export default async function StorefrontHomePage() {
   return (
     <div className="space-y-12 sm:space-y-16 pb-20 relative">
       {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
-      <PromotionalSlider initialProducts={initialProducts} />
+      <EditorialHero products={initialProducts} />
 
       {/* 2. VISUAL CATEGORY EXPLORER BAR */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="colecciones" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
         <div className="text-center sm:text-left mb-5">
           <span className="text-xs font-bold uppercase tracking-wider text-[#FF6B35]">
-            Navegación Rápida
+            Colecciones
           </span>
           <h2 className="text-xl sm:text-2xl font-black text-[#1A1A1A] tracking-tight mt-0.5">
-            Explora por Categoría Oficial
+            Encuentra tu universo
           </h2>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
           {activeCategoriesNav.map((cat) => {
             const IconComponent = cat.icon;
+            const categoryImage = initialProducts.find(product => product.type === cat.id || product.customCategoryLabel === cat.title);
             return (
               <Link
                 key={cat.id}
                 href={cat.href}
-                className={`group relative p-4 rounded-2xl bg-white border border-[#E5E5E5] transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between ${cat.accent}`}
+                className={`collector-category group relative p-5 rounded-3xl bg-white border border-[#E5E5E5] transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between ${cat.accent}`}
               >
                 <div>
+                  {(categoryImage?.imageUrl || categoryImage?.images?.[0]) && <img loading="lazy" src={categoryImage.imageUrl || categoryImage.images?.[0]} alt="" className="mb-4 h-24 w-full object-contain" />}
                   <div className="flex items-center justify-between mb-3">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-xs transition-transform duration-300 group-hover:scale-110 ${cat.iconBg}`}
@@ -246,6 +249,9 @@ export default async function StorefrontHomePage() {
           })}
         </div>
       </section>
+
+      <CollectionShelves products={initialProducts} />
+      <PromotionalSlider initialProducts={initialProducts} />
 
       {/* 3. INTERACTIVE CATALOG & FILTER TABS (Renderizado con initialProducts de servidor) */}
       <InteractiveCatalogSection initialProducts={initialProducts} />

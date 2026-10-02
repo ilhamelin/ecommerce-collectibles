@@ -1,5 +1,6 @@
 "use client";
 
+import { DialogSurface } from "@/components/common/DialogSurface";
 import { FREE_SHIPPING_THRESHOLD_CLP } from "@/lib/constants/shipping";
 import React, { useState } from "react";
 import Link from "next/link";
@@ -161,17 +162,17 @@ export function CartDrawer() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <DialogSurface label="Carrito de compras" onClose={closeCart} className="cart-dialog">
       {/* Backdrop */}
       <div
         onClick={closeCart}
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-[#10213A]/45 backdrop-blur-sm transition-opacity"
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-[#F7F7F5] border-l border-[#E5E5E5] shadow-2xl flex flex-col justify-between">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+        <div className="w-screen max-w-lg bg-[#F7F7F5] collector-drawer border-l border-[#E5E5E5] shadow-2xl flex flex-col justify-between">
           {/* Header */}
-          <div className="p-5 border-b border-[#E5E5E5] flex items-center justify-between bg-white">
+          <div className="p-6 border-b border-[#E5E5E5] flex items-center justify-between bg-[#1F3A5F] [&_h2]:text-white [&_button]:text-white">
             <div className="flex items-center gap-2 text-[#1A1A1A]">
               <div className="p-1.5 rounded-lg bg-[#1F3A5F]/10 text-[#1F3A5F]">
                 <ShoppingBag className="w-4 h-4" />
@@ -583,6 +584,6 @@ export function CartDrawer() {
           )}
         </div>
       </div>
-    </div>
+    </DialogSurface>
   );
 }

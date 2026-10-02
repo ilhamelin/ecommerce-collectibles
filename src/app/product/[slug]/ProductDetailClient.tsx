@@ -1244,7 +1244,7 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="product-detail-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 space-y-8">
       {/* Top Header & Breadcrumbs & Admin Actions */}
       <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-[#E5E5E5]">
         <nav aria-label="Ruta jerárquica" className="flex items-center gap-2 text-xs text-[#666666] flex-wrap">
@@ -1286,7 +1286,7 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
       {/* Main 2-Column Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN: Cover Image, Age Badge, Warranty, WhatsApp, Tags */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-5 space-y-4">
           {/* Main Cover Box with Inspection Zoom and 3D Hologram */}
           <div className="rounded-2xl overflow-hidden bg-white border border-[#E5E5E5] p-3 shadow-sm space-y-3">
             <HolographicCard isCollectible={isCollectible}>
@@ -1399,7 +1399,7 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
         </div>
 
         {/* RIGHT COLUMN: Price Banner, CTA, YouTube Trailer, Specs Table */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-7 space-y-6">
           {/* Price & Buy Action Banner */}
           <div className="p-6 rounded-2xl bg-white border border-[#E5E5E5] shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1681,7 +1681,7 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
 
       {/* P2: Sticky Mobile Buy Bar for High Conversion (Phone screens < 768px) */}
       {product && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0F172A]/95 backdrop-blur-md border-t border-white/10 p-3 shadow-2xl flex items-center justify-between gap-3">
+        <div className="fixed bottom-0 left-0 right-0 z-40 md:left-1/2 md:right-auto md:-translate-x-1/2 md:bottom-5 md:w-[28rem] md:max-w-[calc(100vw-2rem)] md:rounded-2xl bg-[#0F172A]/95 backdrop-blur-md border-t border-white/10 p-3 shadow-2xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             {(productImages[selectedImageIndex] || product.imageUrl) && (
               <img

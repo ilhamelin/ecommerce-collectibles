@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { DialogSurface } from "@/components/common/DialogSurface";
 import {
   Clock,
   Layers,
@@ -12,6 +13,8 @@ import {
   Check,
   ShieldCheck,
   Heart,
+  Eye,
+  X,
 } from "lucide-react";
 import { ProductDomainEntity } from "@/lib/types/domain";
 import { useCartStore } from "@/lib/store/cartStore";
@@ -31,6 +34,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore();
   const { toggleWishlist, isProductWishlisted } = useAuthStore();
+  const [quickView, setQuickView] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [wishlistToast, setWishlistToast] = useState<string | null>(null);
 
@@ -132,7 +136,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="relative group rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/60 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl hover:shadow-[#1F3A5F]/10">
+    <div className="collector-product-card relative group rounded-3xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/60 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-xs hover:shadow-xl hover:shadow-[#1F3A5F]/10">
       {/* Ephemeral Toast Feedback */}
       {wishlistToast && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-[#FF6B35] text-white text-[10px] font-black tracking-wide shadow-xl pointer-events-none whitespace-nowrap animate-bounce">
@@ -142,8 +146,10 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <div>
         {/* Product Image Cover (Full Uncropped Display) */}
-        <div className="relative w-full h-56 sm:h-64 overflow-hidden bg-white sm:bg-[#FAFAFA] border-b border-[#E5E5E5] flex items-center justify-center p-3">
+        <div className="relative w-full h-64 sm:h-72 overflow-hidden bg-[#F3F5F7] border-b border-[#E5E5E5] flex items-center justify-center p-3">
           <img
+            loading="lazy"
+            decoding="async"
             src={finalImage}
             alt={product.name}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
@@ -206,6 +212,7 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
+          <button type="button" onClick={() => { trackClick(); setQuickView(true); }} aria-label={`Vista rápida de ${product.name}`} className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold text-[#1F3A5F] shadow-sm transition sm:translate-y-2 sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"><Eye size={15} />Vista rápida</button>
           {/* Floating Heart Button */}
           <button
             type="button"
@@ -229,7 +236,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Product Info */}
         <div className="p-5 space-y-2.5">
           <Link href={`/product/${slug}`} onClick={trackClick} className="block group-hover:text-[#FF6B35] transition">
-            <h3 className="font-bold text-[#1A1A1A] text-base leading-snug line-clamp-2">
+            <h3 className="font-semibold text-[#1F3A5F] text-base leading-snug line-clamp-2 min-h-[2.75rem]">
               {product.name}
             </h3>
           </Link>
@@ -347,6 +354,20 @@ export function ProductCard({ product }: ProductCardProps) {
           </button>
         </div>
       </div>
+      {quickView && <DialogSurface label={`Vista rápida: ${product.name}`} onClose={() => setQuickView(false)} className="quick-view-dialog">
+        <div className="relative grid overflow-hidden rounded-3xl bg-white sm:grid-cols-2">
+          <button type="button" autoFocus onClick={() => setQuickView(false)} aria-label="Cerrar vista rápida" className="absolute right-4 top-4 z-10 rounded-full bg-white p-2 text-[#1F3A5F] shadow-md"><X size={20} /></button>
+          <div className="flex min-h-64 items-center justify-center bg-[#F3F5F7] p-8"><img src={finalImage} alt={product.name} className="h-64 w-full object-contain sm:h-96" /></div>
+          <div className="flex flex-col justify-center gap-5 p-6 sm:p-8">
+            <span className="text-xs font-mono text-slate-500">{product.sku}</span>
+            <h2 className="text-2xl font-semibold leading-tight text-[#1F3A5F]">{product.name}</h2>
+            <p className="line-clamp-5 text-sm leading-relaxed text-slate-600">{product.description}</p>
+            <div><span className="text-xs text-slate-500">{isPreOrder ? "Pie inicial" : "Precio"}</span><p className="text-3xl font-bold text-[#1F3A5F]">{formatCLP(isPreOrder ? depositAmount : product.price)}</p>{isPreOrder && <p className="text-xs text-slate-500">Total del producto: {formatCLP(product.price)}</p>}</div>
+            <button type="button" disabled={availableUnits <= 0} onClick={event => { setQuickView(false); handleQuickAdd(event); }} className="rounded-xl bg-[#FF6B35] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">{availableUnits <= 0 ? "Agotado" : isPreOrder ? "Reservar en el carrito" : "Añadir al carrito"}</button>
+            <Link href={`/product/${slug}`} onClick={trackClick} className="text-sm font-semibold text-[#1F3A5F] underline underline-offset-4">Ver ficha completa</Link>
+          </div>
+        </div>
+      </DialogSurface>}
     </div>
   );
 }

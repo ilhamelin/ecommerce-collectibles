@@ -1,4 +1,5 @@
 "use client";
+import { readAutoFillResponse, type AutoFillEvent } from "@/lib/services/autoFillStream";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
@@ -489,6 +490,20 @@ export default function NewProductAdminPage() {
 
   const [autoFillRun, setAutoFillRun] = useState<AutoFillRun | null>(null);
 
+  const handleAutoFillEvent = (event: AutoFillEvent) => {
+    if (event.kind === "progress") {
+      setAutoFillRun(run => run ? { ...run, events: [...(run.events || []), event.message] } : null);
+    } else if (event.kind === "field") {
+      const { field, value } = event;
+      if (field === "name" && typeof value === "string") setName(value);
+      if (field === "sku" && typeof value === "string") setSku(value);
+      if (field === "description" && typeof value === "string") setDescription(value);
+      if (field === "price" && typeof value === "number") setPrice(value);
+      if (field === "costPrice" && typeof value === "number") setCostPrice(value);
+      setAutoFillRun(run => run ? { ...run, fields: [...(run.fields || []), field], events: [...(run.events || []), `Dato recibido: ${field} → ${typeof value === "object" ? "Ficha técnica estructurada" : String(value).slice(0, 180)}`] } : null);
+    }
+  };
+
   // AI Auto-Fill State
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isAutoFillingWithImage, setIsAutoFillingWithImage] = useState(false);
@@ -837,7 +852,7 @@ export default function NewProductAdminPage() {
     try {
       const res = await fetch("/api/admin/auto-fill-product", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "application/x-ndjson" },
         body: JSON.stringify({
           name,
           selectedType: chosenType,
@@ -845,9 +860,9 @@ export default function NewProductAdminPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await readAutoFillResponse(res, handleAutoFillEvent);
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "No se pudo auto-completar el producto.");
+        throw new Error("No se pudo auto-completar el producto.");
       }
 
       populateFormWithAutoFillData(data.data, false, chosenType, chosenCustomCategory);
@@ -888,7 +903,7 @@ export default function NewProductAdminPage() {
 
         const res = await fetch("/api/admin/auto-fill-product", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Accept": "application/x-ndjson" },
           body: JSON.stringify({
             name: name.trim() || undefined,
             selectedType: chosenType,
@@ -899,9 +914,9 @@ export default function NewProductAdminPage() {
           }),
         });
 
-        const data = await res.json();
+        const data = await readAutoFillResponse(res, handleAutoFillEvent);
         if (!res.ok || !data.success) {
-          throw new Error(data.error || "No se pudo identificar el producto a partir de la imagen.");
+          throw new Error("No se pudo identificar el producto a partir de la imagen.");
         }
 
         populateFormWithAutoFillData(data.data, true, chosenType, chosenCustomCategory, base64Data);
@@ -1504,6 +1519,7 @@ export default function NewProductAdminPage() {
           <button
             type="button"
             onClick={handleResetForm}
+                  disabled={isAutoFilling || isAutoFillingWithImage}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-xs font-bold transition shadow-sm active:scale-95 cursor-pointer"
             title="Limpiar todos los campos del formulario y restablecer a valores iniciales"
           >
@@ -1819,6 +1835,7 @@ export default function NewProductAdminPage() {
             </div>
 
             <AutoFillConsole run={autoFillRun} />
+            <style>{`[data-ai-filled="true"] { border-color: #22d3ee !important; box-shadow: 0 0 0 1px #22d3ee44, 0 0 18px #22d3ee22; }`}</style>
 
             {autoFillSuccessMsg && (
               <div className="p-3.5 rounded-xl bg-[#004E72]/30 border border-emerald-500/50 text-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in-50 shadow-md">
@@ -1877,6 +1894,7 @@ export default function NewProductAdminPage() {
                   <input
                     type="text"
                     required
+                    data-ai-filled={autoFillRun?.fields?.includes("sku") || undefined}
                     value={sku}
                     onChange={(e) => setSku(e.target.value.toUpperCase())}
                     placeholder="FIG-MAKIMA-17"
@@ -1922,7 +1940,8 @@ export default function NewProductAdminPage() {
                 <input
                   type="text"
                   required
-                  value={name}
+                  data-ai-filled={autoFillRun?.fields?.includes("name") || undefined}
+                    value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Makima 1/7 Scale PVC Figure"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42]"
@@ -1934,7 +1953,8 @@ export default function NewProductAdminPage() {
                 <textarea
                   required
                   rows={3}
-                  value={description}
+                  data-ai-filled={autoFillRun?.fields?.includes("description") || undefined}
+                    value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detalles sobre materiales, escala, licencias, empaque y condiciones de despacho..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] text-xs focus:outline-none focus:border-[#FF6E42] leading-relaxed"
@@ -2221,6 +2241,7 @@ export default function NewProductAdminPage() {
                     required
                     min={100}
                     step={100}
+                    data-ai-filled={autoFillRun?.fields?.includes("price") || undefined}
                     value={price}
                     onChange={(e) => setPrice(Math.round(Number(e.target.value)))}
                     className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"
@@ -2279,6 +2300,7 @@ export default function NewProductAdminPage() {
                     required
                     min={0}
                     step={100}
+                    data-ai-filled={autoFillRun?.fields?.includes("costPrice") || undefined}
                     value={costPrice}
                     onChange={(e) => setCostPrice(Math.round(Number(e.target.value)))}
                     className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#004E72]/20 border border-[#004E72]/60 text-[#F9F9F9] font-mono text-xs focus:outline-none focus:border-[#FF6E42]"

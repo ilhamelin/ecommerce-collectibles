@@ -1,3 +1,4 @@
+import type { AutoFillEvent } from "@/lib/services/autoFillStream";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeProductAgeRating } from "@/lib/constants/ageRatings";
 import { extractYouTubeEmbedUrl, inferOfficialYouTubeTrailer } from "@/lib/utils/media";
@@ -1292,9 +1293,10 @@ function generateWithSmartEngine(
   };
 }
 
-export async function POST(req: NextRequest) {
+async function executeAutoFill(req: NextRequest, report: (message: string) => void = () => {}) {
   try {
     const body = await req.json();
+    report("Entrada recibida. Preparando nombre, imagen y categoría seleccionada.");
     const rawProductName = body?.name?.trim() || "";
     const selectedType = body?.selectedType as
       | "FIGURE"
@@ -1569,12 +1571,14 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           });
         }
 
+        report("Consultando los modelos disponibles de Google Gemini. No se realiza búsqueda web.");
         const candidates = await getSupportedGeminiModels(geminiApiKey);
         let geminiRes: Response | null = null;
         usedGeminiModel = candidates[0] || "gemini-2.5-flash";
 
         for (const model of candidates) {
           try {
+            report(`Solicitando ficha a ${model}${cleanBase64 ? " con análisis de imagen" : " a partir del nombre"}.`);
             // Use header and URL parameter for maximum compatibility with Google AI Studio / Generative Language API
             const res = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
@@ -1608,6 +1612,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
         }
 
         if (geminiRes && geminiRes.ok) {
+          report("Respuesta de Gemini recibida. Validando y normalizando la ficha.");
           const geminiData = await geminiRes.json();
           const pCount = geminiData?.usageMetadata?.promptTokenCount;
           const cCount = geminiData?.usageMetadata?.candidatesTokenCount;
@@ -1855,6 +1860,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
     }
 
     // Fallback to Smart Heuristic Collector Engine (with admin selected category priority)
+    report("Aplicando el motor heurístico local: sugerencias por reglas, sin búsqueda externa.");
     const fallbackResult = generateWithSmartEngine(productName, selectedType, customCategoryLabel);
     return NextResponse.json({
       success: true,
@@ -1870,4 +1876,37 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       { status: 500 }
     );
   }
+}
+
+/** Opt-in streaming preserves the JSON contract used by other clients. */
+export async function POST(req: NextRequest) {
+  if (!req.headers.get("accept")?.includes("application/x-ndjson")) return executeAutoFill(req);
+  const encoder = new TextEncoder();
+  let canceled = false;
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: AutoFillEvent) => {
+        if (!canceled) controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+      };
+      try {
+        const response = await executeAutoFill(req, message => send({ kind: "progress", message }));
+        const body = await response.json();
+        if (!response.ok || !body.success) {
+          send({ kind: "error", message: body.error || "No se pudo generar la ficha." });
+        } else {
+          send({ kind: "progress", message: "Ficha validada. Transmitiendo los datos al formulario." });
+          for (const [field, value] of Object.entries(body.data)) {
+            if (value != null && value !== "" && !["engine", "geminiErrorDetail"].includes(field)) send({ kind: "field", field, value });
+          }
+          send({ kind: "result", data: body.data });
+        }
+      } catch {
+        send({ kind: "error", message: "Se interrumpió la generación de la ficha. Reintenta la solicitud." });
+      } finally {
+        if (!canceled) controller.close();
+      }
+    },
+    cancel() { canceled = true; },
+  });
+  return new Response(stream, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Content-Type-Options": "nosniff" } });
 }

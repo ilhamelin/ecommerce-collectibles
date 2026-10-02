@@ -13,6 +13,8 @@ export function isFirebaseAdminConfigured(): boolean {
 }
 
 let initializationFailed = false;
+let initializationStage = "configuration";
+let initializationCode = "UNKNOWN";
 
 /** Safe diagnostic: never includes credential values or raw SDK errors. */
 export function getFirebaseAdminUnavailableMessage(): string {
@@ -22,7 +24,7 @@ export function getFirebaseAdminUnavailableMessage(): string {
     !process.env.FIREBASE_PRIVATE_KEY?.trim() && "FIREBASE_PRIVATE_KEY",
   ].filter(Boolean);
   if (missing.length) return `Firebase Admin: el servidor no recibió ${missing.join(", ")}. Revisa el entorno del despliegue y vuelve a desplegar.`;
-  if (initializationFailed) return "Las variables de Firebase están presentes, pero Firebase Admin no pudo inicializarse. Revisa el formato de la clave privada y los logs del servidor.";
+  if (initializationFailed) return `Firebase Admin no pudo inicializarse (etapa: ${initializationStage}; código: ${initializationCode}). Las variables están presentes. Consulta este código en los logs del servidor.`;
   return "Firebase Admin no está disponible. Revisa la configuración y los logs del servidor.";
 }
 
@@ -35,6 +37,7 @@ if (typeof window === "undefined") {
     if (isFirebaseAdminConfigured()) {
       // Lazy load firestore and auth modules only when credentials are valid
       // preventing "Cannot find module @google-cloud/firestore" in CI/testing
+      initializationStage = "sdk-modules";
       const { getFirestore } = require("firebase-admin/firestore");
       const { getAuth } = require("firebase-admin/auth");
 
@@ -47,6 +50,7 @@ if (typeof window === "undefined") {
         privateKey = normalizeFirebasePrivateKey(privateKey);
       }
 
+      initializationStage = "credentials";
       if (existingApps.length === 0) {
         adminApp = initializeApp({
           credential: cert({
@@ -59,14 +63,18 @@ if (typeof window === "undefined") {
         adminApp = existingApps[0];
       }
 
+      initializationStage = "firestore";
       adminDb = getFirestore(adminApp);
+      initializationStage = "auth";
       adminAuth = getAuth(adminApp);
+      initializationStage = "ready";
     }
   } catch (err) {
     initializationFailed = true;
     // SDK messages may contain input fragments; only expose the error class/code.
     const code = typeof err === "object" && err !== null && "code" in err ? String(err.code) : "initialization-error";
-    console.error("[Firebase Admin] Initialization failed", { code, errorType: err instanceof Error ? err.name : "UnknownError" });
+    initializationCode = /^[A-Za-z0-9_/-]{1,80}$/.test(code) ? code : "UNKNOWN";
+    console.error("[Firebase Admin] Initialization failed", { stage: initializationStage, code: initializationCode, errorType: err instanceof Error ? err.name : "UnknownError" });
   }
 }
 

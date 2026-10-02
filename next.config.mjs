@@ -62,7 +62,7 @@ const nextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), payment=(self 'https://www.mercadopago.com' 'https://sdk.mercadopago.com')",
+            value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://www.mercadopago.com" "https://sdk.mercadopago.com")',
           },
           {
             key: "Strict-Transport-Security",

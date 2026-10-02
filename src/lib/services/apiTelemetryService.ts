@@ -84,7 +84,7 @@ export function calculateGeminiCostUsd(
  * Returns only real recorded events. Never injects artificial seed data.
  */
 export function readTelemetryFromDisk(): ApiTelemetryRecord[] {
-  if (globalThis.__apiTelemetryGlobalStore !== undefined && globalThis.__apiTelemetryGlobalStore.length > 0) {
+  if (globalThis.__apiTelemetryGlobalStore !== undefined) {
     return globalThis.__apiTelemetryGlobalStore;
   }
 
@@ -137,23 +137,7 @@ export async function writeTelemetryToDisk(records: ApiTelemetryRecord[]): Promi
     fs.writeFileSync(TELEMETRY_TMP_PATH, JSON.stringify(trimmed, null, 2), "utf-8");
   } catch {}
 
-  // 3. Persist synchronously in Cloud Firestore across all Vercel instances
-  if (adminDb) {
-    try {
-      await adminDb
-        .collection(COLLECTIONS.KPI_SNAPSHOTS)
-        .doc("api_telemetry_store")
-        .set(
-          {
-            records: trimmed,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-    } catch (err) {
-      console.warn("[ApiTelemetryService] Firestore save warning:", err);
-    }
-  }
+
 }
 
 /**
@@ -207,8 +191,16 @@ export async function recordApiUsage(
       timestamp: new Date().toISOString(),
     };
 
+    if (!adminDb && process.env.VERCEL) throw new Error("Firebase Admin no configurado: telemetría no persistida");
+
     // Prepend to show latest first
     const updated = [newRecord, ...records];
+    // Independent documents avoid overwrites between serverless instances.
+    if (adminDb) {
+      const cleanRecord = JSON.parse(JSON.stringify(newRecord)) as ApiTelemetryRecord;
+      await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS)
+        .doc("api_telemetry_store").collection("events").doc(newRecord.id).set(cleanRecord);
+    }
     await writeTelemetryToDisk(updated);
 
     return newRecord;
@@ -235,22 +227,28 @@ export async function recordApiUsage(
 export async function getTelemetrySummary(
   timeframe: "today" | "7d" | "30d" | "all" = "30d"
 ): Promise<ApiUsageSummary> {
-  // Sync from Cloud Firestore first (ensures multi-instance serverless lambdas in Vercel share fresh records)
+  let allRecords: ApiTelemetryRecord[];
   if (adminDb) {
-    try {
-      const snap = await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("api_telemetry_store").get();
-      if (snap.exists) {
-        const docData = snap.data();
-        if (Array.isArray(docData?.records)) {
-          globalThis.__apiTelemetryGlobalStore = docData.records;
-        }
-      }
-    } catch (e) {
-      console.warn("[ApiTelemetryService] Could not sync telemetry from Firestore:", e);
+    const store = adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("api_telemetry_store");
+    // Preserve legacy history while new calls append durable documents.
+    const [legacy, events] = await Promise.all([store.get(), store.collection("events").get()]);
+    const oldRecords = legacy.data()?.records;
+    const records = new Map<string, ApiTelemetryRecord>();
+    if (Array.isArray(oldRecords)) {
+      for (const record of oldRecords as ApiTelemetryRecord[]) records.set(record.id, record);
     }
+    for (const event of events.docs) {
+      const record = event.data() as ApiTelemetryRecord;
+      records.set(record.id, record);
+    }
+    allRecords = [...records.values()].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    globalThis.__apiTelemetryGlobalStore = allRecords;
+  } else {
+    if (process.env.VERCEL) {
+      throw new Error("La persistencia requiere FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY en Vercel.");
+    }
+    allRecords = readTelemetryFromDisk();
   }
-
-  const allRecords = readTelemetryFromDisk();
 
   const now = new Date();
   let cutoffDate: Date | null = null;
@@ -360,7 +358,9 @@ export async function getTelemetrySummary(
 
   // Calculate monthly cost budget
   const monthlyBudgetUsd = 25.0; // 25 USD reference monthly cap
-  const monthlyCostUsedUsd = Number(geminiCostUsd.toFixed(4));
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthlyCostUsedUsd = Number(allRecords.filter(r => r.provider === "GEMINI" && new Date(r.timestamp) >= monthStart)
+    .reduce((sum, r) => sum + r.estimatedCostUsd, 0).toFixed(4));
   const monthlyCostUsagePct = Math.min(100, Math.round((monthlyCostUsedUsd / monthlyBudgetUsd) * 100));
 
   // Real active RPM and TPM in the last 60 seconds
@@ -430,14 +430,20 @@ export async function getTelemetrySummary(
  * Resets telemetry data to empty state across disk and Firestore.
  */
 export async function clearTelemetryData(): Promise<void> {
-  writeTelemetryToDisk([]);
   if (adminDb) {
-    try {
-      await adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("api_telemetry_store").delete();
-    } catch (e) {
-      console.warn("[ApiTelemetryService] Could not delete Firestore telemetry store:", e);
+    const store = adminDb.collection(COLLECTIONS.KPI_SNAPSHOTS).doc("api_telemetry_store");
+    let page = await store.collection("events").limit(400).get();
+    while (!page.empty) {
+      const batch = adminDb.batch();
+      for (const event of page.docs) batch.delete(event.ref);
+      await batch.commit();
+      page = await store.collection("events").limit(400).get();
     }
+    await store.set({ records: [], updatedAt: new Date().toISOString() });
+  } else if (process.env.VERCEL) {
+    throw new Error("No se puede borrar el historial sin conexión persistente a Firestore.");
   }
+  await writeTelemetryToDisk([]);
 }
 
 /**

@@ -484,11 +484,13 @@ export default function CheckoutPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Nombre Completo *</label>
+                  <label htmlFor="checkout-fullName" className="block text-xs font-bold text-[#1A1A1A] mb-1">Nombre Completo *</label>
                   <input
                     type="text"
                     required
                     placeholder="Ej. Matías Silva González"
+                    id="checkout-fullName"
+                    autoComplete="name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
@@ -497,12 +499,14 @@ export default function CheckoutPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Correo Electrónico *</label>
+                    <label htmlFor="checkout-email" className="block text-xs font-bold text-[#1A1A1A] mb-1">Correo Electrónico *</label>
                     <input
                       type="email"
                       required
                       placeholder="tu@correo.cl"
-                      value={email}
+                      id="checkout-email"
+                    autoComplete="email"
+                    value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
                     />
@@ -510,12 +514,14 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Teléfono Móvil (WhatsApp) *</label>
+                    <label htmlFor="checkout-phone" className="block text-xs font-bold text-[#1A1A1A] mb-1">Teléfono Móvil (WhatsApp) *</label>
                     <input
                       type="tel"
                       required
                       placeholder="+56 9 1234 5678"
-                      value={phone}
+                      id="checkout-phone"
+                    autoComplete="tel"
+                    value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
                     />
@@ -524,10 +530,11 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#1A1A1A] mb-1">RUT Chileno (Opcional para Boleta)</label>
+                  <label htmlFor="checkout-rut" className="block text-xs font-bold text-[#1A1A1A] mb-1">RUT Chileno (Opcional para Boleta)</label>
                   <input
                     type="text"
                     placeholder="12.345.678-K"
+                    id="checkout-rut"
                     value={rut}
                     onChange={(e) => setRut(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
@@ -672,9 +679,10 @@ export default function CheckoutPage() {
                   {/* Address Inputs Form */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Región de Chile *</label>
+                      <label htmlFor="checkout-selectedRegion" className="block text-xs font-bold text-[#1A1A1A] mb-1">Región de Chile *</label>
                       <select
-                        value={selectedRegion}
+                        id="checkout-selectedRegion"
+                    value={selectedRegion}
                         onChange={(e) => handleRegionChange(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] focus:outline-none focus:border-[#FF6B35]"
                       >
@@ -685,9 +693,10 @@ export default function CheckoutPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Comuna *</label>
+                      <label htmlFor="checkout-selectedComuna" className="block text-xs font-bold text-[#1A1A1A] mb-1">Comuna *</label>
                       <select
-                        value={selectedComuna}
+                        id="checkout-selectedComuna"
+                    value={selectedComuna}
                         onChange={(e) => setSelectedComuna(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] focus:outline-none focus:border-[#FF6B35]"
                       >
@@ -699,12 +708,14 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Dirección (Calle y Número) *</label>
+                    <label htmlFor="checkout-address" className="block text-xs font-bold text-[#1A1A1A] mb-1">Dirección (Calle y Número) *</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej. Av. Andrés Bello 2425"
-                      value={address}
+                      id="checkout-address"
+                    autoComplete="street-address"
+                    value={address}
                       onChange={(e) => {
                         setAddress(e.target.value);
                         if (selectedAddressId !== "NEW") {
@@ -717,22 +728,24 @@ export default function CheckoutPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Depto / Casa / Oficina (Opcional)</label>
+                      <label htmlFor="checkout-apartment" className="block text-xs font-bold text-[#1A1A1A] mb-1">Depto / Casa / Oficina (Opcional)</label>
                       <input
                         type="text"
                         placeholder="Depto 402, Torre B"
-                        value={apartment}
+                        id="checkout-apartment"
+                    value={apartment}
                         onChange={(e) => setApartment(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#1A1A1A] mb-1">Notas de Entrega (Opcional)</label>
+                      <label htmlFor="checkout-notes" className="block text-xs font-bold text-[#1A1A1A] mb-1">Notas de Entrega (Opcional)</label>
                       <input
                         type="text"
                         placeholder="Dejar en conserjería"
-                        value={notes}
+                        id="checkout-notes"
+                    value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-xs text-[#1A1A1A] placeholder-[#666666]/50 focus:outline-none focus:border-[#FF6B35]"
                       />

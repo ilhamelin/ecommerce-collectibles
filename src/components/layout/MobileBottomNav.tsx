@@ -75,7 +75,8 @@ export function MobileBottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors active:scale-95 ${
+              aria-current={item.isActive ? "page" : undefined}
+              className={`flex flex-col items-center justify-center min-h-[44px] py-1 rounded-xl transition-colors active:scale-95 ${
                 item.isActive ? "text-[#FF6B35] font-bold" : "text-[#666666] hover:text-[#1A1A1A]"
               }`}
             >
@@ -90,7 +91,7 @@ export function MobileBottomNav() {
           type="button"
           onClick={openCart}
           aria-label="Abrir carrito de compras"
-          className="flex flex-col items-center justify-center py-1 rounded-xl text-[#1A1A1A] hover:text-[#FF6B35] transition-colors relative active:scale-95 cursor-pointer"
+          className="flex flex-col items-center justify-center min-h-[44px] py-1 rounded-xl text-[#1A1A1A] hover:text-[#FF6B35] transition-colors relative active:scale-95 cursor-pointer"
         >
           <div className="relative">
             <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
@@ -110,7 +111,8 @@ export function MobileBottomNav() {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors relative active:scale-95 ${
+              aria-current={item.isActive ? "page" : undefined}
+              className={`flex flex-col items-center justify-center min-h-[44px] py-1 rounded-xl transition-colors relative active:scale-95 ${
                 item.isActive ? "text-[#FF6B35] font-bold" : "text-[#666666] hover:text-[#1A1A1A]"
               }`}
             >

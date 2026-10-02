@@ -73,7 +73,7 @@ export async function createFlowPaymentOrder(
     const latencyMs = Date.now() - startTime;
     const data = await res.json();
 
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "FLOW",
       feature: "CHECKOUT",
       endpoint: "/api/checkout/flow",
@@ -98,7 +98,7 @@ export async function createFlowPaymentOrder(
     });
     return null;
   } catch (err: unknown) {
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "FLOW",
       feature: "CHECKOUT",
       endpoint: "/api/checkout/flow",

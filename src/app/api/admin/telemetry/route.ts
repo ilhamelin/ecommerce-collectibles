@@ -3,8 +3,6 @@ import {
   getTelemetrySummary,
   recordApiUsage,
   clearTelemetryData,
-  writeTelemetryToDisk,
-  generateSeedTelemetryData,
   TelemetryProvider,
   TelemetryFeature,
 } from "@/lib/services/apiTelemetryService";
@@ -20,7 +18,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const timeframeParam = searchParams.get("timeframe") || "30d";
     const validTimeframes = ["today", "7d", "30d", "all"] as const;
-    const timeframe = validTimeframes.includes(timeframeParam as any)
+    const timeframe = validTimeframes.some(value => value === timeframeParam)
       ? (timeframeParam as "today" | "7d" | "30d" | "all")
       : "30d";
 
@@ -29,7 +27,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: summary,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Error desconocido al procesar telemetría";
     console.error("[Telemetry API] GET error:", error);
@@ -90,6 +88,7 @@ export async function POST(req: NextRequest) {
         success: statusCode >= 200 && statusCode < 300,
       });
 
+      if (record.id.startsWith("err_")) throw new Error("No se pudo guardar la telemetría");
       return NextResponse.json({
         success: true,
         message: "Llamada simulada registrada correctamente",

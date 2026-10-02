@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Cpu,
@@ -55,22 +55,25 @@ export default function ApiUsagePage() {
   const [sortField, setSortField] = useState<SortFieldType>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirectionType>("desc");
 
+  const requestVersion = useRef(0);
   const fetchTelemetry = useCallback(async (tf: TimeframeType = timeframe) => {
+    const version = ++requestVersion.current;
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const res = await fetch(`/api/admin/telemetry?timeframe=${tf}`);
+      const res = await fetch(`/api/admin/telemetry?timeframe=${tf}`, { cache: "no-store" });
       const json = await res.json();
-      if (json.success && json.data) {
+      if (version !== requestVersion.current) return;
+      if (res.ok && json.success && json.data) {
         setSummary(json.data);
       } else {
         setErrorMessage(json.error || "No se pudo obtener la telemetría");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al conectar con la API de telemetría";
-      setErrorMessage(msg);
+      if (version === requestVersion.current) setErrorMessage(msg);
     } finally {
-      setIsLoading(false);
+      if (version === requestVersion.current) setIsLoading(false);
     }
   }, [timeframe]);
 
@@ -95,9 +98,11 @@ export default function ApiUsagePage() {
         body: JSON.stringify({ action: "RESET" }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         showFeedback("Historial de telemetría limpiado");
         await fetchTelemetry(timeframe);
+      } else {
+        setErrorMessage(data.error || "No se pudo limpiar el historial");
       }
     } catch {
       setErrorMessage("Error al limpiar historial");
@@ -171,6 +176,19 @@ export default function ApiUsagePage() {
     OTHER: { label: "Otras Operaciones", desc: "Peticiones varias" },
   };
 
+  if (!summary) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-4">
+        <h1 className="text-2xl font-bold">Consumo de APIs &amp; Tokens IA</h1>
+        <p role={errorMessage ? "alert" : "status"}>{errorMessage || "Cargando métricas…"}</p>
+        {errorMessage && <button type="button" disabled={isLoading} onClick={() => fetchTelemetry(timeframe)}
+          className="px-4 py-3 rounded-xl bg-[#1F3A5F] text-white focus-visible:outline focus-visible:outline-offset-2">
+          Reintentar
+        </button>}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header & Controls */}
@@ -188,7 +206,7 @@ export default function ApiUsagePage() {
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-[#666666] mt-1 max-w-2xl">
-            Supervisión continua de consumo de tokens Google Gemini Flash/Pro, cuotas de Google AI Studio, latencia de red y telemetría de peticiones en tiempo real.
+            Consumo registrado por esta aplicación, tokens de IA y latencia. Los costos y límites son estimaciones de referencia.
           </p>
         </div>
 
@@ -231,15 +249,19 @@ export default function ApiUsagePage() {
         </div>
       </div>
 
+      <p role="status" className="text-sm text-slate-600">
+        {isLoading ? "Actualizando métricas…" : summary ? "Datos cargados. Actualiza para consultar nuevas llamadas." : "Las métricas aún no están disponibles."}
+      </p>
       {/* Notifications */}
       {actionSuccessMessage && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between animate-in fade-in duration-200">
+        <div role="status" className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{actionSuccessMessage}</span>
           </div>
           <button
             type="button"
+            aria-label="Cerrar aviso"
             onClick={() => setActionSuccessMessage(null)}
             className="text-emerald-700 hover:text-emerald-900 font-bold"
           >
@@ -249,13 +271,14 @@ export default function ApiUsagePage() {
       )}
 
       {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center justify-between">
+        <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{errorMessage}</span>
           </div>
           <button
             type="button"
+            aria-label="Cerrar error"
             onClick={() => setErrorMessage(null)}
             className="text-red-700 hover:text-red-900 font-bold"
           >
@@ -275,14 +298,14 @@ export default function ApiUsagePage() {
                 Google AI Studio • omnicollector-ai
               </span>
               <span className="text-[10px] font-bold text-white/70">
-                Nivel gratuito (Período 28 días)
+                Límites de referencia
               </span>
             </div>
             <h2 className="text-xl font-black tracking-tight text-white">
               Límites de Frecuencia y Uso Real de Tokens
             </h2>
             <p className="text-xs text-white/80 max-w-xl">
-              Datos sincronizados con la consola de Google AI Studio: cuota TPM de 250K, 5-15 RPM y límites RPD por modelo en nivel gratuito.
+              Datos de esta aplicación; no se sincronizan con la facturación de Google. Comprueba los límites vigentes de tu cuenta en Google AI Studio.
             </p>
           </div>
 
@@ -347,7 +370,7 @@ export default function ApiUsagePage() {
             </div>
             <div className="flex items-center justify-between text-[10px] text-white/70 mt-1.5">
               <span>{Math.round((((summary?.quota.currentRpd || 0) / (summary?.quota.rpdLimit || 1500)) * 100))}% consumido hoy</span>
-              <span className="text-emerald-300 font-semibold">Nivel gratuito Google AI</span>
+              <span className="text-emerald-300 font-semibold">Referencia de uso de Google AI</span>
             </div>
           </div>
 
@@ -690,6 +713,7 @@ export default function ApiUsagePage() {
 
             {/* Filter by provider */}
             <select
+              aria-label="Filtrar por proveedor"
               value={logProviderFilter}
               onChange={(e) => setLogProviderFilter(e.target.value)}
               className="px-3 py-1.5 rounded-xl border border-[#E5E5E5] text-xs font-semibold text-[#1A1A1A] bg-white focus:outline-hidden focus:border-[#1F3A5F] cursor-pointer"
@@ -706,6 +730,7 @@ export default function ApiUsagePage() {
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#999999]" />
               <input
                 type="text"
+                aria-label="Buscar en el historial"
                 value={logSearchQuery}
                 onChange={(e) => setLogSearchQuery(e.target.value)}
                 placeholder="Buscar endpoint o función..."
@@ -722,6 +747,9 @@ export default function ApiUsagePage() {
               <tr>
                 {/* Sortable: Timestamp */}
                 <th
+                  tabIndex={0}
+                  aria-sort={sortField === "timestamp" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleSortChange("timestamp"); } }}
                   onClick={() => handleSortChange("timestamp")}
                   className="py-3 px-4 cursor-pointer hover:bg-gray-100 transition select-none group"
                   title="Ordenar por fecha"
@@ -746,6 +774,9 @@ export default function ApiUsagePage() {
 
                 {/* Sortable: Tokens */}
                 <th
+                  tabIndex={0}
+                  aria-sort={sortField === "tokens" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleSortChange("tokens"); } }}
                   onClick={() => handleSortChange("tokens")}
                   className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition select-none group"
                   title="Ordenar por consumo de Tokens"
@@ -766,6 +797,9 @@ export default function ApiUsagePage() {
 
                 {/* Sortable: Cost */}
                 <th
+                  tabIndex={0}
+                  aria-sort={sortField === "cost" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleSortChange("cost"); } }}
                   onClick={() => handleSortChange("cost")}
                   className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition select-none group"
                   title="Ordenar por Costo Estimado"
@@ -786,6 +820,9 @@ export default function ApiUsagePage() {
 
                 {/* Sortable: Latency */}
                 <th
+                  tabIndex={0}
+                  aria-sort={sortField === "latency" ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleSortChange("latency"); } }}
                   onClick={() => handleSortChange("latency")}
                   className="py-3 px-4 text-right cursor-pointer hover:bg-gray-100 transition select-none group"
                   title="Ordenar por Latencia"

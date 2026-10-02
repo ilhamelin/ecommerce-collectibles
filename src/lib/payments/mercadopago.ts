@@ -145,7 +145,7 @@ export async function createMercadoPagoPreference(
       },
     });
 
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "MERCADOPAGO",
       feature: "CHECKOUT",
       endpoint: "/api/checkout/mercadopago",
@@ -160,7 +160,7 @@ export async function createMercadoPagoPreference(
       sandboxInitPoint: response.sandbox_init_point || response.init_point || "",
     };
   } catch (err: unknown) {
-    void recordApiUsage({
+    await recordApiUsage({
       provider: "MERCADOPAGO",
       feature: "CHECKOUT",
       endpoint: "/api/checkout/mercadopago",

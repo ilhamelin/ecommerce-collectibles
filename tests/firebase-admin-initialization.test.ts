@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateKeyPairSync } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { deleteApp, getApps } from "firebase-admin/app";
 
 beforeEach(async () => {
@@ -13,6 +14,19 @@ afterEach(async () => {
   vi.unstubAllEnvs(); vi.restoreAllMocks();
 });
 describe("Firebase Admin actual SDK initialization", () => {
+  it("loads Auth and Firestore even when native require of ESM is disabled", () => {
+    const result = spawnSync(process.execPath, ["--no-experimental-require-module", "-e", `
+      const { initializeApp } = require("firebase-admin/app");
+      const { getAuth } = require("firebase-admin/auth");
+      const { getFirestore } = require("firebase-admin/firestore");
+      const app = initializeApp({ projectId: "module-compatibility-test" });
+      if (!getAuth(app) || !getFirestore(app)) process.exit(1);
+      console.log("sdk-ready");
+    `], { encoding: "utf8", timeout: 15000 });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("sdk-ready");
+  });
   it("initializes Firestore and Auth with valid escaped PEM without any network requests", async () => {
     const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048,
       privateKeyEncoding: { type: "pkcs8", format: "pem" }, publicKeyEncoding: { type: "spki", format: "pem" } });

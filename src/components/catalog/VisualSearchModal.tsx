@@ -19,6 +19,9 @@ import {
 } from "lucide-react";
 import { formatCLP } from "@/lib/utils/currency";
 import { useAuthStore } from "@/lib/store/authStore";
+import { DialogSurface } from "@/components/common/DialogSurface";
+import { VisualSearchConsole, type VisualSearchRun } from "./VisualSearchConsole";
+import { readVisualSearchResponse, type VisualSearchResult } from "@/lib/services/visualSearch";
 
 interface VisualSearchModalProps {
   isOpen: boolean;
@@ -35,9 +38,31 @@ export function VisualSearchModal({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("image/jpeg");
   const [isScanning, setIsScanning] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<VisualSearchResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [run, setRun] = useState<VisualSearchRun | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
+  const readerRef = useRef<FileReader | null>(null);
+  const operationRef = useRef(0);
+
+  const cancelPending = () => {
+    operationRef.current += 1;
+    requestRef.current?.abort();
+    requestRef.current = null;
+    if (readerRef.current?.readyState === FileReader.LOADING) readerRef.current.abort();
+    readerRef.current = null;
+  };
+  useEffect(() => {
+    if (!isOpen) {
+      cancelPending();
+      setIsScanning(false);
+      setRun(current => current && !["ready", "success", "error", "cancelled"].includes(current.stage)
+        ? { ...current, stage: "cancelled", finishedAt: Date.now() } : current);
+    }
+    return () => cancelPending();
+  }, [isOpen]);
 
   // Purchase intent / product request state
   const [requestEmail, setRequestEmail] = useState("");
@@ -64,7 +89,7 @@ export function VisualSearchModal({
   };
 
   const processFile = (file: File) => {
-    if (!file.type.startsWith("image/")) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setErrorMessage("Por favor selecciona un archivo de imagen válido (JPG, PNG o WEBP).");
       return;
     }
@@ -74,6 +99,11 @@ export function VisualSearchModal({
       return;
     }
 
+    cancelPending();
+    const operation = operationRef.current;
+    setIsScanning(false);
+    setSelectedImage(null);
+    setRun({ source: `${file.name} · ${(file.size / 1024).toFixed(0)} KB`, startedAt: Date.now(), stage: "reading", events: ["Leyendo imagen local; todavía no se ha enviado al servidor."] });
     setErrorMessage(null);
     setResult(null);
     setRequestSuccess(false);
@@ -81,8 +111,18 @@ export function VisualSearchModal({
     setMimeType(file.type);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setSelectedImage(event.target?.result as string);
+    readerRef.current = reader;
+    reader.onload = () => {
+      if (operation !== operationRef.current) return;
+      if (typeof reader.result !== "string") return;
+      setSelectedImage(reader.result);
+      setRun(current => current ? { ...current, stage: "ready", events: [...current.events, "Archivo leído correctamente. Vista previa disponible."] } : current);
+    };
+    reader.onerror = () => {
+      if (operation !== operationRef.current) return;
+      const message = "No se pudo leer la imagen. Prueba con otro archivo.";
+      setErrorMessage(message);
+      setRun(current => current ? { ...current, stage: "error", error: message, finishedAt: Date.now() } : current);
     };
     reader.readAsDataURL(file);
   };
@@ -97,36 +137,53 @@ export function VisualSearchModal({
     if (file) processFile(file);
   };
 
+  /** Streams verified search events and ignores requests cancelled by closing or changing the image. */
   const handleScanWithAI = async () => {
-    if (!selectedImage) return;
-
+    if (!selectedImage || requestRef.current) return;
+    cancelPending();
+    const operation = operationRef.current;
+    const abort = new AbortController();
+    requestRef.current = abort;
     setIsScanning(true);
     setErrorMessage(null);
+    setResult(null);
     setRequestSuccess(false);
     setRequestError(null);
-
+    setRun(current => ({ source: current?.source || "Imagen seleccionada", startedAt: Date.now(), stage: "requesting", events: ["Enviando imagen al servidor para identificarla y consultar el catálogo."] }));
     try {
-      const res = await fetch("/api/catalog/visual-search", {
+      const response = await fetch("/api/catalog/visual-search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: selectedImage,
-          mimeType,
-        }),
+        headers: { "Content-Type": "application/json", "Accept": "application/x-ndjson" },
+        body: JSON.stringify({ imageBase64: selectedImage, mimeType }),
+        signal: abort.signal,
       });
-
-      const data = await res.json();
-      if (data.success) {
-        setResult(data.data);
-      } else {
-        setErrorMessage(data.error || "No se pudo identificar la imagen.");
-      }
-    } catch (err: any) {
-      setErrorMessage("Error de red al conectar con Google Gemini Vision.");
+      const data = await readVisualSearchResponse(response, event => {
+        if (operation !== operationRef.current || event.kind !== "progress") return;
+        setRun(current => current ? { ...current, stage: event.stage, events: [...current.events, event.message] } : current);
+      });
+      if (operation !== operationRef.current) return;
+      setResult(data);
+      setRun(current => current ? { ...current, stage: "success", result: data, finishedAt: Date.now() } : current);
+    } catch (error: unknown) {
+      if (operation !== operationRef.current || abort.signal.aborted) return;
+      const message = error instanceof Error && error.name !== "ZodError" && !(error instanceof SyntaxError) && !(error instanceof TypeError)
+        ? error.message : "No se pudo completar la búsqueda. Revisa la conexión o prueba otra imagen.";
+      setErrorMessage(message);
+      setRun(current => current ? { ...current, stage: "error", error: message, finishedAt: Date.now() } : current);
     } finally {
-      setIsScanning(false);
+      if (operation === operationRef.current) {
+        requestRef.current = null;
+        setIsScanning(false);
+      }
     }
   };
+
+  const handleCancelScan = () => {
+    cancelPending();
+    setIsScanning(false);
+    setRun(current => current && !["ready", "success", "error", "cancelled"].includes(current.stage) ? { ...current, stage: "cancelled", finishedAt: Date.now() } : current);
+  };
+  const handleClose = () => { handleCancelScan(); onClose(); };
 
   const handleSubmitPurchaseWish = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -173,6 +230,9 @@ export function VisualSearchModal({
   };
 
   const handleReset = () => {
+    cancelPending();
+    setIsScanning(false);
+    setRun(null);
     setSelectedImage(null);
     setResult(null);
     setErrorMessage(null);
@@ -182,8 +242,8 @@ export function VisualSearchModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+    <DialogSurface label="Buscar por foto IA" onClose={handleClose} className="w-[min(64rem,calc(100vw-2rem))] overflow-hidden rounded-3xl bg-transparent">
+      <div className="relative w-full bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90dvh]">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#1F3A5F] to-[#152842] text-white border-b border-[#1F3A5F]">
           <div className="flex items-center gap-2.5">
@@ -203,7 +263,8 @@ export function VisualSearchModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
+            aria-label="Cerrar búsqueda por foto"
             className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition"
           >
             <X className="w-5 h-5" />
@@ -213,27 +274,27 @@ export function VisualSearchModal({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5 custom-scrollbar flex-1">
           {errorMessage && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
+            <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <div className="min-w-0">
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Seleccionar imagen para buscar" className="sr-only" onChange={handleFileChange} />
           {!selectedImage ? (
             /* Upload Box */
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Subir imagen para buscar por foto"
+              onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); fileInputRef.current?.click(); } }}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-slate-300 hover:border-[#FF6B35] rounded-2xl p-8 text-center cursor-pointer transition bg-[#F7F7F5] hover:bg-amber-500/5 group space-y-3"
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={handleFileChange}
-              />
               <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center mx-auto text-[#1F3A5F] group-hover:scale-110 group-hover:text-[#FF6B35] transition">
                 <UploadCloud className="w-7 h-7" />
               </div>
@@ -259,9 +320,9 @@ export function VisualSearchModal({
                 {/* Laser scan animation when processing */}
                 {isScanning && (
                   <div className="absolute inset-0 bg-gradient-to-b from-[#FF6B35]/20 via-transparent to-[#FF6B35]/20 flex flex-col justify-center items-center backdrop-blur-[1px]">
-                    <div className="w-full h-1 bg-[#FF6B35] shadow-[0_0_15px_#FF6B35] animate-bounce" />
+                    <div className="w-full h-1 bg-[#FF6B35] shadow-[0_0_15px_#FF6B35] motion-safe:animate-bounce" />
                     <div className="mt-4 px-4 py-2 rounded-xl bg-black/80 text-white text-xs font-bold flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-[#FF6B35]" />
+                      <Loader2 className="w-4 h-4 motion-safe:animate-spin text-[#FF6B35]" />
                       <span>Analizando con Google Gemini Vision...</span>
                     </div>
                   </div>
@@ -273,12 +334,14 @@ export function VisualSearchModal({
                     onClick={handleReset}
                     className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 hover:bg-black text-white text-xs transition"
                     title="Cambiar imagen"
+                    aria-label="Cambiar imagen"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
+              {isScanning && <button type="button" onClick={handleCancelScan} className="w-full rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100">Cancelar búsqueda</button>}
               {!result && !isScanning && (
                 <div className="flex justify-end gap-2">
                   <button
@@ -300,6 +363,10 @@ export function VisualSearchModal({
               )}
             </div>
           )}
+
+          </div>
+          <VisualSearchConsole run={run} />
+          </div>
 
           {/* Results View */}
           {result && (
@@ -324,7 +391,7 @@ export function VisualSearchModal({
                       </span>
                     )}
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-emerald-300 text-emerald-700 font-mono font-bold">
-                      {Math.round((result.analysis.confidenceScore || 0.95) * 100)}% certeza
+                      {result.analysis.confidenceScore === null ? "Confianza no informada" : `${Math.round(result.analysis.confidenceScore * 100)}% confianza IA`}
                     </span>
                   </div>
                 </div>
@@ -356,7 +423,7 @@ export function VisualSearchModal({
                         result.analysis.searchKeywords || result.analysis.itemOrCharacter,
                         result.analysis.suggestedCategory
                       );
-                      onClose();
+                      handleClose();
                     }}
                     className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#1F3A5F] hover:bg-[#152842] text-white text-xs font-bold transition shadow-sm"
                   >
@@ -375,8 +442,8 @@ export function VisualSearchModal({
                       ¡Juego / Producto Disponible en Catálogo!
                     </span>
                     <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold">
-                      {(result.exactProduct.stockAvailable ?? 10) > 0
-                        ? `Stock: ${result.exactProduct.stockAvailable ?? 10} un.`
+                      {(result.exactProduct.stockAvailable ?? 0) > 0
+                        ? `Stock: ${result.exactProduct.stockAvailable ?? 0} un.`
                         : "Sin Stock"}
                     </span>
                   </div>
@@ -406,7 +473,7 @@ export function VisualSearchModal({
                     </div>
                     <Link
                       href={`/product/${result.exactProduct.sku || result.exactProduct.id}`}
-                      onClick={onClose}
+                      onClick={handleClose}
                       className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E85A24] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-[#FF6B35]/20 shrink-0"
                     >
                       <span>Ver Ficha y Comprar</span>
@@ -504,7 +571,7 @@ export function VisualSearchModal({
                       >
                         {isSubmittingRequest ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
                             <span>Enviando notificación al Centro de Control...</span>
                           </>
                         ) : (
@@ -534,11 +601,11 @@ export function VisualSearchModal({
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {result.matchedProducts.map((p: any) => (
+                    {result.matchedProducts.map((p) => (
                       <Link
                         key={p.sku || p.id}
                         href={`/product/${p.sku || p.id}`}
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 hover:border-[#FF6B35] hover:shadow-md transition bg-white group"
                       >
                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
@@ -569,6 +636,6 @@ export function VisualSearchModal({
           )}
         </div>
       </div>
-    </div>
+    </DialogSurface>
   );
 }

@@ -1,0 +1,2 @@
+export const FREE_SHIPPING_THRESHOLD_CLP = 50_000;
+export const DEFAULT_SHIPPING_FEE_CLP = 4_990;

@@ -3,8 +3,10 @@ import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import {
   getOrderByIdFromFirestore,
   updateOrderInFirestore,
-  deleteOrderFromFirestore,
+  invalidateProductsCache,
 } from "@/lib/firebase/firestore";
+import { cancelOrderAndRestoreStock } from "@/lib/firebase/commerce";
+import { CheckoutService } from "@/lib/services/CheckoutService";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 import { sanitizeText } from "@/lib/utils/sanitizer";
 
@@ -124,7 +126,14 @@ export async function PATCH(
 
     // Update in Firestore and sync with user document
     const docId = order.id || order.orderNumber;
-    await updateOrderInFirestore(docId, updates, order.customer?.email);
+    if (status === "CANCELLED") {
+      await cancelOrderAndRestoreStock(docId, false, updates);
+      new CheckoutService(store).restoreLocalOrderInventory(order);
+      updates.stockDeducted = false;
+      invalidateProductsCache();
+    } else {
+      await updateOrderInFirestore(docId, updates, order.customer?.email);
+    }
 
     // Update in memory store
     const merged = {
@@ -181,7 +190,9 @@ export async function DELETE(
     const docId = order?.id || order?.orderNumber || params.id;
 
     // Delete from Firestore
-    await deleteOrderFromFirestore(docId);
+    await cancelOrderAndRestoreStock(docId, true);
+    if (order) new CheckoutService(store).restoreLocalOrderInventory(order);
+    invalidateProductsCache();
 
     // Delete from memory store
     if (order?.id) {

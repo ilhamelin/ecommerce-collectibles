@@ -1,3 +1,4 @@
+import { FREE_SHIPPING_THRESHOLD_CLP, DEFAULT_SHIPPING_FEE_CLP } from "@/lib/constants/shipping";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { ProductType } from "@/lib/types/domain";
@@ -348,11 +349,11 @@ export const useCartStore = create<CartState>()(
 
         // Free shipping policy (> $50.000 CLP or coupon)
         const isFreeShipping =
-          subtotalDueToday >= 50000 ||
+          subtotalDueToday >= FREE_SHIPPING_THRESHOLD_CLP ||
           (appliedCoupon && appliedCoupon.type === "FREE_SHIPPING") ||
           subtotalDueToday === 0;
 
-        const shippingFee = isFreeShipping ? 0 : 4990;
+        const shippingFee = isFreeShipping ? 0 : DEFAULT_SHIPPING_FEE_CLP;
         const totalDueToday = Math.max(
           0,
           Math.round(subtotalDueToday - discountAmount)

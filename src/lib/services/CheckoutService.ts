@@ -1,3 +1,4 @@
+import { FREE_SHIPPING_THRESHOLD_CLP, DEFAULT_SHIPPING_FEE_CLP } from "@/lib/constants/shipping";
 import { MemoryTransactionalStore } from "../db/memory-db";
 import { CheckoutRequestDTO } from "../validations/schemas";
 import { CheckoutResult, ConfirmedOrderEntity } from "../types/domain";
@@ -32,21 +33,72 @@ export class CheckoutService {
     return crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
   }
 
-  /**
-   * Executes a robust, idempotent checkout process with atomic stock reservation and pre-order handling
-   */
+  /** Finalize local reservations only after the persistent transaction succeeds. */
+  public finalizePersistedOrder(order: ConfirmedOrderEntity): void {
+    const localOrder = this.store.orders.get(order.id);
+    if (localOrder?.stockDeducted) return;
+    for (const id of order.reservationIds) {
+      const reservation = this.store.reservations.get(id);
+      if (!reservation) continue;
+      const product = this.store.products.get(reservation.productId);
+      if (product) {
+        product.stockAvailable = Math.max(0, product.stockAvailable - reservation.quantity);
+        product.stockReserved = Math.max(0, product.stockReserved - reservation.quantity);
+      }
+      reservation.status = "CONFIRMED";
+    }
+    this.store.orders.set(order.id, order);
+  }
+
+  public restoreLocalOrderInventory(order: ConfirmedOrderEntity): void {
+    if (!order.stockDeducted) return;
+    for (const id of order.reservationIds) {
+      const reservation = this.store.reservations.get(id);
+      if (reservation?.status !== "CONFIRMED") continue;
+      const product = this.store.products.get(reservation.productId);
+      if (product) product.stockAvailable += reservation.quantity;
+      reservation.status = "RELEASED";
+    }
+  }
+
+  public async rollbackCheckout(idempotencyKey: string): Promise<void> {
+    const orderId = this.getOrderId(idempotencyKey);
+    const order = this.store.orders.get(orderId);
+    if (order?.stockDeducted) return;
+    if (order) {
+      for (const id of order.reservationIds) {
+        const reservation = this.store.reservations.get(id);
+        if (reservation?.status === "CONFIRMED") reservation.status = "PENDING";
+      }
+      await this.reservationService.releaseReservations(order.reservationIds);
+    }
+    for (const [id, deposit] of this.store.preOrderDeposits) {
+      if (deposit.orderId === orderId) this.store.preOrderDeposits.delete(id);
+    }
+    this.store.orders.delete(orderId);
+    this.store.idempotencyKeys.delete(idempotencyKey);
+  }
+
+  public getOrderId(idempotencyKey: string): string {
+    return `ord-${this.computeRequestHash(idempotencyKey).slice(0, 32)}`;
+  }
+
+  /** Calculate checkout terms and reserve local stock; persistence commits the final inventory movement. */
   public async processCheckout(request: CheckoutRequestDTO): Promise<CheckoutResult> {
     const { idempotencyKey, cartSessionId, userId, items } = request;
-    const requestHash = this.computeRequestHash({ cartSessionId, userId, items });
+    const requestHash = this.computeRequestHash({ ...request, idempotencyKey: undefined });
 
     // 1. Idempotency Verification
     const existingRecord = this.store.idempotencyKeys.get(idempotencyKey);
     if (existingRecord) {
+      if (existingRecord.hash !== requestHash) throw new IdempotencyConflictError(idempotencyKey);
       if (existingRecord.status === "IN_PROGRESS") {
         throw new IdempotencyConflictError(idempotencyKey);
       }
       if (existingRecord.status === "COMPLETED" && existingRecord.body) {
-        return JSON.parse(existingRecord.body) as CheckoutResult;
+        const cached = JSON.parse(existingRecord.body) as CheckoutResult;
+        cached.order = this.store.orders.get(cached.orderId) || cached.order;
+        return cached;
       }
     }
 
@@ -58,6 +110,7 @@ export class CheckoutService {
       createdAt: Date.now(),
     });
 
+    let reservedIds: string[] = [];
     try {
       // 2. Atomic Stock Reservation (15-min TTL)
       const reservationBatch = await this.reservationService.reserveStockAtomic(
@@ -65,7 +118,8 @@ export class CheckoutService {
         items.map((i) => ({ productId: i.productId, quantity: i.quantity }))
       );
 
-      const orderId = `ord-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      reservedIds = reservationBatch.reservations.map((reservation) => reservation.id);
+      const orderId = this.getOrderId(idempotencyKey);
       const orderNumber = `ORD-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
       let totalAmountChargedNow = 0;
@@ -147,8 +201,8 @@ export class CheckoutService {
       totalAmountChargedNow = Math.max(0, totalAmountChargedNow - discountAmount);
 
       // 5. Shipping calculation
-      const isFreeShipping = subtotal >= 50000 || request.couponCode?.toUpperCase() === "MINTFREE";
-      let shippingCost = isFreeShipping ? 0 : 4990;
+      const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD_CLP || request.couponCode?.toUpperCase() === "MINTFREE";
+      let shippingCost = isFreeShipping ? 0 : DEFAULT_SHIPPING_FEE_CLP;
       if (request.shippingMethod?.cost !== undefined) {
         shippingCost = isFreeShipping ? 0 : request.shippingMethod.cost;
       }
@@ -175,6 +229,7 @@ export class CheckoutService {
 
       const confirmedOrder: ConfirmedOrderEntity = {
         id: orderId,
+        checkoutRequestHash: requestHash,
         orderNumber,
         createdAt: new Date().toISOString(),
         status: "CONFIRMED",
@@ -222,6 +277,12 @@ export class CheckoutService {
 
       return result;
     } catch (error) {
+      for (const id of reservedIds) {
+        const reservation = this.store.reservations.get(id);
+        if (reservation?.status === "CONFIRMED") reservation.status = "PENDING";
+      }
+      await this.reservationService.releaseReservations(reservedIds);
+      await this.rollbackCheckout(idempotencyKey);
       // Mark idempotency key as FAILED so client can retry with same key
       this.store.idempotencyKeys.set(idempotencyKey, {
         key: idempotencyKey,

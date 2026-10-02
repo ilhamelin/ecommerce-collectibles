@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
+import { getProductsFromFirestore } from "@/lib/firebase/firestore";
+import { CatalogRepository } from "@/lib/services/CatalogRepository";
 import { BundleService } from "@/lib/services/BundleService";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const store = MemoryTransactionalStore.getInstance();
+  const persisted = await getProductsFromFirestore(true);
+  if (persisted !== null) CatalogRepository.getInstance().syncWithFirestore(persisted);
   store.sweepExpiredReservations();
 
   const products = Array.from(store.products.values());

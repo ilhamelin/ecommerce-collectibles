@@ -43,10 +43,11 @@ export async function syncUserProfileToFirestoreClient(
   const start = performance.now();
   try {
     if (!db || !isFirebaseConfigured()) return false;
-    const profile = {
-      ...user,
+    const { password: _demoPassword, ...publicProfile } = user;
+    const profile: Record<string, unknown> = JSON.parse(JSON.stringify({
+      ...publicProfile,
       updatedAt: new Date().toISOString(),
-    };
+    }));
     await setDoc(doc(db, COLLECTIONS.USERS, user.id), profile, { merge: true });
     logDbQueryTelemetry("syncUser", COLLECTIONS.USERS, performance.now() - start, true);
     return true;

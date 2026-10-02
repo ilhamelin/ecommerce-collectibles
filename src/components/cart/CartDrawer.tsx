@@ -1,5 +1,6 @@
 "use client";
 
+import { FREE_SHIPPING_THRESHOLD_CLP } from "@/lib/constants/shipping";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -297,24 +298,24 @@ export function CartDrawer() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold flex items-center gap-1.5 text-[#1A1A1A]">
                     <Truck className="w-4 h-4 text-[#FF6B35]" />
-                    {totals.subtotal >= 80000 ? (
+                    {totals.isFreeShipping ? (
                       <span className="text-[#2E9E5B] font-extrabold">¡Despacho 100% Bonificado a todo Chile! 🎉</span>
                     ) : (
                       <span>
-                        Faltan <strong className="text-[#FF6B35] font-mono">{formatCLP(80000 - totals.subtotal)}</strong> para envío gratis
+                        Faltan <strong className="text-[#FF6B35] font-mono">{formatCLP(FREE_SHIPPING_THRESHOLD_CLP - totals.subtotal)}</strong> para envío gratis
                       </span>
                     )}
                   </span>
                   <span className="font-mono text-[10px] text-[#666666]">
-                    Meta: $80.000
+                    Meta: {formatCLP(FREE_SHIPPING_THRESHOLD_CLP)}
                   </span>
                 </div>
                 <div className="w-full bg-[#E5E5E5] h-2 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 rounded-full ${
-                      totals.subtotal >= 80000 ? "bg-[#2E9E5B]" : "bg-gradient-to-r from-[#FF6B35] to-[#FFA07A]"
+                      totals.isFreeShipping ? "bg-[#2E9E5B]" : "bg-gradient-to-r from-[#FF6B35] to-[#FFA07A]"
                     }`}
-                    style={{ width: `${Math.min(100, Math.round((totals.subtotal / 80000) * 100))}%` }}
+                    style={{ width: `${Math.min(100, Math.round((totals.isFreeShipping ? 1 : totals.subtotal / FREE_SHIPPING_THRESHOLD_CLP) * 100))}%` }}
                   />
                 </div>
               </div>

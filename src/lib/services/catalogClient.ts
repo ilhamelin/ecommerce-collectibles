@@ -15,6 +15,8 @@ interface CacheEntry<T> {
 let memoryCatalogCache: CacheEntry<ProductDomainEntity[]> | null = null;
 let inFlightCatalogPromise: Promise<ProductDomainEntity[]> | null = null;
 
+let cacheVersion = 0;
+
 const DEFAULT_TTL_MS = 30_000; // 30 seconds fresh cache
 
 /**
@@ -44,6 +46,7 @@ export const catalogClient = {
       return inFlightCatalogPromise;
     }
 
+    const requestVersion = cacheVersion;
     // 3. Issue deduplicated network request
     inFlightCatalogPromise = (async (): Promise<ProductDomainEntity[]> => {
       try {
@@ -69,7 +72,10 @@ export const catalogClient = {
 
         const products = data.data.products;
 
-        // Update local memory cache
+        // A response started before an admin mutation cannot overwrite the new catalog.
+        if (requestVersion !== cacheVersion) {
+          return inFlightCatalogPromise || memoryCatalogCache?.data || [];
+        }
         memoryCatalogCache = {
           data: products,
           timestamp: Date.now(),
@@ -84,7 +90,7 @@ export const catalogClient = {
         }
         return [];
       } finally {
-        inFlightCatalogPromise = null;
+        if (requestVersion === cacheVersion) inFlightCatalogPromise = null;
       }
     })();
 
@@ -141,6 +147,7 @@ export const catalogClient = {
    * Call this immediately after creating, updating, or deleting a product.
    */
   invalidateCache(): void {
+    cacheVersion++;
     memoryCatalogCache = null;
     inFlightCatalogPromise = null;
   },
@@ -160,6 +167,7 @@ export const catalogClient = {
    */
   notifyListeners(products?: ProductDomainEntity[]): void {
     if (products) {
+      this.invalidateCache();
       memoryCatalogCache = {
         data: products,
         timestamp: Date.now(),
@@ -173,7 +181,7 @@ export const catalogClient = {
     }
 
     if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("omnicollector_catalog_changed"));
+      window.dispatchEvent(new CustomEvent("omnicollector_catalog_changed", { detail: { source: "catalogClient" } }));
       try {
         localStorage.setItem("omnicollector_catalog_changed", String(Date.now()));
       } catch {
@@ -196,7 +204,8 @@ if (typeof window !== "undefined") {
     }
   });
 
-  window.addEventListener("omnicollector_catalog_changed", () => {
+  window.addEventListener("omnicollector_catalog_changed", (event) => {
+    if ((event as CustomEvent<{ source?: string }>).detail?.source === "catalogClient") return;
     catalogClient.invalidateCache();
     catalogClient.getCatalog(true).then((prods) => {
       catalogListeners.forEach((l) => l(prods));

@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
 
       // IDEMPOTENCY GUARD: Do not process duplicate fulfillment
       const isAlreadyProcessed =
-        (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CONFIRMED")) ||
-        (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CONFIRMED"));
+        (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CANCELLED")) ||
+        (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CANCELLED"));
 
       if (isAlreadyProcessed) {
         console.info(`[FLOW_WEBHOOK_IDEMPOTENT] Order ${orderId} already fulfilled. Skipping duplicate processing.`);
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
         // Atomic stock deduction
         try {
-          await deductProductStockAtomic(
+          if (!firestoreOrder.stockDeducted) await deductProductStockAtomic(
             (firestoreOrder.items || []).map((it) => ({
               productId: it.productId,
               quantity: it.quantity,

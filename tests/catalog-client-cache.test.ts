@@ -129,3 +129,26 @@ describe("Catalog Client Micro-Cache & Deduplication", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
+
+
+describe("Catalog mutation races", () => {
+  it("an old request cannot overwrite newer admin data or clear its active refresh", async () => {
+    catalogClient.invalidateCache();
+    let finishOld!: (value: unknown) => void;
+    let finishNew!: (value: unknown) => void;
+    const oldResponse = new Promise((resolve) => { finishOld = resolve; });
+    const newResponse = new Promise((resolve) => { finishNew = resolve; });
+    const fetchMock = vi.fn().mockReturnValueOnce(oldResponse).mockReturnValueOnce(newResponse);
+    vi.stubGlobal("fetch", fetchMock);
+    const oldRequest = catalogClient.getCatalog();
+    catalogClient.invalidateCache();
+    const newRequest = catalogClient.getCatalog(true);
+    finishOld({ ok: true, json: async () => ({ success: true, data: { products: mockProducts } }) });
+    const updated = [{ ...mockProducts[0], stockAvailable: 0 }];
+    finishNew({ ok: true, json: async () => ({ success: true, data: { products: updated } }) });
+    expect(await oldRequest).toEqual(updated);
+    expect(await newRequest).toEqual(updated);
+    expect(await catalogClient.getCatalog()).toEqual(updated);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});

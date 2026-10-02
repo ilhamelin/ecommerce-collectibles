@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -72,6 +72,7 @@ const CHILEAN_REGIONS = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const checkoutAttempt = useRef<{ signature: string; key: string; cartSessionId: string } | null>(null);
   const { items, appliedCoupon, applyCoupon, removeCoupon, clearCart, getTotals } = useCartStore();
   const { currentUser, addUserOrder } = useAuthStore();
   const totals = getTotals();
@@ -248,8 +249,14 @@ export default function CheckoutPage() {
     setIsProcessing(true);
     setErrorMessage(null);
 
-    const idempotencyKey = `idem-ord-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    const cartSessionId = `cart-session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    // A network retry of the same cart/customer/shipping data must reuse the same request identity.
+    const signature = JSON.stringify({ items, appliedCoupon, fullName, email, phone, rut,
+      selectedRegion, selectedComuna, address, apartment, notes, courier, selectedOptionId });
+    if (checkoutAttempt.current?.signature !== signature) {
+      checkoutAttempt.current = { signature, key: `idem-${crypto.randomUUID()}`, cartSessionId: `cart-${crypto.randomUUID()}` };
+    }
+    const idempotencyKey = checkoutAttempt.current.key;
+    const cartSessionId = checkoutAttempt.current.cartSessionId;
 
     const courierNames: Record<string, string> = {
       STARKEN: "Starken Express (1 a 2 días hábiles)",

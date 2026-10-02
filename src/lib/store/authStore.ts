@@ -8,7 +8,7 @@ import {
   getUserFromFirestoreClient,
 } from "@/lib/firebase/client-firestore";
 import { signInWithGoogle, signOutFirebase } from "@/lib/firebase/client-auth";
-import { getFirebaseAuth } from "@/lib/firebase/config";
+import { isFirebaseConfigured, getFirebaseAuth } from "@/lib/firebase/config";
 import { isConfiguredAdminEmail } from "@/lib/auth/adminRoles";
 
 export type UserRole = "CUSTOMER" | "ADMIN";
@@ -519,31 +519,27 @@ export const useAuthStore = create<AuthState>()(
           ...data,
         };
 
-        // Update in-memory fallback list
-        const idx = DEFAULT_USERS.findIndex(
-          (u) => u.id === current.id || u.email.toLowerCase() === current.email.toLowerCase()
-        );
-        if (idx >= 0) {
-          DEFAULT_USERS[idx] = { ...DEFAULT_USERS[idx], ...updated };
-        }
-
-        set({ currentUser: updated });
-
         try {
-          // Sync directly via client SDK
-          syncUserProfileToFirestore(updated).catch(() => {});
-          // Also sync via API route
+          let saved = false;
           if (typeof window !== "undefined") {
-            await fetch("/api/users", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
+            const response = await fetch("/api/users", {
+              method: "PUT", headers: { "Content-Type": "application/json" },
               body: JSON.stringify(updated),
             });
+            if (response.ok) {
+              const payload = await response.json() as { success?: boolean; data?: { syncedToFirestore?: boolean } };
+              saved = payload.success === true && (payload.data?.syncedToFirestore === true || !isFirebaseConfigured());
+            }
           }
+          if (!saved) saved = await syncUserProfileToFirestore(updated);
+          if (!saved && isFirebaseConfigured()) return false;
+          const idx = DEFAULT_USERS.findIndex((user) => user.id === current.id);
+          if (idx >= 0) DEFAULT_USERS[idx] = { ...DEFAULT_USERS[idx], ...updated };
+          set({ currentUser: updated });
           return true;
-        } catch (err) {
-          console.warn("Could not sync profile to backend:", err);
-          return true;
+        } catch (error: unknown) {
+          console.warn("Could not sync profile to backend:", error);
+          return false;
         }
       },
 

@@ -283,7 +283,11 @@ function AccountContent() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      await updateProfile({ fullName, email, phone, rut });
+      const saved = await updateProfile({ fullName, email, phone, rut });
+      if (!saved) {
+        toast.error("No se pudieron guardar los cambios. Inténtalo nuevamente.");
+        return;
+      }
       setProfileMsg("¡Datos actualizados y sincronizados en Cloud Firestore!");
       toast.success("Perfil actualizado", "Tus datos se guardaron con éxito en Firestore.");
       setTimeout(() => setProfileMsg(null), 4000);

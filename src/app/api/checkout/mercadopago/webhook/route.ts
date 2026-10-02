@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       const firestoreOrder = await getOrderByIdFromFirestore(orderId);
       if (firestoreOrder) {
         // IDEMPOTENCY GUARD: Do not deduct stock or re-send emails if already paid/confirmed
-        if (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CONFIRMED") {
+        if (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CANCELLED") {
           console.info(`[MP_SIMULATED_IDEMPOTENT] Order ${orderId} already processed.`);
           return NextResponse.json({
             success: true,
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
         // Deduct stock in Firestore atomically
         try {
-          await deductProductStockAtomic(
+          if (!firestoreOrder.stockDeducted) await deductProductStockAtomic(
             (firestoreOrder.items || []).map((it) => ({
               productId: it.productId,
               quantity: it.quantity,
@@ -135,8 +135,8 @@ export async function POST(req: NextRequest) {
 
         // IDEMPOTENCY GUARD: Check if order was already confirmed/paid
         const isAlreadyProcessed =
-          (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CONFIRMED")) ||
-          (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CONFIRMED"));
+          (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CANCELLED")) ||
+          (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CANCELLED"));
 
         if (isAlreadyProcessed) {
           console.info(
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
 
           // Deduct stock in Firestore atomically
           try {
-            await deductProductStockAtomic(
+            if (!firestoreOrder.stockDeducted) await deductProductStockAtomic(
               (firestoreOrder.items || []).map((it) => ({
                 productId: it.productId,
                 quantity: it.quantity,

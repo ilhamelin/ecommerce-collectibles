@@ -707,6 +707,9 @@ export interface ShippingAddressInfo {
 }
 
 export interface ConfirmedOrderEntity {
+  checkoutRequestHash?: string;
+  checkoutGateway?: import("../payments/payment-gateway").GatewayCheckoutResponse;
+  stockDeducted?: boolean;
   id: string;
   orderNumber: string;
   createdAt: string;

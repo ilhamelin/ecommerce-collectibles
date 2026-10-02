@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "motion/react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -194,13 +195,14 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
         </div>
 
         {/* Botones selectores de categoría */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <Tabs value={activeTab} onValueChange={setActiveTab} activationMode="manual">
+        <TabsList aria-label="Categorías del catálogo" className="flex h-auto w-full justify-start gap-2 overflow-x-auto rounded-2xl bg-[#EAF0F6] p-2">
           {activeTabs.map((tab) => {
             const isSelected = activeTab === tab.id;
             return (
-              <button
+              <TabsTrigger
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                value={tab.id}
                 className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-200 border flex items-center gap-2 shrink-0 ${
                   isSelected
                     ? "bg-[#1F3A5F] text-white border-[#1F3A5F] shadow-sm shadow-[#1F3A5F]/20 scale-102"
@@ -208,12 +210,13 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
                 }`}
               >
                 <span>{tab.label}</span>
-              </button>
+              </TabsTrigger>
             );
           })}
-        </div>
+        </TabsList>
 
         {/* Grilla responsiva de productos - Renderizada de inmediato sin skeletons iniciales */}
+        <TabsContent value={activeTab} className="mt-6">
         {tabFilteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             <AnimatePresence initial={false} mode="sync">
@@ -229,6 +232,8 @@ export function InteractiveCatalogSection({ initialProducts }: InteractiveCatalo
             <p className="text-xs text-stone-400 mt-1">Los productos creados desde el panel de administración aparecerán aquí automáticamente.</p>
           </div>
         )}
+        </TabsContent>
+        </Tabs>
       </section>
 
       {/* 2. PREVENTAS DE FIGURAS JAPONESAS & NENDOROIDS */}

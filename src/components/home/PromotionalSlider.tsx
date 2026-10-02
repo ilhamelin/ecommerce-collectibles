@@ -270,7 +270,7 @@ export function PromotionalSlider({ initialProducts }: PromotionalSliderProps = 
                     goToSlide(idx);
                   }
                 }}
-                className={`absolute inset-0 w-full max-w-5xl mx-auto rounded-3xl bg-white border border-[#E5E5E5] shadow-2xl overflow-hidden flex flex-col justify-between transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${transformClass}`}
+                className={`absolute inset-0 w-full max-w-5xl mx-auto rounded-3xl bg-white border border-[#E5E5E5] shadow-2xl overflow-hidden flex flex-col justify-between transition-all duration-700 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] ${transformClass}`}
                 style={{
                   opacity: opacityStyle,
                   zIndex: zIndexStyle,

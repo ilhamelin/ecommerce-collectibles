@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TelemetryResetDialog } from "@/components/admin/TelemetryResetDialog";
 import {
   Cpu,
   Sparkles,
@@ -87,9 +89,6 @@ export default function ApiUsagePage() {
   };
 
   const handleResetData = async () => {
-    if (!window.confirm("¿Estás seguro de que deseas limpiar todo el historial de telemetría registrado?")) {
-      return;
-    }
     setIsActionLoading(true);
     try {
       const res = await fetch("/api/admin/telemetry", {
@@ -190,7 +189,9 @@ export default function ApiUsagePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <Tabs value={timeframe} onValueChange={value => {
+      if (value === "today" || value === "7d" || value === "30d" || value === "all") setTimeframe(value);
+    }} activationMode="manual" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div>
@@ -213,7 +214,7 @@ export default function ApiUsagePage() {
         {/* Timeframe Switcher & Main Actions */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Timeframe pills */}
-          <div className="flex items-center bg-white p-1 rounded-xl border border-[#E5E5E5] shadow-xs">
+          <TabsList aria-label="Período del consumo de APIs" className="h-auto rounded-xl border border-brand-border bg-white p-1 shadow-sm">
             {(
               [
                 { id: "today", label: "Hoy" },
@@ -222,10 +223,9 @@ export default function ApiUsagePage() {
                 { id: "all", label: "Histórico" },
               ] as const
             ).map((t) => (
-              <button
+              <TabsTrigger
                 key={t.id}
-                type="button"
-                onClick={() => setTimeframe(t.id)}
+                value={t.id}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                   timeframe === t.id
                     ? "bg-[#1F3A5F] text-white shadow-xs"
@@ -233,9 +233,9 @@ export default function ApiUsagePage() {
                 }`}
               >
                 {t.label}
-              </button>
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
 
           <button
             type="button"
@@ -249,6 +249,7 @@ export default function ApiUsagePage() {
         </div>
       </div>
 
+      <TabsContent value={timeframe} className="space-y-8">
       <p role="status" className="text-sm text-slate-600">
         {isLoading ? "Actualizando métricas…" : summary ? "Datos cargados. Actualiza para consultar nuevas llamadas." : "Las métricas aún no están disponibles."}
       </p>
@@ -320,15 +321,7 @@ export default function ApiUsagePage() {
               <span>Consola Google AI Studio</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
-            <button
-              type="button"
-              onClick={handleResetData}
-              disabled={isActionLoading}
-              title="Limpiar telemetría registrada"
-              className="p-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 transition cursor-pointer disabled:opacity-50"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <TelemetryResetDialog disabled={isActionLoading} onConfirm={handleResetData} />
           </div>
         </div>
 
@@ -991,6 +984,7 @@ export default function ApiUsagePage() {
           </table>
         </div>
       </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }

@@ -31,6 +31,7 @@ import {
   Camera,
 } from "lucide-react";
 import { ProductCard } from "@/components/catalog/ProductCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCLP } from "@/lib/utils/currency";
 import { PRICE_PRESETS } from "@/lib/constants/catalog";
 import { ProductDomainEntity, CustomCategoryEntity } from "@/lib/types/domain";
@@ -1299,17 +1300,22 @@ function CatalogContent() {
 
             {/* Sort Dropdown */}
             <div className="sm:w-56 shrink-0">
-              <select
+              <Select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                aria-label="Ordenar productos"
-                className="w-full px-3 py-2.5 rounded-xl bg-white border border-[#E5E5E5] text-[#1A1A1A] text-xs focus:outline-none focus:border-[#FF6B35] cursor-pointer shadow-sm"
+                onValueChange={value => {
+                  if (value === "FEATURED" || value === "PREORDER_FIRST" || value === "PRICE_ASC" || value === "PRICE_DESC") setSortBy(value);
+                }}
               >
-                <option value="FEATURED">Destacados del Coleccionista</option>
-                <option value="PREORDER_FIRST">Preventas Primero</option>
-                <option value="PRICE_ASC">Precio: Menor a Mayor</option>
-                <option value="PRICE_DESC">Precio: Mayor a Menor</option>
-              </select>
+                <SelectTrigger aria-label="Ordenar productos" className="h-11 w-full rounded-xl border-brand-border bg-white text-xs text-brand-navy shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FEATURED">Destacados del Coleccionista</SelectItem>
+                  <SelectItem value="PREORDER_FIRST">Preventas Primero</SelectItem>
+                  <SelectItem value="PRICE_ASC">Precio: Menor a Mayor</SelectItem>
+                  <SelectItem value="PRICE_DESC">Precio: Mayor a Menor</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

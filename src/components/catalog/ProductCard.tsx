@@ -217,6 +217,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <button type="button" onClick={() => { trackClick(); setQuickView(true); }} aria-label={`Vista rápida de ${product.name}`} className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-semibold text-[#1F3A5F] shadow-sm transition sm:translate-y-2 sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"><Eye size={15} />Vista rápida</button>
           {/* Floating Heart Button */}
           <motion.button
+            tabIndex={0}
             animate={{ scale: isLiked && !reducedMotion ? 1.08 : 1 }}
             whileTap={reducedMotion ? undefined : { scale: 0.9 }}
             type="button"

@@ -70,7 +70,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {

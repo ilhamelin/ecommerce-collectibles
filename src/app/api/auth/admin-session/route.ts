@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSessionToken, verifyAdminSessionToken } from "@/lib/auth/adminSessionToken";
 import { isConfiguredAdminEmail } from "@/lib/auth/adminRoles";
-import { getUserFromFirestore } from "@/lib/firebase/firestore";
-import { DEFAULT_USERS } from "@/lib/store/authStore";
+import { adminAuth } from "@/lib/firebase/admin";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -45,47 +45,43 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json().catch(() => ({}))) as {
-      email?: string;
-      role?: string;
-    };
-
-    const email = (body.email || "").trim().toLowerCase();
-
-    if (!email) {
-      return NextResponse.json(
-        { success: false, error: "Email de administrador requerido." },
-        { status: 400 }
-      );
+    const body: unknown = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ success: false, error: "Solicitud inválida." }, { status: 400 });
     }
-
-    // Verify admin eligibility:
-    // 1. In configured admin whitelist
-    const isWhitelisted = isConfiguredAdminEmail(email);
-
-    // 2. Or in Firestore with role ADMIN
-    let isDbAdmin = false;
-    if (!isWhitelisted) {
-      const userDoc = await getUserFromFirestore(email);
-      if (userDoc && userDoc.role === "ADMIN") {
-        isDbAdmin = true;
-      } else {
-        const memUser = DEFAULT_USERS.find((u) => u.email.toLowerCase() === email);
-        if (memUser && memUser.role === "ADMIN") {
-          isDbAdmin = true;
-        }
+    const credentials = body as Record<string, unknown>;
+    let email = "";
+    if (typeof credentials.idToken === "string") {
+      if (!adminAuth) {
+        return NextResponse.json({ success: false, error: "Firebase Admin no está configurado." }, { status: 503 });
       }
+      try {
+        const identity = await adminAuth.verifyIdToken(credentials.idToken, true);
+        if (!identity.email_verified || !identity.email) {
+          return NextResponse.json({ success: false, error: "Identidad no verificada." }, { status: 401 });
+        }
+        email = identity.email.trim().toLowerCase();
+      } catch {
+        return NextResponse.json({ success: false, error: "Credenciales inválidas." }, { status: 401 });
+      }
+    } else {
+      // The portfolio demo is explicit in production and limited to one account.
+      const demoPassword = process.env.ADMIN_DEMO_PASSWORD ||
+        (process.env.NODE_ENV !== "production" ? "admin123" : "");
+      const demoEmail = (process.env.ADMIN_DEMO_EMAIL || "admin@omnicollector.cl").trim().toLowerCase();
+      const suppliedEmail = typeof credentials.email === "string" ? credentials.email.trim().toLowerCase() : "";
+      const suppliedPassword = typeof credentials.password === "string" ? credentials.password : "";
+      const digest = (value: string) => createHash("sha256").update(value).digest();
+      if (!demoPassword || suppliedEmail !== demoEmail ||
+          !timingSafeEqual(digest(suppliedPassword), digest(demoPassword))) {
+        return NextResponse.json({ success: false, error: "Credenciales inválidas." }, { status: 401 });
+      }
+      email = demoEmail;
     }
 
-    if (!isWhitelisted && !isDbAdmin) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Acceso denegado: El correo no cuenta con privilegios administrativos.",
-          code: "FORBIDDEN",
-        },
-        { status: 403 }
-      );
+    // Never trust a role stored in a client-writable profile or supplied in the body.
+    if (!isConfiguredAdminEmail(email)) {
+      return NextResponse.json({ success: false, error: "Acceso denegado.", code: "FORBIDDEN" }, { status: 403 });
     }
 
     const token = await createAdminSessionToken(email, COOKIE_MAX_AGE);

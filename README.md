@@ -196,3 +196,13 @@ Puedes iniciar sesión inmediatamente en la plataforma utilizando las siguientes
 ## 📄 Licencia
 
 Este proyecto se encuentra bajo la licencia **MIT**. Desarrollado para coleccionistas y comercio minorista en Chile.
+
+## Acceso administrativo del portafolio
+
+Las páginas y API administrativas requieren una cookie HttpOnly firmada por el servidor.
+Configura `ADMIN_SESSION_SECRET` con un valor aleatorio privado de al menos 32 caracteres.
+En desarrollo, la cuenta de demostración `admin@omnicollector.cl` conserva la contraseña `admin123`.
+En producción, la demostración solo se habilita al configurar `ADMIN_DEMO_PASSWORD` explícitamente.
+Google requiere Firebase Admin configurado y un token válido con correo verificado incluido en la lista administrativa.
+Las cabeceras de rol y las antiguas claves fijas ya no conceden acceso.
+Los pagos simulados siguen disponibles para la demostración del portafolio.

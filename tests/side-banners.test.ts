@@ -1,3 +1,5 @@
+import { afterEach, beforeEach as setupAdminSession, vi as sessionEnv } from "vitest";
+import { createAdminSessionToken } from "@/lib/auth/adminSessionToken";
 import { describe, it, expect } from "vitest";
 import { NextRequest } from "next/server";
 import { GET as adminGet, POST as adminPost } from "../src/app/api/admin/side-banners/route";
@@ -65,7 +67,7 @@ describe("Promotional Side Banners (Skins & Ads) Suite", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-admin-role": "ADMIN",
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
         "x-user-id": "admin-test-id",
       },
       body: JSON.stringify({ config: customConfig }),
@@ -84,7 +86,7 @@ describe("Promotional Side Banners (Skins & Ads) Suite", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-admin-role": "ADMIN",
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
         "x-user-id": "admin-test-id",
       },
       body: JSON.stringify({ action: "RESET" }),
@@ -97,3 +99,6 @@ describe("Promotional Side Banners (Skins & Ads) Suite", () => {
     expect(json.data.config.leftBanner.title).toBe(DEFAULT_SIDE_BANNERS.leftBanner.title);
   });
 });
+
+setupAdminSession(() => sessionEnv.stubEnv("ADMIN_SESSION_SECRET", "test-private-signing-secret-at-least-32-characters"));
+afterEach(() => sessionEnv.unstubAllEnvs());

@@ -134,7 +134,6 @@ export default function AdminUsersAnalyticsPage() {
         await Promise.allSettled([
           fetch("/api/users", {
             headers: {
-              "x-admin-secret": "omni-super-secret-key-2026",
             },
           }).then((r) => (r.ok ? r.json() : null)),
           fetch("/api/orders").then((r) => (r.ok ? r.json() : null)),
@@ -345,7 +344,6 @@ export default function AdminUsersAnalyticsPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-secret": "omni-super-secret-key-2026",
         },
         body: JSON.stringify({
           id: targetUser.id,

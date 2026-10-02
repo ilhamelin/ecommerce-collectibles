@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useAuthStore, DEFAULT_USERS } from "../src/lib/store/authStore";
 import { ConfirmedOrderEntity } from "../src/lib/types/domain";
 
 describe("OmniCollector Account & Authentication System", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset store state before each test
     useAuthStore.setState({
       currentUser: null,
@@ -13,9 +13,9 @@ describe("OmniCollector Account & Authentication System", () => {
   });
 
   describe("1. Role Differentiation (Customer vs Admin)", () => {
-    it("logs in successfully as a regular customer with role CUSTOMER and isAdmin false", () => {
+    it("logs in successfully as a regular customer with role CUSTOMER and isAdmin false", async () => {
       const store = useAuthStore.getState();
-      const res = store.login("cliente@omnicollector.cl", "cliente123");
+      const res = await store.login("cliente@omnicollector.cl", "cliente123");
 
       expect(res.success).toBe(true);
       const state = useAuthStore.getState();
@@ -26,9 +26,9 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(state.currentUser?.fullName).toBe("Rodrigo Valenzuela");
     });
 
-    it("logs in successfully as an administrator with role ADMIN and isAdmin true", () => {
+    it("logs in successfully as an administrator with role ADMIN and isAdmin true", async () => {
       const store = useAuthStore.getState();
-      const res = store.login("admin@omnicollector.cl", "admin123");
+      const res = await store.login("admin@omnicollector.cl", "admin123");
 
       expect(res.success).toBe(true);
       const state = useAuthStore.getState();
@@ -39,9 +39,9 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(state.currentUser?.fullName).toBe("Administrador OmniCollector");
     });
 
-    it("rejects login with invalid credentials", () => {
+    it("rejects login with invalid credentials", async () => {
       const store = useAuthStore.getState();
-      const res = store.login("cliente@omnicollector.cl", "clave_incorrecta");
+      const res = await store.login("cliente@omnicollector.cl", "clave_incorrecta");
 
       expect(res.success).toBe(false);
       expect(res.message).toContain("incorrecta");
@@ -50,9 +50,9 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(state.currentUser).toBeNull();
     });
 
-    it("logs out and clears authentication status and role flags", () => {
+    it("logs out and clears authentication status and role flags", async () => {
       const store = useAuthStore.getState();
-      store.login("admin@omnicollector.cl", "admin123");
+      await store.login("admin@omnicollector.cl", "admin123");
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
 
       store.logout();
@@ -76,7 +76,7 @@ describe("OmniCollector Account & Authentication System", () => {
   });
 
   describe("2. User Registration Lifecycle", () => {
-    it("registers a new customer successfully with CUSTOMER role", () => {
+    it("registers a new customer successfully with CUSTOMER role", async () => {
       const store = useAuthStore.getState();
       const email = `test-nuevo-${Date.now()}@coleccionista.cl`;
       const res = store.register({
@@ -97,7 +97,7 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(state.currentUser?.rut).toBe("19.345.678-9");
     });
 
-    it("prevents registration with duplicate email", () => {
+    it("prevents registration with duplicate email", async () => {
       const store = useAuthStore.getState();
       const res = store.register({
         fullName: "Duplicado",
@@ -109,7 +109,7 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(res.message).toContain("Ya existe una cuenta");
     });
 
-    it("enforces minimum password length", () => {
+    it("enforces minimum password length", async () => {
       const store = useAuthStore.getState();
       const res = store.register({
         fullName: "Test Corta",
@@ -123,11 +123,11 @@ describe("OmniCollector Account & Authentication System", () => {
   });
 
   describe("3. Address Book Management (Chilean Addresses)", () => {
-    beforeEach(() => {
-      useAuthStore.getState().login("cliente@omnicollector.cl", "cliente123");
+    beforeEach(async () => {
+      await useAuthStore.getState().login("cliente@omnicollector.cl", "cliente123");
     });
 
-    it("adds a new shipping address to the user account", () => {
+    it("adds a new shipping address to the user account", async () => {
       const store = useAuthStore.getState();
       const initialCount = store.currentUser?.addresses.length || 0;
 
@@ -150,7 +150,7 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(added?.apartment).toBe("Oficina 802");
     });
 
-    it("toggling a new default address marks previous defaults as non-default", () => {
+    it("toggling a new default address marks previous defaults as non-default", async () => {
       const store = useAuthStore.getState();
       store.addAddress({
         label: "Casa Playa",
@@ -168,7 +168,7 @@ describe("OmniCollector Account & Authentication System", () => {
       expect(defaultAddresses[0].label).toBe("Casa Playa");
     });
 
-    it("deletes an address by id", () => {
+    it("deletes an address by id", async () => {
       const store = useAuthStore.getState();
       const addresses = store.currentUser?.addresses || [];
       expect(addresses.length).toBeGreaterThan(0);
@@ -182,11 +182,11 @@ describe("OmniCollector Account & Authentication System", () => {
   });
 
   describe("4. Order History and Tracking Linking", () => {
-    beforeEach(() => {
-      useAuthStore.getState().login("cliente@omnicollector.cl", "cliente123");
+    beforeEach(async () => {
+      await useAuthStore.getState().login("cliente@omnicollector.cl", "cliente123");
     });
 
-    it("links a newly confirmed checkout order to customer order history", () => {
+    it("links a newly confirmed checkout order to customer order history", async () => {
       const store = useAuthStore.getState();
       const initialOrdersCount = store.currentUser?.orders.length || 0;
 
@@ -243,14 +243,14 @@ describe("OmniCollector Account & Authentication System", () => {
   });
 
   describe("5. Password Recovery Simulation", () => {
-    it("returns instructions for known customer email", () => {
+    it("returns instructions for known customer email", async () => {
       const store = useAuthStore.getState();
       const res = store.requestPasswordReset("cliente@omnicollector.cl");
       expect(res.success).toBe(true);
       expect(res.message).toContain("código de recuperación");
     });
 
-    it("informs when email is not registered", () => {
+    it("informs when email is not registered", async () => {
       const store = useAuthStore.getState();
       const res = store.requestPasswordReset("noexiste@omnicollector.cl");
       expect(res.success).toBe(false);
@@ -258,3 +258,6 @@ describe("OmniCollector Account & Authentication System", () => {
     });
   });
 });
+
+beforeEach(() => vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true })));
+afterEach(() => vi.unstubAllGlobals());

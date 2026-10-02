@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   createAdminSessionToken,
   verifyAdminSessionToken,
@@ -8,6 +8,9 @@ import { POST as mpWebhookPOST } from "@/lib/../app/api/checkout/mercadopago/web
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
 import { NextRequest } from "next/server";
+
+beforeEach(() => vi.stubEnv("ADMIN_SESSION_SECRET", "test-private-signing-secret-at-least-32-characters"));
+afterEach(() => vi.unstubAllEnvs());
 
 describe("Cryptographic Admin Session Token Suite (Web Crypto HMAC-SHA256)", () => {
   it("should create a valid signed session token and verify it successfully", async () => {
@@ -59,7 +62,7 @@ describe("Admin Session API Route (/api/auth/admin-session)", () => {
     const req = new NextRequest("http://localhost:3000/api/auth/admin-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "admin@omnicollector.cl", role: "ADMIN" }),
+      body: JSON.stringify({ email: "admin@omnicollector.cl", password: "admin123" }),
     });
 
     const res = await adminSessionPOST(req);
@@ -80,10 +83,10 @@ describe("Admin Session API Route (/api/auth/admin-session)", () => {
     });
 
     const res = await adminSessionPOST(req);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     const data = await res.json();
     expect(data.success).toBe(false);
-    expect(data.code).toBe("FORBIDDEN");
+    expect(data.error).toBe("Credenciales inválidas.");
   });
 
   it("should clear the admin cookie on DELETE", async () => {

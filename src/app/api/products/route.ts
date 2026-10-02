@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {
@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {
@@ -489,7 +489,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {

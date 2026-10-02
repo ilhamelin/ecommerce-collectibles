@@ -33,7 +33,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {

@@ -50,7 +50,7 @@ export async function PATCH(
     const { status, trackingNumber, adminNotes, shippingCourier, preOrderWarehouseArrivalNotified, deliveredAt, clientTrackingUpdate } = body;
 
     // Admin check: required for admin notes, manual edits, or non-tracking modifications
-    const authCheck = verifyAdminAuthorization(req);
+    const authCheck = await verifyAdminAuthorization(req);
     const isAllowedTrackingTransition =
       clientTrackingUpdate === true &&
       (status === "DISPATCHED" || status === "DELIVERED" || status === "PREPARING" || status === "CONFIRMED");
@@ -152,7 +152,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const authCheck = verifyAdminAuthorization(req);
+    const authCheck = await verifyAdminAuthorization(req);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {

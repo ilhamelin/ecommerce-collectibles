@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // SECURITY: Listing all registered users requires verified Admin Authorization
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
     // Only allow setting role if authorized admin
     let resolvedRole: "ADMIN" | "CUSTOMER" = existing?.role || "CUSTOMER";
     if (role && (role === "ADMIN" || role === "CUSTOMER")) {
-      const authCheck = verifyAdminAuthorization(request);
+      const authCheck = await verifyAdminAuthorization(request);
       if (authCheck.authorized) {
         resolvedRole = role;
       }
@@ -162,7 +162,7 @@ export async function PUT(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const authCheck = verifyAdminAuthorization(request);
+    const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {

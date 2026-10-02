@@ -8,6 +8,7 @@ import {
   getUserFromFirestoreClient,
 } from "@/lib/firebase/client-firestore";
 import { signInWithGoogle, signOutFirebase } from "@/lib/firebase/client-auth";
+import { getFirebaseAuth } from "@/lib/firebase/config";
 import { isConfiguredAdminEmail } from "@/lib/auth/adminRoles";
 
 export type UserRole = "CUSTOMER" | "ADMIN";
@@ -55,7 +56,7 @@ interface AuthState {
   guestWishlist: string[]; // Wishlist for unauthenticated visitors
 
   // Actions
-  login: (email: string, password: string) => { success: boolean; message: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; message: string; user?: UserAccount }>;
   register: (data: {
     fullName: string;
@@ -265,11 +266,27 @@ export const useAuthStore = create<AuthState>()(
       isAdmin: false,
       guestWishlist: [],
 
-      login: (emailRaw, password) => {
+      login: async (emailRaw, password) => {
         const email = emailRaw.trim().toLowerCase();
-        // Check pre-seeded or registered users
+        let serverVerifiedAdmin = false;
+        if (isConfiguredAdminEmail(email)) {
+          try {
+            const response = await fetch("/api/auth/admin-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+            if (!response.ok) {
+              return { success: false, message: "Credenciales administrativas incorrectas." };
+            }
+            serverVerifiedAdmin = true;
+          } catch {
+            return { success: false, message: "No se pudo verificar la sesión administrativa." };
+          }
+        }
+        // Demo customer credentials remain local; admin credentials are checked by the server.
         const user = DEFAULT_USERS.find(
-          (u) => u.email.toLowerCase() === email && u.password === password
+          (u) => u.email.toLowerCase() === email && (serverVerifiedAdmin || u.password === password)
         );
 
         if (user) {
@@ -277,21 +294,13 @@ export const useAuthStore = create<AuthState>()(
           const mergedWishlist = Array.from(new Set([...(user.wishlist || []), ...guestWishlist]));
           user.wishlist = mergedWishlist;
 
-          const isUserAdmin = user.role === "ADMIN" || isConfiguredAdminEmail(email);
+          const isUserAdmin = serverVerifiedAdmin;
           if (isUserAdmin) {
             user.role = "ADMIN";
           }
 
-          if (typeof window !== "undefined") {
-            if (isUserAdmin) {
-              fetch("/api/auth/admin-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: user.email, role: "ADMIN" }),
-              }).catch(() => {});
-            } else {
-              fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
-            }
+          if (typeof window !== "undefined" && !isUserAdmin) {
+            fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
           }
 
           set({
@@ -317,20 +326,12 @@ export const useAuthStore = create<AuthState>()(
           currentInState.email.toLowerCase() === email &&
           currentInState.password === password
         ) {
-          const isStateUserAdmin = currentInState.role === "ADMIN" || isConfiguredAdminEmail(email);
+          const isStateUserAdmin = serverVerifiedAdmin;
           if (isStateUserAdmin) {
             currentInState.role = "ADMIN";
           }
-          if (typeof window !== "undefined") {
-            if (isStateUserAdmin) {
-              fetch("/api/auth/admin-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: currentInState.email, role: "ADMIN" }),
-              }).catch(() => {});
-            } else {
-              fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
-            }
+          if (typeof window !== "undefined" && !isStateUserAdmin) {
+            fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
           }
 
           set({
@@ -394,11 +395,15 @@ export const useAuthStore = create<AuthState>()(
 
         if (typeof window !== "undefined") {
           if (user.role === "ADMIN") {
-            fetch("/api/auth/admin-session", {
+            const idToken = await getFirebaseAuth()?.currentUser?.getIdToken();
+            const sessionResponse = await fetch("/api/auth/admin-session", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email: user.email, role: "ADMIN" }),
-            }).catch(() => {});
+              body: JSON.stringify({ idToken }),
+            });
+            if (!sessionResponse.ok) {
+              return { success: false, message: "No se pudo verificar la sesión administrativa." };
+            }
           } else {
             fetch("/api/auth/admin-session", { method: "DELETE" }).catch(() => {});
           }
@@ -437,7 +442,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         const guestWishlist = get().guestWishlist || [];
-        const isNewUserAdmin = isConfiguredAdminEmail(email);
+        const isNewUserAdmin = false; // Registration cannot grant administrative authority.
         const newUser: UserAccount = {
           id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           email,
@@ -464,14 +469,6 @@ export const useAuthStore = create<AuthState>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newUser),
           }).catch(() => {});
-
-          if (isNewUserAdmin) {
-            fetch("/api/auth/admin-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email: newUser.email, role: "ADMIN" }),
-            }).catch(() => {});
-          }
         }
 
         set({

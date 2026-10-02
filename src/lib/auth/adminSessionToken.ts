@@ -4,17 +4,12 @@
  * Ensures zero-dependency execution across Node.js, Next.js Edge Runtime, and browser environments.
  */
 
-const DEFAULT_SECRET = "omni-collector-chile-admin-session-secret-key-2026-production-salt";
-
 function getSecretKey(): string {
-  if (typeof process !== "undefined" && process.env) {
-    return (
-      process.env.ADMIN_SESSION_SECRET ||
-      process.env.ADMIN_SECRET_KEY ||
-      DEFAULT_SECRET
-    );
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("ADMIN_SESSION_SECRET debe contener al menos 32 caracteres.");
   }
-  return DEFAULT_SECRET;
+  return secret;
 }
 
 function base64UrlEncode(bytes: Uint8Array): string {
@@ -138,7 +133,7 @@ export async function verifyAdminSessionToken(
     const payload: AdminTokenPayload = JSON.parse(payloadRaw);
 
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
+    if (!Number.isFinite(payload.exp) || payload.exp <= now || !payload.email || !Number.isFinite(payload.iat)) {
       return { valid: false, error: "La sesión administrativa ha expirado." };
     }
 

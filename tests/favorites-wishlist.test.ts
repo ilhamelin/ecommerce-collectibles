@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { useAuthStore } from "../src/lib/store/authStore";
 
 describe("OmniCollector Favorites / Wishlist System", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     useAuthStore.setState({
       currentUser: null,
       isAuthenticated: false,
@@ -12,12 +12,12 @@ describe("OmniCollector Favorites / Wishlist System", () => {
   });
 
   describe("1. User Account Linked Wishlist", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       // Login as demo customer
-      useAuthStore.getState().login("cliente@omnicollector.cl", "cliente123");
+      await useAuthStore.getState().login("cliente@omnicollector.cl", "cliente123");
     });
 
-    it("adds a new product to the logged-in customer's wishlist", () => {
+    it("adds a new product to the logged-in customer's wishlist", async () => {
       const store = useAuthStore.getState();
       const initialCount = store.currentUser?.wishlist.length || 0;
       const testProdId = "prod-new-test-01";
@@ -32,7 +32,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
       expect(updated?.wishlist).toContain(testProdId);
     });
 
-    it("removes an already wishlisted product when toggled again", () => {
+    it("removes an already wishlisted product when toggled again", async () => {
       const store = useAuthStore.getState();
       const testProdId = "prod-toggle-test";
 
@@ -47,7 +47,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
       expect(useAuthStore.getState().currentUser?.wishlist).not.toContain(testProdId);
     });
 
-    it("correctly identifies whether a product is wishlisted with isProductWishlisted", () => {
+    it("correctly identifies whether a product is wishlisted with isProductWishlisted", async () => {
       const store = useAuthStore.getState();
       const prodA = "prod-test-a";
       const prodB = "prod-test-b";
@@ -58,7 +58,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
       expect(store.isProductWishlisted(prodB)).toBe(false);
     });
 
-    it("clears all wishlisted items when clearWishlist is invoked", () => {
+    it("clears all wishlisted items when clearWishlist is invoked", async () => {
       const store = useAuthStore.getState();
       store.toggleWishlist("prod-1");
       store.toggleWishlist("prod-2");
@@ -70,7 +70,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
   });
 
   describe("2. Guest Wishlist & Seamless Account Merging", () => {
-    it("allows unauthenticated guests to store favorites in guestWishlist", () => {
+    it("allows unauthenticated guests to store favorites in guestWishlist", async () => {
       const store = useAuthStore.getState();
       expect(store.isAuthenticated).toBe(false);
 
@@ -82,7 +82,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
       expect(state.isProductWishlisted("prod-guest-item-1")).toBe(true);
     });
 
-    it("merges guest wishlist items into user account upon login without duplicates", () => {
+    it("merges guest wishlist items into user account upon login without duplicates", async () => {
       const store = useAuthStore.getState();
 
       // Guest likes two items
@@ -91,7 +91,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
       expect(useAuthStore.getState().guestWishlist.length).toBe(2);
 
       // User logs in
-      store.login("cliente@omnicollector.cl", "cliente123");
+      await store.login("cliente@omnicollector.cl", "cliente123");
 
       const loggedState = useAuthStore.getState();
       expect(loggedState.isAuthenticated).toBe(true);
@@ -100,7 +100,7 @@ describe("OmniCollector Favorites / Wishlist System", () => {
       expect(loggedState.currentUser?.wishlist).toContain("prod-guest-02");
     });
 
-    it("preserves guest wishlist when creating a new account via register", () => {
+    it("preserves guest wishlist when creating a new account via register", async () => {
       const store = useAuthStore.getState();
       store.toggleWishlist("prod-fig-makima");
 

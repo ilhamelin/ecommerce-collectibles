@@ -120,29 +120,13 @@ export async function middleware(req: NextRequest) {
     );
   }
 
-  // 1.1 Admin Route Protection Guard (HMAC-SHA256 Cryptographic Verification)
-  if (pathname.startsWith("/admin")) {
-    const adminSessionToken = req.cookies.get("omni_admin_session")?.value;
-    const adminAuthHeader = req.headers.get("x-admin-authorization") || req.headers.get("x-admin-secret");
-    const isDev = process.env.NODE_ENV !== "production";
-    const host = req.headers.get("host") || "";
-    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
-
-    // Cryptographic token verification
-    const sessionCheck = await verifyAdminSessionToken(adminSessionToken);
-
-    const isAuthorized =
-      (sessionCheck.valid && sessionCheck.role === "ADMIN") ||
-      adminAuthHeader === "omnicollector-admin-secret-chile-2026" ||
-      adminAuthHeader === "omni-super-secret-key-2026" ||
-      (isLocal && isDev);
-
-    if (!isAuthorized) {
-      console.warn(
-        `[ADMIN_AUTH_BLOCKED] Unauthorized access attempt to ${pathname} from IP ${clientIp}. Reason: ${
-          sessionCheck.error || "No valid admin session"
-        }`
-      );
+  // Protect both admin pages and admin APIs with the same signed session.
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin/")) {
+    const session = await verifyAdminSessionToken(req.cookies.get("omni_admin_session")?.value);
+    if (!session.valid || session.role !== "ADMIN") {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       const loginUrl = new URL("/auth/login", req.url);
       loginUrl.searchParams.set("redirect", pathname);
       loginUrl.searchParams.set("error", "admin_required");
@@ -152,7 +136,7 @@ export async function middleware(req: NextRequest) {
 
   // 2. Rate Limiting on API endpoints
   if (pathname.startsWith("/api/")) {
-    const isAuthLogin = pathname.startsWith("/api/auth/login") || pathname.startsWith("/api/auth/session");
+    const isAuthLogin = pathname.startsWith("/api/auth/login") || pathname.startsWith("/api/auth/session") || pathname.startsWith("/api/auth/admin-session");
     const isSensitive =
       isAuthLogin ||
       pathname.startsWith("/api/checkout") ||

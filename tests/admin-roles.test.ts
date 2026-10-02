@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createAdminSessionToken } from "@/lib/auth/adminSessionToken";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { isConfiguredAdminEmail, getAdminEmails } from "@/lib/auth/adminRoles";
 import { PATCH, GET } from "@/lib/../app/api/users/route";
 import { DEFAULT_USERS } from "@/lib/store/authStore";
@@ -60,12 +61,12 @@ describe("Admin Role Management API (PATCH /api/users)", () => {
     expect(data.code).toBe("FORBIDDEN");
   });
 
-  it("should successfully promote customer to ADMIN with valid admin key", async () => {
+  it("should successfully promote customer to ADMIN with valid signed admin session", async () => {
     const req = new NextRequest("http://localhost:3000/api/users", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "x-admin-secret": "omni-super-secret-key-2026",
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
       },
       body: JSON.stringify({
         email: "testuser-role@omnicollector.cl",
@@ -88,7 +89,7 @@ describe("Admin Role Management API (PATCH /api/users)", () => {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "x-admin-secret": "omni-super-secret-key-2026",
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
       },
       body: JSON.stringify({
         email: "admin@omnicollector.cl",
@@ -108,7 +109,7 @@ describe("Admin Role Management API (PATCH /api/users)", () => {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "x-admin-secret": "omni-super-secret-key-2026",
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
       },
       body: JSON.stringify({
         email: "testuser-role@omnicollector.cl",
@@ -123,3 +124,6 @@ describe("Admin Role Management API (PATCH /api/users)", () => {
     expect(data.code).toBe("INVALID_ROLE");
   });
 });
+
+beforeEach(() => vi.stubEnv("ADMIN_SESSION_SECRET", "test-private-signing-secret-at-least-32-characters"));
+afterEach(() => vi.unstubAllEnvs());

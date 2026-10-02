@@ -1,68 +1,15 @@
 import { NextRequest } from "next/server";
+import { verifyAdminSessionToken } from "./adminSessionToken";
 
-// Static secret key for admin operations (can be overridden via environment variable)
-export const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "omnicollector-admin-secret-chile-2026";
-export const ADMIN_AUTH_HEADER = "x-admin-authorization";
-
-/**
- * Validates if an incoming API request has administrative authority.
- * Checks for:
- * 1. Matching x-admin-authorization header
- * 2. Valid Bearer token
- * 3. Verified admin cookie or internal admin role indicator
- */
-export function verifyAdminAuthorization(req: NextRequest): { authorized: boolean; reason?: string } {
-  // 1. Check custom admin headers
-  const customHeader = req.headers.get(ADMIN_AUTH_HEADER) || req.headers.get("x-admin-secret") || req.headers.get("x-admin-key");
-  if (customHeader && (customHeader === ADMIN_SECRET_KEY || customHeader === "omni-super-secret-key-2026")) {
-    return { authorized: true };
-  }
-
-  // 2. Check Authorization Bearer
-  const authHeader = req.headers.get("authorization");
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.substring(7).trim();
-    if (token === ADMIN_SECRET_KEY || token === "omni-super-secret-key-2026") {
-      return { authorized: true };
-    }
-  }
-
-  // 3. Check role header from client session
-  const roleHeader = req.headers.get("x-user-role") || req.headers.get("x-admin-role");
-  const emailHeader = req.headers.get("x-user-email");
-  if (roleHeader === "ADMIN") {
-    return { authorized: true };
-  }
-
-  // 3b. Check omni_admin_session cookie (Only allow mock value on local dev environment)
-  const isDev = process.env.NODE_ENV !== "production";
-  const host = req.headers.get("host") || "";
-  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
-  const adminCookie = req.cookies.get("omni_admin_session")?.value;
-
-  if (isLocal && isDev && (adminCookie === "1" || adminCookie === "true")) {
-    return { authorized: true };
-  }
-
-  // 4. In development/local mode, allow requests from localhost admin sessions
-  const origin = req.headers.get("origin") || req.headers.get("referer") || "";
-  if (isLocal && origin.includes("/admin") && isDev) {
-    return { authorized: true };
-  }
-
-  return {
-    authorized: false,
-    reason: "Acceso restringido: Se requieren privilegios de administrador.",
-  };
+/** Administrative authority comes exclusively from a verified server-issued cookie. */
+export async function verifyAdminAuthorization(req: NextRequest): Promise<{ authorized: boolean; reason?: string }> {
+  const session = await verifyAdminSessionToken(req.cookies.get("omni_admin_session")?.value);
+  return session.valid && session.role === "ADMIN"
+    ? { authorized: true }
+    : { authorized: false, reason: "Acceso restringido: Se requiere una sesión administrativa válida." };
 }
 
-/**
- * Returns the default headers needed for frontend admin fetch calls
- */
+/** Same-origin fetch sends the HttpOnly session cookie automatically. */
 export function getAdminHeaders(): Record<string, string> {
-  return {
-    [ADMIN_AUTH_HEADER]: ADMIN_SECRET_KEY,
-    "x-user-role": "ADMIN",
-    "x-user-email": "admin@omnicollector.cl",
-  };
+  return {};
 }

@@ -115,7 +115,7 @@ function sanitizeSvg(rawSvg: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const authCheck = verifyAdminAuthorization(req);
+    const authCheck = await verifyAdminAuthorization(req);
     if (!authCheck.authorized) {
       return NextResponse.json(
         {

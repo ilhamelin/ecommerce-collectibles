@@ -98,7 +98,7 @@ function LoginContent() {
       }
 
       // 2. Perform credentials verification
-      const res = login(loginEmail, loginPassword);
+      const res = await login(loginEmail, loginPassword);
       if (res.success) {
         setSessionConflict(null);
         setSuccessMessage(res.message);

@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
   DEFAULT_BRANDING_DATA,
   LOGO_ICON_OPTIONS,
   AI_ICON_PRESETS,
 } from "../src/lib/constants/brandingDefaults";
-import { getAdminHeaders } from "../src/lib/auth/security";
+import { createAdminSessionToken } from "@/lib/auth/adminSessionToken";
 import { POST as generateIconPost } from "../src/app/api/admin/branding/generate-icon/route";
 import { GET as brandingGet, POST as brandingPost } from "../src/app/api/admin/branding/route";
 
@@ -44,7 +44,7 @@ describe("AI Branding Icon Generation & Isotype Suite", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...getAdminHeaders(),
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
       },
       body: JSON.stringify({ presetId: "mascara_kitsune" }),
     });
@@ -65,7 +65,7 @@ describe("AI Branding Icon Generation & Isotype Suite", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...getAdminHeaders(),
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
       },
       body: JSON.stringify({ prompt: "A sparkling dragon jewel for collectors" }),
     });
@@ -86,7 +86,7 @@ describe("AI Branding Icon Generation & Isotype Suite", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...getAdminHeaders(),
+        cookie: `omni_admin_session=${await createAdminSessionToken("admin@omnicollector.cl")}`,
       },
       body: JSON.stringify({
         branding: {
@@ -108,7 +108,7 @@ describe("AI Branding Icon Generation & Isotype Suite", () => {
     const getReq = new NextRequest("http://localhost:3000/api/admin/branding", {
       method: "GET",
     });
-    const getRes = await brandingGet(getReq);
+    const getRes = await brandingGet();
     expect(getRes.status).toBe(200);
     const getJson = await getRes.json();
     expect(getJson.data.branding.logoIcon).toBe("AI_GENERATED");
@@ -116,3 +116,6 @@ describe("AI Branding Icon Generation & Isotype Suite", () => {
     expect(getJson.data.branding.customSvgIcon).not.toContain("<script");
   });
 });
+
+beforeEach(() => vi.stubEnv("ADMIN_SESSION_SECRET", "test-private-signing-secret-at-least-32-characters"));
+afterEach(() => vi.unstubAllEnvs());

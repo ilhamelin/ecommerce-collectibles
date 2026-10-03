@@ -22,6 +22,8 @@ import {
   Puzzle,
 } from "lucide-react";
 import { EditorialHero, CollectionShelves } from "@/components/home/EditorialShowcase";
+import { getStorefrontHomeHeroSettings } from "@/lib/firebase/homeHeroSettings";
+import { DEFAULT_HOME_HERO } from "@/lib/constants/homeHeroDefaults";
 import { PromotionalSlider } from "@/components/home/PromotionalSlider";
 import { InteractiveCatalogSection } from "@/components/home/InteractiveCatalogSection";
 import { getProductsFromFirestore, getDeletedNativeCategoriesFromFirestore, getCustomCategoriesFromFirestore } from "@/lib/firebase/firestore";
@@ -161,12 +163,14 @@ export default async function StorefrontHomePage() {
   let initialProducts: ProductDomainEntity[] = [];
   let deletedIds: string[] = [];
   let customCategories: CustomCategoryEntity[] = [];
+  let homeHeroSettings = DEFAULT_HOME_HERO;
 
   try {
-    const [firestoreProducts, firestoreDeleted, firestoreCustom] = await Promise.all([
+    const [firestoreProducts, firestoreDeleted, firestoreCustom, heroSettings] = await Promise.all([
       getProductsFromFirestore().catch(() => null),
       getDeletedNativeCategoriesFromFirestore().catch(() => []),
       getCustomCategoriesFromFirestore().catch(() => []),
+      getStorefrontHomeHeroSettings(),
     ]);
 
     if (firestoreProducts !== null) {
@@ -176,6 +180,7 @@ export default async function StorefrontHomePage() {
     }
     deletedIds = firestoreDeleted || [];
     customCategories = firestoreCustom || [];
+    homeHeroSettings = heroSettings;
   } catch (err) {
     console.warn("[StorefrontHomePage] Fallback to local catalog store:", err);
     initialProducts = CatalogRepository.getInstance().getAll();
@@ -198,7 +203,7 @@ export default async function StorefrontHomePage() {
   return (
     <div className="space-y-12 sm:space-y-16 pb-20 relative">
       {/* 1. AUTOMATIC PROMOTIONAL SLIDER */}
-      <EditorialHero products={initialProducts} />
+      <EditorialHero products={initialProducts} settings={homeHeroSettings} />
 
       {/* 2. VISUAL CATEGORY EXPLORER BAR */}
       <section id="colecciones" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">

@@ -59,6 +59,7 @@ export default function AdminLayout({
     pathname.startsWith("/admin/api-usage");
   const isInventoryActive = pathname.startsWith("/admin/products") || pathname.startsWith("/admin/orders");
   const isVisualActive =
+    pathname.startsWith("/admin/home-hero") ||
     pathname.startsWith("/admin/slider") ||
     pathname.startsWith("/admin/branding") ||
     pathname.startsWith("/admin/announcement") ||
@@ -330,6 +331,7 @@ export default function AdminLayout({
                 <button
                   type="button"
                   onClick={() => setIsVisualMenuOpen(!isVisualMenuOpen)}
+                  aria-label="Personalización Visual"
                   onMouseEnter={() => setIsVisualMenuOpen(true)}
                   className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     isVisualActive
@@ -357,6 +359,15 @@ export default function AdminLayout({
                         Personalización Visual
                       </span>
                     </div>
+
+                    <Link href="/admin/home-hero" onClick={() => setIsVisualMenuOpen(false)}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${pathname === "/admin/home-hero" ? "bg-orange-50 text-[#1F3A5F]" : "hover:bg-gray-50 text-[#333333]"}`}>
+                      <div className="p-2 rounded-lg bg-orange-50 text-[#FF6B35] shrink-0 mt-0.5"><ImageIcon className="w-4 h-4" /></div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block leading-tight text-[#1F3A5F]">Sección principal de inicio</span>
+                        <span className="text-[10px] text-[#666666] leading-tight block mt-0.5">Textos, botones y producto destacado con vista previa</span>
+                      </div>
+                    </Link>
 
                     <Link
                       href="/admin/slider"

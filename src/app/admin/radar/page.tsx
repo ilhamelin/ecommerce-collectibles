@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
+import { RadarReportSchema, type RadarReport } from "@/lib/services/radarReport";
 import Link from "next/link";
 import {
   Radio,
@@ -20,21 +22,25 @@ import {
 } from "lucide-react";
 
 export default function AdminRadarPage() {
-  const [radarData, setRadarData] = useState<any>(null);
+  const [radarData, setRadarData] = useState<RadarReport | null>(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [engineUsed, setEngineUsed] = useState<string>("GEMINI_AI");
 
   const fetchRadar = async (forceRefresh = false) => {
     if (forceRefresh) setIsRefreshing(true);
+    setError("");
     try {
-      const res = await fetch(`/api/admin/radar?t=${Date.now()}`);
-      const data = await res.json();
-      if (data.success && data.data) {
-        setRadarData(data.data);
-        if (data.engine) setEngineUsed(data.engine);
-      }
+      const res = await fetch(`/api/admin/radar?t=${Date.now()}`, {
+        headers: await identityHeaders(true), cache: "no-store",
+      });
+      const data = await res.json() as { success?: boolean; data?: unknown; engine?: string; error?: string };
+      if (!res.ok || !data.success) throw new Error(data.error || "No se pudo consultar Radar Japan IA.");
+      setRadarData(RadarReportSchema.parse(data.data));
+      setEngineUsed(data.engine || "LOCAL_HEURISTIC");
     } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo consultar Radar Japan IA.");
       console.error("Error al cargar radar:", err);
     } finally {
       setLoading(false);
@@ -57,10 +63,19 @@ export default function AdminRadarPage() {
     );
   }
 
+  if (!radarData) {
+    return <div className="max-w-7xl mx-auto px-4 py-12 space-y-5">
+      <h1 className="text-2xl font-black text-[#1F3A5F]">Radar Japan IA</h1>
+      <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5">{error || "No hay un informe disponible."}</p>
+      <button type="button" disabled={isRefreshing} onClick={() => fetchRadar(true)} className="rounded-xl bg-[#1F3A5F] text-white px-5 py-3 disabled:opacity-50">{isRefreshing ? "Consultando…" : "Reintentar"}</button>
+    </div>;
+  }
+
   const isOfficialGemini = engineUsed === "GEMINI_AI";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {error && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5">{error} Se conserva el informe anterior.</p>}
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E5E5E5] pb-6">
         <div className="space-y-1">
@@ -76,7 +91,7 @@ export default function AdminRadarPage() {
                 {isOfficialGemini ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                     <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>✦ Google Gemini 1.5 Flash Oficial</span>
+                    <span>✦ Análisis con Google Gemini</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">
@@ -183,7 +198,7 @@ export default function AdminRadarPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {radarData?.reissueAlerts?.map((alert: any) => (
+          {radarData.reissueAlerts.map((alert) => (
             <div
               key={alert.id}
               className="p-5 rounded-2xl bg-white border border-[#E5E5E5] hover:border-[#FF6B35]/50 shadow-sm transition space-y-3 flex flex-col justify-between"

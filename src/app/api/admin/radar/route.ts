@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminAuthorization } from "@/lib/auth/security";
+import { withAiProtection, protectedAiFetch, AiProtectionError } from "@/lib/services/aiProtection";
+import { RadarReportSchema, type RadarReport } from "@/lib/services/radarReport";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
 import { getGeminiApiKey, getSupportedGeminiModels } from "@/lib/services/geminiClient";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+async function getHandler(_req: NextRequest) {
   try {
     const geminiApiKey = getGeminiApiKey();
 
     // 1. Fetch current catalog to provide real context to the AI
     const firestoreProducts = await getProductsFromFirestore(false);
-    const allProducts = (firestoreProducts || []) as any[];
+    const allProducts = firestoreProducts || [];
 
     const outOfStockProducts = allProducts
       .filter((p) => !p.isPreOrder && p.stockAvailable <= 1)
@@ -76,7 +79,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
 
     for (const model of candidateModels) {
       try {
-        const res = await fetch(
+        const res = await protectedAiFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
@@ -103,8 +106,9 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
           lastError = await res.text();
           console.warn(`[Radar API] Model ${model} returned ${res.status}:`, lastError);
         }
-      } catch (err: any) {
-        lastError = err.message || String(err);
+      } catch (err: unknown) {
+        if (err instanceof AiProtectionError) throw err;
+        lastError = err instanceof Error ? err.message : String(err);
       }
     }
 
@@ -129,7 +133,10 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
       });
     }
 
-    const geminiData = await geminiRes.json();
+    const geminiData = await geminiRes.json() as {
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
     const promptTokens = geminiData?.usageMetadata?.promptTokenCount;
     const candidatesTokens = geminiData?.usageMetadata?.candidatesTokenCount;
     const totalTokens = geminiData?.usageMetadata?.totalTokenCount;
@@ -155,14 +162,15 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
       .replace(/```/g, "")
       .trim();
 
-    const reportData = JSON.parse(cleanedJson);
+    const reportData = RadarReportSchema.parse(JSON.parse(cleanedJson));
 
     return NextResponse.json({
       success: true,
       data: reportData,
       engine: "GEMINI_AI",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof AiProtectionError) throw error;
     console.error("[Radar API] Error:", error);
     return NextResponse.json({
       success: true,
@@ -172,7 +180,21 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin markdown, sin bloques \`\`\`
   }
 }
 
-function getFallbackRadarData() {
+const protectedRadar = withAiProtection("radar", getHandler);
+
+/** Authorization precedes App Check and quota reservation, even outside routing middleware. */
+export async function GET(req: NextRequest) {
+  if (!(await verifyAdminAuthorization(req)).authorized) {
+    return NextResponse.json({ success: false, error: "Sesión administrativa requerida." }, {
+      status: 403, headers: { "Cache-Control": "no-store" },
+    });
+  }
+  const response = await protectedRadar(req);
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
+
+function getFallbackRadarData(): RadarReport {
   return {
     marketOverview:
       "El mercado japonés de figuras y coleccionables muestra un ciclo acelerado de reediciones para franquicias consolidadas (Jujutsu Kaisen, Solo Leveling, Persona). Las tarifas de flete aéreo hacia Santiago de Chile se mantienen estables, favoreciendo las reservas con depósito del 20%.",

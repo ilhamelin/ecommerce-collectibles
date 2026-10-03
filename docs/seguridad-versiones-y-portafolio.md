@@ -35,7 +35,9 @@ En producción, productos, categorías y configuración visual devuelven un erro
 
 ## Cuotas IA
 
-Las cuatro funciones protegidas son autocompletado, búsqueda por foto, sommelier e icono de marca. Las cuotas comparten documentos diarios en Firestore y se reservan en una transacción antes de procesar la consulta, incluidas solicitudes fallidas/canceladas. Se permite hasta tres intentos de modelo por consulta y hasta 8192 tokens de salida por intento.
+Las cinco funciones protegidas son autocompletado, búsqueda por foto, sommelier, icono de marca y Radar Japan IA. Las cuotas comparten documentos diarios en Firestore y se reservan en una transacción antes de procesar la consulta, incluidas solicitudes fallidas/canceladas. Se permite hasta tres intentos de modelo por consulta y hasta 8192 tokens de salida por intento.
+
+Radar Japan IA envía el token de App Check en cada carga y escaneo manual. La API verifica primero la sesión administrativa y después la protección y cuota global compartida. Los errores 403/429/503 se muestran sin convertirlos en un informe heurístico exitoso. Un informe anterior se conserva y se identifica como anterior si falla la actualización. El contador incluye las solicitudes admitidas aunque no haya clave de Gemini y se use el modo heurístico local; no representa llamadas ni tokens facturados por Google.
 
 Valores opcionales de servidor:
 
@@ -72,3 +74,6 @@ Referencias: [App Check para web](https://firebase.google.com/docs/app-check/web
 Las transacciones se prueban con veinte llamadas simultáneas para una cuota global de diez, rollback ante una auditoría inválida y creación de versiones persistentes. No se hicieron pedidos reales, llamadas a modelos de pago ni escrituras en la base de datos desplegada.
 
 Resultado local de esta implementación: 406 pruebas de aplicación aprobadas y 13 pruebas adicionales aprobadas en el emulador. TypeScript y compilación de producción completados. El recorrido se comprobó en escritorio y móvil (390 px), sin desbordamiento horizontal ni errores de consola. Las 13 pruebas del emulador se omiten en la suite general y se ejecutan por separado con `test:rules`.
+
+
+Validación de la integración de Radar: 10 pruebas nuevas de API e interfaz; 416 pruebas de aplicación aprobadas, TypeScript y compilación de producción completados. Las 13 pruebas del emulador se omiten en esta ejecución general. Esta integración se verificó localmente con respuestas simuladas de App Check y Gemini, sin consultas pagadas ni modificaciones en la base desplegada.

@@ -85,14 +85,16 @@ export const CheckoutItemSchema = z.object({
 });
 
 export const CheckoutCustomerSchema = z.object({
-  fullName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  email: z.string().email("Correo electrónico inválido"),
-  phone: z.string().min(8, "Teléfono inválido"),
+  fullName: z.string().trim().min(2, "El nombre debe tener al menos 2 caracteres"),
+  email: z.string().trim().email("Correo electrónico inválido"),
+  phone: z.string().trim().min(8, "Teléfono inválido"),
   rut: z
     .string()
+    .trim()
     .optional()
+    .transform((val) => val || undefined)
     .refine((val) => !val || validateChileanRut(val), {
-      message: "RUT chileno inválido (debe cumplir formato y algoritmo Módulo 11)",
+      message: "RUT chileno inválido. Revisa el dígito verificador o deja el campo vacío, ya que es opcional",
     }),
 });
 

@@ -17,9 +17,9 @@ vi.mock("@/lib/firebase/firestore", () => ({
 vi.mock("@/lib/firebase/commerce", () => ({ commitOrderAndStock: mocked.commit }));
 vi.mock("@/lib/payments/payment-gateway", () => ({ initiatePaymentGateway: mocked.gateway }));
 
-function request(couponCode?: string) {
+function request(couponCode?: string, customerInfo?: { fullName: string; email: string; phone: string; rut?: string }) {
   return new NextRequest("http://localhost:3000/api/checkout", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": "integration-key-01" },
-    body: JSON.stringify({ cartSessionId: "cart-integration", userId: "demo", paymentMethod: "MERCADO_PAGO", couponCode,
+    body: JSON.stringify({ cartSessionId: "cart-integration", userId: "demo", paymentMethod: "MERCADO_PAGO", couponCode, customerInfo,
       items: [{ productId: "prod-vg-01", quantity: 1 }] }),
   });
 }
@@ -32,6 +32,29 @@ beforeEach(() => {
 });
 
 describe("Checkout API handoff to persistence", () => {
+  it("accepts an omitted optional RUT and reaches the payment handoff without inventing an identity", async () => {
+    const response = await POST(request(undefined, { fullName: "Cliente de prueba", email: "checkout@example.com", phone: "+56 9 0000 0000" }));
+    expect(response.status).toBe(201);
+    expect(mocked.gateway).toHaveBeenCalledOnce();
+    expect(mocked.gateway.mock.calls[0][0].customer.rut).toBe("");
+  });
+  it("explains invalid RUT errors before creating an order, reserving stock or calling the gateway", async () => {
+    const response = await POST(request(undefined, { fullName: "Cliente de prueba", email: "checkout@example.com", phone: "+56 9 0000 0000", rut: "18.420.915-K" }));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toContain("RUT chileno inválido");
+    expect(body.issues).toContainEqual(expect.objectContaining({ field: "customerInfo.rut" }));
+    expect(JSON.stringify(body)).not.toContain("checkout@example.com");
+    expect(mocked.commit).not.toHaveBeenCalled();
+    expect(mocked.gateway).not.toHaveBeenCalled();
+    expect(MemoryTransactionalStore.getInstance().orders.size).toBe(0);
+  });
+  it("returns actionable errors for malformed request JSON", async () => {
+    const response = await POST(new NextRequest("http://localhost/api/checkout", { method: "POST", body: "{" }));
+    expect(response.status).toBe(400);
+    expect((await response.json()).message).toContain("formato válido");
+    expect(mocked.gateway).not.toHaveBeenCalled();
+  });
   it("recovers the order on a new instance without another inventory commit or gateway", async () => {
     const first = await POST(request()); expect(first.status).toBe(201);
     const firstData = await first.json();

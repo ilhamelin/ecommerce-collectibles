@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z, ZodError } from "zod";
+import { formatCheckoutValidationIssues } from "@/lib/utils/checkoutValidation";
 import { CheckoutRequestSchema, type CheckoutRequestDTO } from "@/lib/validations/schemas";
 import { CheckoutService } from "@/lib/services/CheckoutService";
 import { DomainError } from "@/lib/errors/DomainErrors";
@@ -15,7 +17,7 @@ const pendingCheckouts = new Map<string, { hash: string; promise: Promise<NextRe
 export async function POST(req: NextRequest) {
   try {
     const idempotencyKey = req.headers.get("x-idempotency-key") || req.headers.get("idempotency-key");
-    const body = await req.json();
+    const body = z.record(z.unknown()).parse(await req.json());
 
     const validated = CheckoutRequestSchema.parse({
       ...body,
@@ -40,15 +42,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(error.toJSON(), { status: error.statusCode });
     }
 
-    if (error && typeof error === "object" && "errors" in error) {
+    if (error instanceof ZodError) {
       return NextResponse.json(
         {
           error: "ValidationError",
           code: "VALIDATION_FAILED",
-          details: error,
+          message: formatCheckoutValidationIssues(error.issues),
+          issues: error.issues.map(issue => ({ field: issue.path.join("."), message: issue.message })),
         },
         { status: 400 }
       );
+    }
+
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "ValidationError", code: "VALIDATION_FAILED", message: "La solicitud de compra no tiene un formato válido. Vuelve a intentarlo." }, { status: 400 });
     }
 
     const message = error instanceof Error ? error.message : "Internal server error";

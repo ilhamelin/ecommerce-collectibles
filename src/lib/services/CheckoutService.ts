@@ -219,7 +219,7 @@ export class CheckoutService {
         fullName: request.customerInfo?.fullName || "Coleccionista Invitado",
         email: request.customerInfo?.email || "contacto@cliente.cl",
         phone: request.customerInfo?.phone || "+56 9 8765 4321",
-        rut: request.customerInfo?.rut || "18.420.915-K",
+        rut: request.customerInfo?.rut || "",
         region: request.shippingAddress?.region || "Región Metropolitana",
         comuna: request.shippingAddress?.comuna || "Santiago",
         address: request.shippingAddress?.address || "Av. Providencia 1234",

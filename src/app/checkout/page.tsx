@@ -31,6 +31,8 @@ import { useAuthStore, type UserAddress } from "@/lib/store/authStore";
 import { formatCLP } from "@/lib/utils/currency";
 import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
 import { InstallmentCalculator } from "@/components/product/InstallmentCalculator";
+import { CheckoutCustomerSchema } from "@/lib/validations/schemas";
+import { formatCheckoutValidationIssues } from "@/lib/utils/checkoutValidation";
 
 const CHILEAN_REGIONS = [
   {
@@ -216,8 +218,11 @@ export default function CheckoutPage() {
 
   const handleProceedToStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !email || !phone) {
-      setErrorMessage("Por favor completa los datos obligatorios de identificación.");
+    const customer = CheckoutCustomerSchema.safeParse({ fullName, email, phone, rut });
+    if (!customer.success) {
+      setErrorMessage(formatCheckoutValidationIssues(customer.error.issues));
+      const field = customer.error.issues[0]?.path[0];
+      if (typeof field === "string") document.getElementById(`checkout-${field}`)?.focus();
       return;
     }
     setErrorMessage(null);
@@ -245,6 +250,13 @@ export default function CheckoutPage() {
       return;
     }
     setTermsError(false);
+
+    const customer = CheckoutCustomerSchema.safeParse({ fullName, email, phone, rut });
+    if (!customer.success) {
+      setErrorMessage(formatCheckoutValidationIssues(customer.error.issues));
+      setCurrentStep(1);
+      return;
+    }
 
     setIsProcessing(true);
     setErrorMessage(null);
@@ -285,16 +297,11 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           cartSessionId,
-          userId: email || "usuario-invitado",
+          userId: currentUser?.id || customer.data.email,
           paymentMethod: effectiveMethod,
           idempotencyKey,
           couponCode: appliedCoupon?.code,
-          customerInfo: {
-            fullName: fullName || "Coleccionista Invitado",
-            email: email || "contacto@cliente.cl",
-            phone: phone || "+56 9 8765 4321",
-            rut: rut || "18.420.915-K",
-          },
+          customerInfo: customer.data,
           shippingAddress: {
             region: activeRegion.name,
             comuna: selectedComuna,
@@ -319,7 +326,9 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.error || "No se pudo procesar el pago");
+        throw new Error(data.message || (data.code === "VALIDATION_FAILED" || data.error === "ValidationError"
+          ? "Revisa tus datos de identificación y envío. Si ingresaste un RUT, comprueba su dígito verificador o déjalo vacío."
+          : data.error) || "No se pudo procesar el pago");
       }
 
       const orderId = data.data.orderId;
@@ -414,7 +423,7 @@ export default function CheckoutPage() {
 
       {/* Error Banner */}
       {errorMessage && (
-        <div className="max-w-7xl mx-auto p-4 rounded-xl bg-red-50 border border-[#D64545]/50 text-[#D64545] text-xs flex items-center gap-2 shadow-sm">
+        <div role="alert" className="max-w-7xl mx-auto p-4 rounded-xl bg-red-50 border border-[#D64545]/50 text-[#D64545] text-xs flex items-center gap-2 shadow-sm">
           <AlertCircle className="w-4 h-4 text-[#D64545] shrink-0" />
           <span>{errorMessage}</span>
         </div>

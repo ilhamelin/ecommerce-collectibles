@@ -14,6 +14,7 @@ OmniCollector es una tienda especializada en videojuegos, figuras y coleccionabl
 | [Seguridad e IA](seguridad-ia.md) | Identidad, permisos, App Check, cuotas e historial |
 | [Operación](operacion.md) | Variables, desarrollo, pruebas y diagnóstico |
 | [Limitaciones](limitaciones.md) | Comportamientos verificados que requieren revisión |
+| [Salud, búsqueda y notificaciones](salud-busqueda-notificaciones.md) | Ubicación, comportamiento, privacidad y límites |
 | [Inventario JSON](inventario-api.json) | Rutas/métodos estructurados |
 
 Lectura sugerida: arquitectura → frontend/backend → APIs → seguridad → operación. Mermaid es editable y se visualiza en un visor Markdown compatible, como GitHub. Los documentos complementan [seguridad y versiones](../seguridad-versiones-y-portafolio.md) y [telemetría](../api-telemetry-persistence.md).

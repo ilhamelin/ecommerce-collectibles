@@ -56,7 +56,7 @@ export default function AdminLayout({
   const isMetricsActive =
     pathname === "/admin" ||
     pathname.startsWith("/admin/predictive-stock") ||
-    pathname.startsWith("/admin/api-usage") || pathname.startsWith("/admin/security");
+    pathname.startsWith("/admin/api-usage") || pathname.startsWith("/admin/security") || pathname.startsWith("/admin/health");
   const isInventoryActive = pathname.startsWith("/admin/products") || pathname.startsWith("/admin/orders");
   const isVisualActive =
     pathname.startsWith("/admin/visual-versions") || pathname.startsWith("/admin/home-hero") ||
@@ -132,6 +132,7 @@ export default function AdminLayout({
                       </span>
                     </div>
 
+                    <Link href="/admin/health" onClick={() => setIsMetricsMenuOpen(false)} className="block rounded-xl p-3 text-sm font-bold text-[#1F3A5F] hover:bg-orange-50">Salud del sistema<span className="block text-xs font-normal text-slate-500 mt-1">Conexión, configuración e incidencias</span></Link>
                     <Link href="/admin/security" onClick={() => setIsMetricsMenuOpen(false)} className="block rounded-xl p-3 text-sm font-bold text-[#1F3A5F] hover:bg-orange-50">Seguridad e historial<span className="block text-xs font-normal text-slate-500 mt-1">Cuotas IA y cambios administrativos</span></Link>
                     <Link
                       href="/admin"

@@ -73,3 +73,7 @@ Fondo #F7F7F5, blanco, azul #1F3A5F y naranja #FF6B35. Tailwind/globals.css y co
 | `/verify/[passportId]` | [Código](../../src/app/verify/[passportId]/page.tsx) |
 
 Al extender la UI reutilizar stores/clientes, validar estados de carga/error y foco en escritorio/móvil. Para IA usar identityHeaders(true). Actualizar esquemas y tests cuando cambie un formulario.
+
+## Salud y notificaciones
+
+/admin/health se abre desde Métricas & KPI; /account?tab=notifications desde Mi cuenta. Los filtros de /catalog se conservan en el enlace. [Funcionamiento y límites](salud-busqueda-notificaciones.md).

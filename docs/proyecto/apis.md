@@ -10,10 +10,12 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 
 ## Inventario
 
-46 rutas y 76 operaciones exportadas. [JSON estructurado](inventario-api.json).
+48 rutas y 79 operaciones exportadas. [JSON estructurado](inventario-api.json).
 
 | Ruta | Métodos | Acceso | Función y fuente |
 |---|---|---|---|
+| `/api/admin/health` | GET | Cookie administrativa firmada | Comprobación de Firestore, configuración y telemetría. [Código](../../src/app/api/admin/health/route.ts) |
+| `/api/users/notifications` | GET, PATCH | Identidad y correo verificado | Feed propio y lectura persistida. [Código](../../src/app/api/users/notifications/route.ts) |
 | `/api/admin/alerts` | GET, DELETE | Admin por middleware | Listar alertas; DELETE query id. [Código](../../src/app/api/admin/alerts/route.ts) |
 | `/api/admin/announcement` | GET, POST | Admin por middleware | Leer/guardar anuncios; POST audita. [Código](../../src/app/api/admin/announcement/route.ts) |
 | `/api/admin/auto-fill-product` | POST | Admin por middleware; App Check según modo | Proponer ficha desde nombre/tipo/imagen; JSON o NDJSON. [Código](../../src/app/api/admin/auto-fill-product/route.ts) |
@@ -166,3 +168,9 @@ Flow webhook recibe formulario token. Mercado Pago webhook recibe tipo/ID y cons
 ## Compatibilidad
 
 Cambiar DTO/enums/stream exige actualizar ambos extremos y tests. Tienda pública debe usar endpoints publicados /api/storefront y otros públicos, evitando /api/admin. Consultar esquema fuente antes de automatizar; inventario de métodos no sustituye contrato de input por ruta.
+
+## Salud y notificaciones
+
+GET /api/admin/health devuelve success/data con checkedAt, services, protection, telemetryAvailable e incidents. Firestore se comprueba mediante lectura acotada a un documento. Las comprobaciones tienen un plazo de cuatro segundos y admiten resultados parciales. Las credenciales de proveedores nunca se devuelven y su presencia no implica conectividad. No se ejecutan cobros, generaciones IA ni correos.
+
+GET /api/users/notifications devuelve success/data con items, unread y checkedAt. PATCH acepta { "ids": ["ID SHA-256"] }, de 1 a 100 IDs pertenecientes al feed de la cuenta. El estado de lectura se confirma mediante una transacción. Respuestas 401 sin identidad, 403 sin correo verificado o con ID ajeno, 400 cuerpo inválido, 503 persistencia no disponible. Ambas rutas usan Cache-Control no-store. Véase [guía de las funciones](salud-busqueda-notificaciones.md).

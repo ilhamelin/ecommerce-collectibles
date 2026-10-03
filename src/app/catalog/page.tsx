@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useCatalogFilters } from "@/components/catalog/useCatalogFilters";
+import { normalizeCatalogText, productManufacturers, matchesExtraFilters } from "@/lib/services/catalogFilters";
 import {
   Filter,
   Search,
@@ -106,34 +107,45 @@ function getProductCustomCategoryKey(p: any): string | null {
 }
 
 function CatalogContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const categoryParam = searchParams.get("category") || "ALL";
-  const qParam = searchParams.get("q") || searchParams.get("search") || searchParams.get("tag") || "";
-  const platformParam = searchParams.get("platform") || "ALL";
-
+  const { filters, setFilter } = useCatalogFilters();
   const [products, setProducts] = useState<ProductDomainEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
-  const [searchQuery, setSearchQuery] = useState<string>(qParam);
-  const [sortBy, setSortBy] = useState<"FEATURED" | "PRICE_ASC" | "PRICE_DESC" | "PREORDER_FIRST">("FEATURED");
+  const selectedCategory = filters.selectedCategory;
+  const setSelectedCategory = (value: string) => setFilter("selectedCategory", value);
+  const searchQuery = filters.searchQuery;
+  const setSearchQuery = (value: string) => setFilter("searchQuery", value);
+  const sortBy = filters.sortBy;
+  const setSortBy = (value: string) => setFilter("sortBy", value);
 
   // Advanced Filters State
-  const [minPrice, setMinPrice] = useState<string>("");
-  const [maxPrice, setMaxPrice] = useState<string>("");
-  const [stockFilter, setStockFilter] = useState<"ALL" | "IN_STOCK" | "PREORDER">("ALL");
-  const [platformFilter, setPlatformFilter] = useState<string>(platformParam);
-  const [scaleFilter, setScaleFilter] = useState<string>("ALL");
-  const [conditionFilter, setConditionFilter] = useState<string>("ALL");
+  const minPrice = filters.minPrice;
+  const setMinPrice = (value: string) => setFilter("minPrice", value);
+  const maxPrice = filters.maxPrice;
+  const setMaxPrice = (value: string) => setFilter("maxPrice", value);
+  const stockFilter = filters.stockFilter;
+  const setStockFilter = (value: string) => setFilter("stockFilter", value);
+  const platformFilter = filters.platformFilter;
+  const setPlatformFilter = (value: string) => setFilter("platformFilter", value);
+  const scaleFilter = filters.scaleFilter;
+  const setScaleFilter = (value: string) => setFilter("scaleFilter", value);
+  const conditionFilter = filters.conditionFilter;
+  const setConditionFilter = (value: string) => setFilter("conditionFilter", value);
 
   // Specialized Filters for Custom Categories
-  const [consoleTypeFilter, setConsoleTypeFilter] = useState<string>("ALL");
-  const [hardwareTypeFilter, setHardwareTypeFilter] = useState<string>("ALL");
-  const [accessoryTypeFilter, setAccessoryTypeFilter] = useState<string>("ALL");
-  const [bookLangFilter, setBookLangFilter] = useState<string>("ALL");
-  const [apparelSizeFilter, setApparelSizeFilter] = useState<string>("ALL");
-  const [merchTypeFilter, setMerchTypeFilter] = useState<string>("ALL");
-  const [audioFormatFilter, setAudioFormatFilter] = useState<string>("ALL");
+  const consoleTypeFilter = filters.consoleTypeFilter;
+  const setConsoleTypeFilter = (value: string) => setFilter("consoleTypeFilter", value);
+  const hardwareTypeFilter = filters.hardwareTypeFilter;
+  const setHardwareTypeFilter = (value: string) => setFilter("hardwareTypeFilter", value);
+  const accessoryTypeFilter = filters.accessoryTypeFilter;
+  const setAccessoryTypeFilter = (value: string) => setFilter("accessoryTypeFilter", value);
+  const bookLangFilter = filters.bookLangFilter;
+  const setBookLangFilter = (value: string) => setFilter("bookLangFilter", value);
+  const apparelSizeFilter = filters.apparelSizeFilter;
+  const setApparelSizeFilter = (value: string) => setFilter("apparelSizeFilter", value);
+  const merchTypeFilter = filters.merchTypeFilter;
+  const setMerchTypeFilter = (value: string) => setFilter("merchTypeFilter", value);
+  const audioFormatFilter = filters.audioFormatFilter;
+  const setAudioFormatFilter = (value: string) => setFilter("audioFormatFilter", value);
 
   // Dynamic custom categories and deleted native exclusions from DB
   const [customCategories, setCustomCategories] = useState<CustomCategoryEntity[]>([]);
@@ -173,13 +185,6 @@ function CatalogContent() {
   // Mobile drawer toggle
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // Sync category, query and platform state when URL changes
-  useEffect(() => {
-    setSelectedCategory(categoryParam);
-    if (qParam) setSearchQuery(qParam);
-    if (platformParam !== "ALL") setPlatformFilter(platformParam);
-  }, [categoryParam, qParam, platformParam]);
-
   // Fetch updated catalog with client micro-cache & deduplication
   useEffect(() => {
     let isCancelled = false;
@@ -211,11 +216,6 @@ function CatalogContent() {
   const handleCategoryChange = (categoryKey: string) => {
     setSelectedCategory(categoryKey);
     setCurrentPage(1);
-    if (categoryKey === "ALL") {
-      router.replace("/catalog", { scroll: false });
-    } else {
-      router.replace(`/catalog?category=${categoryKey}`, { scroll: false });
-    }
   };
 
   // Dynamic Category Counts
@@ -264,9 +264,12 @@ function CatalogContent() {
     return counts;
   }, [products]);
 
+  const manufacturerOptions = useMemo(() => Array.from(new Set(products.flatMap(productManufacturers))).sort((a, b) => a.localeCompare(b)), [products]);
+  const { manufacturerFilter, arrivalFrom, arrivalTo } = filters;
+
   // Count active filters
   const activeFiltersCount = useMemo(() => {
-    let count = 0;
+    let count = (manufacturerFilter !== "ALL" ? 1 : 0) + (arrivalFrom || arrivalTo ? 1 : 0);
     if (selectedCategory !== "ALL") count++;
     if (minPrice !== "" || maxPrice !== "") count++;
     if (stockFilter !== "ALL") count++;
@@ -283,6 +286,7 @@ function CatalogContent() {
     if (searchQuery.trim() !== "") count++;
     return count;
   }, [
+    manufacturerFilter, arrivalFrom, arrivalTo,
     selectedCategory,
     minPrice,
     maxPrice,
@@ -317,12 +321,16 @@ function CatalogContent() {
     setAudioFormatFilter("ALL");
     setSearchQuery("");
     setCurrentPage(1);
-    router.replace("/catalog", { scroll: false });
+    setFilter("manufacturerFilter", "ALL");
+    setFilter("arrivalFrom", "");
+    setFilter("arrivalTo", "");
+    setSortBy("FEATURED");
   };
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      if (!matchesExtraFilters(product, filters)) return false;
       // Category Filter (Standard and Custom Categories)
       if (selectedCategory !== "ALL") {
         if (selectedCategory === product.type) {
@@ -355,11 +363,11 @@ function CatalogContent() {
 
       // Search Filter: comprehensive match for Name, SKU, Description, Genres, Tags, Custom Specs, Platform, Manufacturer
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
+        const query = normalizeCatalogText(searchQuery);
         const queryTerms = query.split(/\s+/).filter(Boolean);
         const customKey = getProductCustomCategoryKey(product);
 
-        const searchableParts = [
+        const searchableParts = normalizeCatalogText([
           product.name || "",
           product.sku || "",
           product.description || "",
@@ -443,7 +451,7 @@ function CatalogContent() {
           product.collectibleMetadata?.cardLanguage || "",
           product.ageRating || "",
           product.isPreOrder ? "preventa reserva preorder pre-order" : "stock inmediato entrega inmediata",
-        ].join(" ").toLowerCase();
+        ].join(" "));
 
         // Every query term must match at least one part
         const allTermsMatch = queryTerms.every((term) => searchableParts.includes(term));
@@ -598,6 +606,7 @@ function CatalogContent() {
     });
   }, [
     products,
+    manufacturerFilter, arrivalFrom, arrivalTo, hardwareTypeFilter,
     selectedCategory,
     searchQuery,
     minPrice,
@@ -619,6 +628,7 @@ function CatalogContent() {
   useEffect(() => {
     setCurrentPage(1);
   }, [
+    manufacturerFilter, arrivalFrom, arrivalTo, hardwareTypeFilter,
     selectedCategory,
     searchQuery,
     minPrice,
@@ -627,6 +637,7 @@ function CatalogContent() {
     platformFilter,
     scaleFilter,
     conditionFilter,
+    consoleTypeFilter, accessoryTypeFilter, bookLangFilter, apparelSizeFilter, merchTypeFilter, audioFormatFilter,
     sortBy,
   ]);
 
@@ -652,6 +663,16 @@ function CatalogContent() {
   // Filter Sidebar Content (Shared between Desktop and Mobile Drawer)
   const renderSidebarFilters = () => (
     <div className="space-y-6 text-sm">
+      <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-4 space-y-3">
+        <label className="block font-bold text-[#1F3A5F] text-xs">Fabricante / marca
+          <select aria-label="Fabricante o marca" value={manufacturerFilter} onChange={e => setFilter("manufacturerFilter", e.target.value)} className="mt-2 w-full min-w-0 rounded-lg border bg-white p-2 text-sm"><option value="ALL">Todas las marcas</option>{manufacturerFilter !== "ALL" && !manufacturerOptions.includes(manufacturerFilter) && <option value={manufacturerFilter}>{manufacturerFilter}</option>}{manufacturerOptions.map(name => <option key={name} value={name}>{name.replaceAll("_", " ")}</option>)}</select>
+        </label>
+        <p className="text-xs font-bold text-[#1F3A5F]">Llegada de preventas</p>
+        <label className="block text-xs">Desde<input aria-label="Llegada desde" type="date" value={arrivalFrom} onChange={e => setFilter("arrivalFrom", e.target.value)} className="mt-1 w-full min-w-0 rounded-lg border p-2" /></label>
+        <label className="block text-xs">Hasta<input aria-label="Llegada hasta" type="date" value={arrivalTo} onChange={e => setFilter("arrivalTo", e.target.value)} className="mt-1 w-full min-w-0 rounded-lg border p-2" /></label>
+        {arrivalFrom && arrivalTo && arrivalFrom > arrivalTo && <p role="alert" className="text-xs text-red-700">La fecha final debe ser posterior a la inicial.</p>}
+        <p className="text-[11px] text-slate-500">Solo preventas con fecha registrada. Los filtros se guardan en el enlace.</p>
+      </div>
       {/* Sidebar Header */}
       <div className="flex items-center justify-between pb-3 border-b border-[#E5E5E5]">
         <div className="flex items-center gap-2">
@@ -845,7 +866,7 @@ function CatalogContent() {
             return (
               <button
                 key={item.id}
-                onClick={() => setStockFilter(item.id as any)}
+                onClick={() => setStockFilter(item.id)}
                 className={`w-full flex items-start gap-2.5 p-2 rounded-xl text-left transition ${
                   isSelected
                     ? "bg-[#1F3A5F] text-white border border-[#1F3A5F] shadow-sm"

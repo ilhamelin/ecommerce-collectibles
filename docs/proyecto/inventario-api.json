@@ -45,16 +45,6 @@
       "aiProtection": false
     },
     {
-      "path": "/api/admin/branding/generate-icon",
-      "methods": [
-        "POST"
-      ],
-      "access": "Admin por middleware; App Check según modo",
-      "description": "SVG desde prompt/presetId, con presets/fallback.",
-      "source": "src/app/api/admin/branding/generate-icon/route.ts",
-      "aiProtection": true
-    },
-    {
       "path": "/api/admin/branding",
       "methods": [
         "GET",
@@ -66,14 +56,14 @@
       "aiProtection": false
     },
     {
-      "path": "/api/admin/categories/[id]",
+      "path": "/api/admin/branding/generate-icon",
       "methods": [
-        "DELETE"
+        "POST"
       ],
-      "access": "Admin por middleware",
-      "description": "Eliminar; query restore=true activa rama heredada.",
-      "source": "src/app/api/admin/categories/[id]/route.ts",
-      "aiProtection": false
+      "access": "Admin por middleware; App Check según modo",
+      "description": "SVG desde prompt/presetId, con presets/fallback.",
+      "source": "src/app/api/admin/branding/generate-icon/route.ts",
+      "aiProtection": true
     },
     {
       "path": "/api/admin/categories",
@@ -87,6 +77,16 @@
       "aiProtection": false
     },
     {
+      "path": "/api/admin/categories/[id]",
+      "methods": [
+        "DELETE"
+      ],
+      "access": "Admin por middleware",
+      "description": "Eliminar; query restore=true activa rama heredada.",
+      "source": "src/app/api/admin/categories/[id]/route.ts",
+      "aiProtection": false
+    },
+    {
       "path": "/api/admin/generate-sku",
       "methods": [
         "POST",
@@ -95,6 +95,16 @@
       "access": "Admin por middleware",
       "description": "Generar/comprobar SKU; name/type/customCategoryLabel/checkSku o query sku.",
       "source": "src/app/api/admin/generate-sku/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/health",
+      "methods": [
+        "GET"
+      ],
+      "access": "Admin: cookie firmada y middleware",
+      "description": "Salud de Firestore, configuración de proveedores, cuotas IA y errores recientes; sin llamadas pagadas.",
+      "source": "src/app/api/admin/health/route.ts",
       "aiProtection": false
     },
     {
@@ -260,6 +270,16 @@
       "aiProtection": false
     },
     {
+      "path": "/api/catalog",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Catálogo de dominio.",
+      "source": "src/app/api/catalog/route.ts",
+      "aiProtection": false
+    },
+    {
       "path": "/api/catalog/product-requests",
       "methods": [
         "POST",
@@ -271,16 +291,6 @@
       "aiProtection": false
     },
     {
-      "path": "/api/catalog",
-      "methods": [
-        "GET"
-      ],
-      "access": "Público",
-      "description": "Catálogo de dominio.",
-      "source": "src/app/api/catalog/route.ts",
-      "aiProtection": false
-    },
-    {
       "path": "/api/catalog/visual-search",
       "methods": [
         "POST"
@@ -289,6 +299,16 @@
       "description": "Identificación de imagen/contraste catálogo; JSON o NDJSON.",
       "source": "src/app/api/catalog/visual-search/route.ts",
       "aiProtection": true
+    },
+    {
+      "path": "/api/checkout",
+      "methods": [
+        "POST"
+      ],
+      "access": "Público",
+      "description": "Crear/recuperar pedido idempotente e iniciar pasarela.",
+      "source": "src/app/api/checkout/route.ts",
+      "aiProtection": false
     },
     {
       "path": "/api/checkout/flow/webhook",
@@ -321,16 +341,6 @@
       "aiProtection": false
     },
     {
-      "path": "/api/checkout",
-      "methods": [
-        "POST"
-      ],
-      "access": "Público",
-      "description": "Crear/recuperar pedido idempotente e iniciar pasarela.",
-      "source": "src/app/api/checkout/route.ts",
-      "aiProtection": false
-    },
-    {
       "path": "/api/contact",
       "methods": [
         "POST"
@@ -338,6 +348,16 @@
       "access": "Público",
       "description": "Validación/honeypot y log; no envío SMTP aquí.",
       "source": "src/app/api/contact/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/orders",
+      "methods": [
+        "GET"
+      ],
+      "access": "Propietario/admin; recibo en detalle; PATCH/DELETE admin",
+      "description": "Pedidos propietario/admin; filtros status/email/q.",
+      "source": "src/app/api/orders/route.ts",
       "aiProtection": false
     },
     {
@@ -363,16 +383,6 @@
       "aiProtection": false
     },
     {
-      "path": "/api/orders",
-      "methods": [
-        "GET"
-      ],
-      "access": "Propietario/admin; recibo en detalle; PATCH/DELETE admin",
-      "description": "Pedidos propietario/admin; filtros status/email/q.",
-      "source": "src/app/api/orders/route.ts",
-      "aiProtection": false
-    },
-    {
       "path": "/api/preorders/[id]/transition",
       "methods": [
         "POST"
@@ -380,17 +390,6 @@
       "access": "Público: handler sin autorización explícita",
       "description": "Cambio de estado mediante PreOrderService.",
       "source": "src/app/api/preorders/[id]/transition/route.ts",
-      "aiProtection": false
-    },
-    {
-      "path": "/api/products/[id]/alerts",
-      "methods": [
-        "POST",
-        "GET"
-      ],
-      "access": "Identidad: alcance propietario/admin según método",
-      "description": "Alta/consulta de suscripción por identidad.",
-      "source": "src/app/api/products/[id]/alerts/route.ts",
       "aiProtection": false
     },
     {
@@ -404,6 +403,17 @@
       "access": "GET público; mutaciones admin",
       "description": "GET catálogo/sku/slug; POST crear; PUT editar; DELETE id/sku.",
       "source": "src/app/api/products/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/products/[id]/alerts",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "access": "Identidad: alcance propietario/admin según método",
+      "description": "Alta/consulta de suscripción por identidad.",
+      "source": "src/app/api/products/[id]/alerts/route.ts",
       "aiProtection": false
     },
     {
@@ -468,6 +478,19 @@
       "aiProtection": false
     },
     {
+      "path": "/api/users",
+      "methods": [
+        "GET",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "access": "Identidad: alcance propietario/admin según método",
+      "description": "Perfil/lista; PUT perfil; PATCH rol admin; DELETE según identidad.",
+      "source": "src/app/api/users/route.ts",
+      "aiProtection": false
+    },
+    {
       "path": "/api/users/alerts",
       "methods": [
         "GET",
@@ -479,16 +502,14 @@
       "aiProtection": false
     },
     {
-      "path": "/api/users",
+      "path": "/api/users/notifications",
       "methods": [
         "GET",
-        "PUT",
-        "PATCH",
-        "DELETE"
+        "PATCH"
       ],
-      "access": "Identidad: alcance propietario/admin según método",
-      "description": "Perfil/lista; PUT perfil; PATCH rol admin; DELETE según identidad.",
-      "source": "src/app/api/users/route.ts",
+      "access": "Identidad verificada con correo; datos solo de la cuenta",
+      "description": "Notificaciones derivadas de pedidos y suscripciones; PATCH marca IDs propios como leídos en transacción.",
+      "source": "src/app/api/users/notifications/route.ts",
       "aiProtection": false
     }
   ]

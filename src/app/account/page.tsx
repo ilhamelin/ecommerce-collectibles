@@ -1,6 +1,7 @@
 "use client";
 import { identityHeaders } from "@/lib/auth/clientIdentity";
 
+import { NotificationCenter } from "@/components/account/NotificationCenter";
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -84,7 +85,7 @@ function AccountContent() {
 
   const { addItem } = useCartStore();
 
-  const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS">("ORDERS");
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS" | "NOTIFICATIONS">("ORDERS");
   const [catalogProducts, setCatalogProducts] = useState<ProductDomainEntity[] | null>(null);
   const [addedWishlistId, setAddedWishlistId] = useState<string | null>(null);
 
@@ -110,6 +111,8 @@ function AccountContent() {
       setActiveTab("WISHLIST");
     } else if (tabParam === "profile") {
       setActiveTab("PROFILE");
+    } else if (tabParam === "notifications") {
+      setActiveTab("NOTIFICATIONS");
     } else if (tabParam === "alerts") {
       setActiveTab("ALERTS");
     }
@@ -503,6 +506,7 @@ function AccountContent() {
             { id: "PROFILE", label: "Información Personal", icon: User },
             { id: "ADDRESSES", label: "Libreta de Direcciones", icon: MapPin },
             { id: "PAYMENTS", label: "Métodos de Pago", icon: CreditCard },
+            { id: "NOTIFICATIONS", label: "Notificaciones", icon: Bell },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -545,6 +549,7 @@ function AccountContent() {
 
         {/* Right Side: Tab Contents (9 Cols) */}
         <div className="lg:col-span-9 bg-white border border-[#E5E5E5] rounded-3xl p-6 sm:p-8 shadow-sm min-h-[460px]">
+          {activeTab === "NOTIFICATIONS" && <NotificationCenter key={currentUser?.email} />}
           {/* TAB 1: HISTORIAL DE PEDIDOS & SEGUIMIENTO (MAIN REQUEST) */}
           {activeTab === "ORDERS" && (
             <div className="space-y-6">

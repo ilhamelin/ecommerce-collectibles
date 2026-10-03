@@ -116,18 +116,6 @@ function sanitizeSvg(rawSvg: string): string {
 
 async function postHandler(req: NextRequest) {
   try {
-    const authCheck = await verifyAdminAuthorization(req);
-    if (!authCheck.authorized) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "FORBIDDEN",
-          error: "Acceso denegado: Se requieren permisos de administrador para generar iconos.",
-        },
-        { status: 403 }
-      );
-    }
-
     const body = await req.json();
     const { prompt = "", presetId = "" } = body;
 
@@ -287,6 +275,7 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
       },
     });
   } catch (error) {
+    if (error instanceof AiProtectionError) throw error;
     console.error("[GenerateIcon POST] Excepción general:", error);
     return NextResponse.json(
       {
@@ -298,4 +287,11 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
   }
 }
 
-export const POST = withAiProtection("icono", postHandler);
+const protectedPost = withAiProtection("icono", postHandler);
+/** Authorization precedes token verification and quota reservation. */
+export async function POST(req: NextRequest) {
+  if (!(await verifyAdminAuthorization(req)).authorized) return NextResponse.json({ success: false, code: "FORBIDDEN", error: "Se requieren permisos de administrador para generar iconos." }, { status: 403 });
+  const response = await protectedPost(req);
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}

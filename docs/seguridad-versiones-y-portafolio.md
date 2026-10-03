@@ -35,7 +35,7 @@ En producción, productos, categorías y configuración visual devuelven un erro
 
 ## Cuotas IA
 
-Las cinco funciones protegidas son autocompletado, búsqueda por foto, sommelier, icono de marca y Radar Japan IA. Las cuotas comparten documentos diarios en Firestore y se reservan en una transacción antes de procesar la consulta, incluidas solicitudes fallidas/canceladas. Se permite hasta tres intentos de modelo por consulta y hasta 8192 tokens de salida por intento.
+Las seis funciones protegidas son autocompletado, búsqueda por foto, sommelier, icono de marca, Radar Japan IA y análisis predictivo de stock. En stock, solo generar un nuevo diagnóstico (POST) consume cuota y requiere App Check; consultar las métricas y el informe guardado (GET) requiere sesión administrativa y no consume cuota IA. Las cuotas comparten documentos diarios en Firestore y se reservan en una transacción antes de procesar la consulta, incluidas solicitudes fallidas/canceladas. Se permite hasta tres intentos de modelo por consulta y hasta 8192 tokens de salida por intento.
 
 Radar Japan IA envía el token de App Check en cada carga y escaneo manual. La API verifica primero la sesión administrativa y después la protección y cuota global compartida. Los errores 403/429/503 se muestran sin convertirlos en un informe heurístico exitoso. Un informe anterior se conserva y se identifica como anterior si falla la actualización. El contador incluye las solicitudes admitidas aunque no haya clave de Gemini y se use el modo heurístico local; no representa llamadas ni tokens facturados por Google.
 
@@ -77,3 +77,5 @@ Resultado local de esta implementación: 406 pruebas de aplicación aprobadas y 
 
 
 Validación de la integración de Radar: 10 pruebas nuevas de API e interfaz; 416 pruebas de aplicación aprobadas, TypeScript y compilación de producción completados. Las 13 pruebas del emulador se omiten en esta ejecución general. Esta integración se verificó localmente con respuestas simuladas de App Check y Gemini, sin consultas pagadas ni modificaciones en la base desplegada.
+
+Integración de stock e iconos: el diagnóstico predictivo envía App Check al generar un informe y aplica las cuotas compartidas; los errores de protección de iconos mantienen sus códigos 403/429/503. La autorización administrativa precede la reserva de cuota en ambos casos. Validación local: 425 pruebas en la suite general y una prueba adicional de interfaz aprobadas (10 pruebas nuevas), TypeScript y compilación de producción correctos; las 13 pruebas de emulador se omiten en esta suite. No se realizaron consultas pagadas ni escrituras en producción.

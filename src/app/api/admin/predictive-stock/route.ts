@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminAuthorization } from "@/lib/auth/security";
+import { withAiProtection, protectedAiFetch, AiProtectionError } from "@/lib/services/aiProtection";
 import { getProductsFromFirestore, getAllOrdersFromFirestore } from "@/lib/firebase/firestore";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { alertService } from "@/lib/services/alertService";
@@ -256,7 +258,8 @@ async function computeInventoryMetrics() {
 }
 
 // GET: Returns computed inventory metrics and summary (plus latest persisted AI diagnosis)
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!(await verifyAdminAuthorization(req)).authorized) return NextResponse.json({ success: false, error: "Sesión administrativa requerida." }, { status: 403 });
   try {
     const [data, latestAiReportSnapshot] = await Promise.all([
       computeInventoryMetrics(),
@@ -280,7 +283,7 @@ export async function GET() {
 }
 
 // POST: Calls Gemini AI to generate strategic diagnostic insights
-export async function POST() {
+async function postHandler(_req: NextRequest) {
   try {
     const geminiApiKey = getGeminiApiKey();
 
@@ -364,7 +367,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
     for (const model of candidateModels) {
       try {
         usedModel = model;
-        const res = await fetch(
+        const res = await protectedAiFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
@@ -390,6 +393,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
           lastErrorText = await res.text();
         }
       } catch (err: unknown) {
+        if (err instanceof AiProtectionError) throw err;
         lastErrorText = err instanceof Error ? err.message : String(err);
       }
     }
@@ -449,11 +453,21 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura:
         generatedAt,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof AiProtectionError) throw error;
     console.error("[Predictive Stock POST Error]:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Error al generar informe predictivo con IA." },
+      { success: false, error: error instanceof Error ? error.message : "Error al generar informe predictivo con IA." },
       { status: 500 }
     );
   }
+}
+
+const protectedPost = withAiProtection("predictive-stock", postHandler);
+/** Require an administrator before reserving an AI consultation. */
+export async function POST(req: NextRequest) {
+  if (!(await verifyAdminAuthorization(req)).authorized) return NextResponse.json({ success: false, error: "Sesión administrativa requerida." }, { status: 403 });
+  const response = await protectedPost(req);
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }

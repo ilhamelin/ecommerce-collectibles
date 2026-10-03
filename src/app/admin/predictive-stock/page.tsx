@@ -1,5 +1,6 @@
 "use client";
 
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,7 +30,7 @@ import {
   Tv,
   Cpu,
 } from "lucide-react";
-import { SkuPredictiveMetric } from "@/app/api/admin/predictive-stock/route";
+import type { SkuPredictiveMetric } from "@/app/api/admin/predictive-stock/route";
 import { formatCLP } from "@/lib/utils/currency";
 
 function ProductTableThumbnail({
@@ -81,6 +82,7 @@ export default function PredictiveStockPage() {
   const [summary, setSummary] = useState<any>(null);
   const [aiReport, setAiReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [aiError, setAiError] = useState("");
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
@@ -112,11 +114,15 @@ export default function PredictiveStockPage() {
   // Trigger Gemini AI strategic analysis
   const handleScanWithGemini = async () => {
     setAnalyzingAi(true);
+    setAiError("");
     try {
       const res = await fetch("/api/admin/predictive-stock", {
         method: "POST",
+        headers: await identityHeaders(true),
+        cache: "no-store",
       });
       const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "No se pudo generar el análisis con IA.");
       if (json.success && json.data) {
         setMetrics(json.data.metrics || []);
         setSummary(json.data.summary || null);
@@ -124,6 +130,7 @@ export default function PredictiveStockPage() {
         setLastScanned(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
       }
     } catch (err) {
+      setAiError(err instanceof Error ? err.message : "No se pudo generar el análisis con IA.");
       console.error("Error analyzing with Gemini AI:", err);
     } finally {
       setAnalyzingAi(false);
@@ -211,6 +218,7 @@ export default function PredictiveStockPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {aiError && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5">{aiError} El último informe disponible se conserva.</p>}
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-6">
         <div>

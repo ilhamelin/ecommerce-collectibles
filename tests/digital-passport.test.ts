@@ -12,7 +12,7 @@ describe("Digital Authenticity Passport & Traceability (Anti-Bootleg)", () => {
       sku: "VG-FORZAH6-PS5",
       name: "Forza Horizon 6 [Juego PS5]",
       type: "VIDEO_GAME",
-      gameMetadata: {
+      gameMetadata: { id: "meta-game", productId: "product-test", edition: "STANDARD",
         platform: "PS5",
         gameType: "CONSOLE",
         isDigital: false,
@@ -34,7 +34,7 @@ describe("Digital Authenticity Passport & Traceability (Anti-Bootleg)", () => {
       sku: "FIG-MAKIMA-17",
       name: "Chainsaw Man Makima 1/7",
       type: "FIGURE",
-      figureMetadata: {
+      figureMetadata: { id: "meta-figure", productId: "product-test", allowsPartialDeposit: true, minimumDepositPercent: 0.2,
         scale: "SCALE_1_7",
         manufacturer: "KOTOBUKIYA",
       },

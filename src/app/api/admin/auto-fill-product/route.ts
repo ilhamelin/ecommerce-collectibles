@@ -1,3 +1,4 @@
+import { withAiProtection, protectedAiFetch, AiProtectionError } from "@/lib/services/aiProtection";
 import { normalizeAutoFillSalePrice } from "@/lib/utils/autoFillPrice";
 import type { AutoFillEvent } from "@/lib/services/autoFillStream";
 import { NextRequest, NextResponse } from "next/server";
@@ -1581,7 +1582,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           try {
             report(`Solicitando ficha a ${model}${cleanBase64 ? " con análisis de imagen" : " a partir del nombre"}.`);
             // Use header and URL parameter for maximum compatibility with Google AI Studio / Generative Language API
-            const res = await fetch(
+            const res = await protectedAiFetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
               {
                 method: "POST",
@@ -1607,6 +1608,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
               console.warn(`[Auto-Fill API] Model ${model} returned ${res.status}:`, lastErrorText);
             }
           } catch (e: any) {
+            if (e instanceof AiProtectionError) throw e;
             lastErrorText = e.message || String(e);
             console.warn(`[Auto-Fill API] Network/execution error on model ${model}:`, e);
           }
@@ -1824,6 +1826,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
           }).catch(() => {});
         }
       } catch (geminiErr: any) {
+            if (geminiErr instanceof AiProtectionError) throw geminiErr;
         console.warn("[Auto-Fill API] Gemini API call failed, using fallback engine:", geminiErr);
         await recordApiUsage({
           provider: "GEMINI",
@@ -1875,6 +1878,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
       },
     });
   } catch (error: any) {
+            if (error instanceof AiProtectionError) throw error;
     console.error("[Auto-Fill API Error]:", error);
     return NextResponse.json(
       { success: false, error: error?.message || "Error al procesar la solicitud de autocompletado." },
@@ -1884,7 +1888,7 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin markdown, sin bloques de código ti
 }
 
 /** Opt-in streaming preserves the JSON contract used by other clients. */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   if (!req.headers.get("accept")?.includes("application/x-ndjson")) return executeAutoFill(req);
   const encoder = new TextEncoder();
   let canceled = false;
@@ -1905,8 +1909,8 @@ export async function POST(req: NextRequest) {
           }
           send({ kind: "result", data: body.data });
         }
-      } catch {
-        send({ kind: "error", message: "Se interrumpió la generación de la ficha. Reintenta la solicitud." });
+      } catch (error: unknown) {
+        send({ kind: "error", message: error instanceof AiProtectionError ? error.message : "Se interrumpió la generación de la ficha. Reintenta la solicitud." });
       } finally {
         if (!canceled) controller.close();
       }
@@ -1915,3 +1919,5 @@ export async function POST(req: NextRequest) {
   });
   return new Response(stream, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Content-Type-Options": "nosniff" } });
 }
+
+export const POST = withAiProtection("autocompletar", postHandler);

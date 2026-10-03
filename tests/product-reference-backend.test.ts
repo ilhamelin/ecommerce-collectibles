@@ -1,3 +1,4 @@
+vi.mock("@/lib/auth/requestIdentity", () => ({ requestIdentity: async () => ({ uid: "demo", email: "demo@example.com", admin: false }) }));
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ConfirmedOrderEntity, ProductDomainEntity } from "@/lib/types/domain";
 const cloud = vi.hoisted(() => ({ configured: true, products: [] as ProductDomainEntity[] | null, orders: [] as ConfirmedOrderEntity[] }));

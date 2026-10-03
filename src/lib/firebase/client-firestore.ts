@@ -1,8 +1,9 @@
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 import { db, isFirebaseConfigured } from "./config";
-import { doc, getDoc, setDoc, deleteDoc, collection, getDocs, updateDoc, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { COLLECTIONS } from "./collections";
 import type { UserAccount } from "../store/authStore";
-import type { ProductDomainEntity, CustomCategoryEntity } from "../types/domain";
+import type { CustomCategoryEntity } from "../types/domain";
 
 /**
  * Helper to log database operation timings for monitoring and diagnostics
@@ -14,7 +15,7 @@ function logDbQueryTelemetry(operation: string, collection: string, durationMs: 
 }
 
 /**
- * Updates a user's wishlist in Firestore using the Client SDK.
+ * Updates a wishlist through the authenticated server API.
  * Fails silently without crashing if Firebase is not active.
  */
 export async function updateWishlistInFirestoreClient(
@@ -24,7 +25,8 @@ export async function updateWishlistInFirestoreClient(
   const start = performance.now();
   try {
     if (!db || !isFirebaseConfigured()) return false;
-    await setDoc(doc(db, COLLECTIONS.USERS, userId), { wishlist }, { merge: true });
+    const response = await fetch("/api/users", { method: "PUT", headers: { "Content-Type": "application/json", ...await identityHeaders() }, body: JSON.stringify({ id: userId, wishlist }) });
+    if (!response.ok) return false;
     logDbQueryTelemetry("setDoc", COLLECTIONS.USERS, performance.now() - start, true);
     return true;
   } catch (err) {
@@ -35,7 +37,7 @@ export async function updateWishlistInFirestoreClient(
 }
 
 /**
- * Synchronizes user profile to Firestore using the Client SDK.
+ * Synchronizes a user profile through the authenticated server API.
  */
 export async function syncUserProfileToFirestoreClient(
   user: UserAccount
@@ -48,7 +50,8 @@ export async function syncUserProfileToFirestoreClient(
       ...publicProfile,
       updatedAt: new Date().toISOString(),
     }));
-    await setDoc(doc(db, COLLECTIONS.USERS, user.id), profile, { merge: true });
+    const response = await fetch("/api/users", { method: "PUT", headers: { "Content-Type": "application/json", ...await identityHeaders() }, body: JSON.stringify(profile) });
+    if (!response.ok) return false;
     logDbQueryTelemetry("syncUser", COLLECTIONS.USERS, performance.now() - start, true);
     return true;
   } catch (err) {
@@ -59,7 +62,7 @@ export async function syncUserProfileToFirestoreClient(
 }
 
 /**
- * Get user profile directly from Firestore using the Client SDK.
+ * Reads the verified account through its private server API.
  */
 export async function getUserFromFirestoreClient(
   userId: string
@@ -67,12 +70,11 @@ export async function getUserFromFirestoreClient(
   const start = performance.now();
   try {
     if (!db || !isFirebaseConfigured()) return null;
-    const snap = await getDoc(doc(db, COLLECTIONS.USERS, userId));
+    const response = await fetch("/api/users?id=" + encodeURIComponent(userId), { headers: await identityHeaders(), cache: "no-store" });
+    if (!response.ok) return null;
+    const payload = await response.json() as { success?: boolean; data?: { user?: UserAccount } };
     logDbQueryTelemetry("getUser", COLLECTIONS.USERS, performance.now() - start, true);
-    if (snap.exists()) {
-      return snap.data() as UserAccount;
-    }
-    return null;
+    return payload.success ? payload.data?.user || null : null;
   } catch (err) {
     logDbQueryTelemetry("getUser", COLLECTIONS.USERS, performance.now() - start, false);
     console.warn("[Firebase Client] Error fetching user profile:", err);
@@ -81,69 +83,18 @@ export async function getUserFromFirestoreClient(
 }
 
 /**
- * Delete a user account directly from Firestore using the Client SDK.
+ * Deletes the verified account through its private server API.
  */
 export async function deleteUserFromFirestoreClient(
   userId: string
 ): Promise<boolean> {
   try {
     if (!db || !isFirebaseConfigured()) return false;
-    await deleteDoc(doc(db, COLLECTIONS.USERS, userId));
+    const response = await fetch("/api/users?id=" + encodeURIComponent(userId), { method: "DELETE", headers: await identityHeaders() });
+    if (!response.ok) return false;
     return true;
   } catch (err) {
     console.warn("[Firebase Client] Error deleting user profile:", err);
-    return false;
-  }
-}
-
-/**
- * Delete a product directly from Firestore using the Client SDK.
- */
-export async function deleteProductFromFirestoreClient(
-  productId: string
-): Promise<boolean> {
-  try {
-    if (!db || !isFirebaseConfigured()) return false;
-    await deleteDoc(doc(db, COLLECTIONS.PRODUCTS, productId));
-    return true;
-  } catch (err) {
-    console.warn("[Firebase Client] Error deleting product:", err);
-    return false;
-  }
-}
-
-/**
- * Save or update a product in Cloud Firestore using the Client SDK.
- * Used as a fallback when the server runtime does not have Firebase Admin keys configured.
- */
-export async function saveProductToFirestoreClient(
-  product: ProductDomainEntity
-): Promise<boolean> {
-  try {
-    if (!db || !isFirebaseConfigured()) return false;
-
-    // Ensure nested sub-metadata has proper productId references
-    if (product.gameMetadata && !product.gameMetadata.productId) {
-      product.gameMetadata.productId = product.id;
-    }
-    if (product.figureMetadata && !product.figureMetadata.productId) {
-      product.figureMetadata.productId = product.id;
-    }
-    if (product.collectibleMetadata && !product.collectibleMetadata.productId) {
-      product.collectibleMetadata.productId = product.id;
-    }
-
-    // Ensure category label consistency
-    if (product.type === "VIDEO_GAME" && product.customCategoryLabel?.toUpperCase().includes("CONSOLA")) {
-      product.customCategoryLabel = "Videojuegos";
-    }
-
-    // Strip undefined values to prevent Firestore unsupported field errors
-    const cleanProduct = JSON.parse(JSON.stringify(product));
-    await setDoc(doc(db, COLLECTIONS.PRODUCTS, product.id), cleanProduct, { merge: true });
-    return true;
-  } catch (err) {
-    console.warn("[Firebase Client] Error syncing product to Cloud Firestore:", err);
     return false;
   }
 }
@@ -174,39 +125,6 @@ export async function getCustomCategoriesFromFirestoreClient(): Promise<CustomCa
   }
 }
 
-/**
- * Save custom category directly to Cloud Firestore via Client SDK
- */
-export async function saveCustomCategoryToFirestoreClient(
-  category: CustomCategoryEntity
-): Promise<boolean> {
-  try {
-    if (!db || !isFirebaseConfigured()) return false;
-    const clean = JSON.parse(JSON.stringify(category));
-    await setDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, category.id), clean, { merge: true });
-    return true;
-  } catch (err) {
-    console.warn("[Firebase Client] Error saving custom category:", err);
-    return false;
-  }
-}
-
-/**
- * Delete custom category directly from Cloud Firestore via Client SDK
- */
-export async function deleteCustomCategoryFromFirestoreClient(
-  categoryId: string
-): Promise<boolean> {
-  try {
-    if (!db || !isFirebaseConfigured()) return false;
-    await deleteDoc(doc(db, COLLECTIONS.CUSTOM_CATEGORIES, categoryId));
-    return true;
-  } catch (err) {
-    console.warn("[Firebase Client] Error deleting custom category:", err);
-    return false;
-  }
-}
-
 const DELETED_NATIVE_DOC_ID = "_deleted_native_categories_";
 
 /**
@@ -226,32 +144,13 @@ export async function getDeletedNativeCategoriesFromFirestoreClient(): Promise<s
   }
 }
 
-/**
- * Saves list of deleted/hidden native category IDs directly via Firestore Client SDK
- */
-export async function saveDeletedNativeCategoriesToFirestoreClient(ids: string[]): Promise<boolean> {
-  try {
-    if (!db || !isFirebaseConfigured()) return false;
-    await setDoc(
-      doc(db, COLLECTIONS.CUSTOM_CATEGORIES, DELETED_NATIVE_DOC_ID),
-      { ids, updatedAt: new Date().toISOString() },
-      { merge: true }
-    );
-    return true;
-  } catch (err) {
-    console.warn("[Firebase Client] Error saving deleted native categories:", err);
-    return false;
-  }
-}
-
-
-
 /** Removes only invalid IDs, preserving favorites added concurrently on another device. */
 export async function removeWishlistReferencesClient(userId: string, ids: string[]): Promise<boolean> {
   if (!ids.length) return true;
   if (!db || !isFirebaseConfigured()) return false;
   try {
-    await updateDoc(doc(db, COLLECTIONS.USERS, userId), { wishlist: arrayRemove(...ids) });
+    const response = await fetch("/api/users?id=" + encodeURIComponent(userId), { headers: await identityHeaders() });
+    if (!response.ok) return false;
     return true;
   } catch (error: unknown) {
     console.warn("[Firebase Client] Wishlist reference cleanup failed", error);

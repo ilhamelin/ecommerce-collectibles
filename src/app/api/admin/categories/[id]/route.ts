@@ -1,3 +1,5 @@
+import { withAdminHistory } from "@/lib/services/adminHistory";
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
 import { NextRequest, NextResponse } from "next/server";
 import {
   deleteCustomCategoryFromFirestore,
@@ -28,7 +30,7 @@ const NATIVE_CATEGORY_IDS = [
   "BUNDLE",
 ];
 
-export async function DELETE(
+async function deleteHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -69,8 +71,9 @@ export async function DELETE(
 
       if (isRestore) {
         const nextDeleted = currentDeleted.filter((item) => item !== upperId);
+        const persisted = await saveDeletedNativeCategoriesToFirestore(nextDeleted);
+        if (!persisted && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "La categoría no se modificó en Firestore." }, { status: 503 });
         restoreNativeCategoryOnDisk(upperId);
-        await saveDeletedNativeCategoriesToFirestore(nextDeleted);
 
         return NextResponse.json({
           success: true,
@@ -80,8 +83,9 @@ export async function DELETE(
       }
 
       const nextDeleted = Array.from(new Set([...currentDeleted, upperId]));
+      const persisted = await saveDeletedNativeCategoriesToFirestore(nextDeleted);
+      if (!persisted && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "La categoría no se modificó en Firestore." }, { status: 503 });
       deleteNativeCategoryOnDisk(upperId);
-      await saveDeletedNativeCategoriesToFirestore(nextDeleted);
 
       return NextResponse.json({
         success: true,
@@ -91,8 +95,9 @@ export async function DELETE(
     }
 
     // Custom category deletion
+    const persisted = await deleteCustomCategoryFromFirestore(id);
+    if (!persisted && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "La categoría no se modificó en Firestore." }, { status: 503 });
     deleteCategoryFromDisk(id);
-    await deleteCustomCategoryFromFirestore(id);
 
     return NextResponse.json({
       success: true,
@@ -107,3 +112,6 @@ export async function DELETE(
   }
 }
 
+
+export const DELETE = (request: NextRequest, context: { params: { id: string } }) =>
+  withAdminHistory(authorizedRequest => deleteHandler(authorizedRequest, context))(request);

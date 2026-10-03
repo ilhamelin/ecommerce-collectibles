@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -155,7 +156,7 @@ export default function AdminBrandingPage() {
 
       const res = await fetch("/api/admin/branding/generate-icon", {
         method: "POST",
-        headers: {
+        headers: { ...await identityHeaders(true),
           "Content-Type": "application/json",
           ...getAdminHeaders(),
         },

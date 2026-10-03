@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { verifyOrderReceipt } from "@/lib/auth/orderAccess";
 import { POST } from "@/app/api/checkout/route";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
@@ -37,6 +38,12 @@ describe("Checkout API handoff to persistence", () => {
     expect(response.status).toBe(201);
     expect(mocked.gateway).toHaveBeenCalledOnce();
     expect(mocked.gateway.mock.calls[0][0].customer.rut).toBe("");
+    const cookie = response.headers.get("set-cookie")!;
+    expect(cookie).toContain("HttpOnly"); expect(cookie).toContain("SameSite=lax");
+    const token = cookie.match(/omni_order_access=([^;]+)/)![1];
+    const payload = await response.json();
+    expect(verifyOrderReceipt(token, payload.data.order.id)).toBe(true);
+    expect(verifyOrderReceipt(token, "another-order")).toBe(false);
   });
   it("explains invalid RUT errors before creating an order, reserving stock or calling the gateway", async () => {
     const response = await POST(request(undefined, { fullName: "Cliente de prueba", email: "checkout@example.com", phone: "+56 9 0000 0000", rut: "18.420.915-K" }));

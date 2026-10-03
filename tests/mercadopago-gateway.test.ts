@@ -33,7 +33,7 @@ describe("Mercado Pago Integration & Gateway Integrity", () => {
       address: "Av. Providencia 1234",
     },
     shippingMethod: {
-      name: "Starken Express",
+      name: "Starken Express", estimatedDelivery: "2 días hábiles",
       cost: 4990,
       trackingNumber: "STK-123456",
     },

@@ -1,3 +1,4 @@
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
 import { cleanupPersistedProductReferences } from "@/lib/firebase/productReferenceCleanup";
@@ -220,7 +221,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -297,6 +298,7 @@ export async function POST(request: NextRequest) {
     // Prepare domain entity fields with guaranteed parent-child ID correlation
     const productId = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 
+    const previousCatalog = repo.getAll();
     const newProduct = repo.addProduct({
       id: productId,
       sku: data.sku,
@@ -337,7 +339,8 @@ export async function POST(request: NextRequest) {
       imageUrl: data.imageUrl || (data.images && data.images[0]),
     });
 
-    // Save to Firestore if configured
+    repo.syncWithFirestore(previousCatalog);
+    // Save to Firestore before publishing the in-process catalog mutation.
     let savedInFirestore = false;
     try {
       savedInFirestore = await saveProductToFirestore(newProduct);
@@ -345,6 +348,8 @@ export async function POST(request: NextRequest) {
       console.warn("[API_PRODUCTS_POST] Cloud Firestore write error:", fsErr);
     }
 
+    if (!savedInFirestore && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se guardó el producto. Comprueba la conexión de Firestore." }, { status: 503 });
+    repo.syncWithFirestore([...repo.getAll().filter(product => product.id !== newProduct.id), newProduct]);
     if (!savedInFirestore) {
       console.warn(
         `[API_PRODUCTS_POST] Product '${newProduct.sku}' saved to catalog, but could not be directly synced to Cloud Firestore from serverless runtime.`
@@ -390,7 +395,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+async function putHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -422,6 +427,7 @@ export async function PUT(request: NextRequest) {
     const data = validationResult.data;
     const repo = CatalogRepository.getInstance();
 
+    const previousCatalog = repo.getAll();
     const updated = repo.updateProduct(data.id, {
       ...(data.sku && { sku: data.sku }),
       ...(data.name && { name: data.name }),
@@ -469,8 +475,10 @@ export async function PUT(request: NextRequest) {
       }),
     });
 
-    // Update in Firestore if configured
-    await saveProductToFirestore(updated);
+    repo.syncWithFirestore(previousCatalog);
+    const saved = await saveProductToFirestore(updated);
+    if (!saved && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "El producto no se actualizó. No se pudo confirmar el guardado." }, { status: 503 });
+    repo.syncWithFirestore([...repo.getAll().filter(product => product.id !== updated.id), updated]);
 
     return NextResponse.json({
       success: true,
@@ -498,7 +506,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function deleteHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -524,6 +532,7 @@ export async function DELETE(request: NextRequest) {
 
     // 1. Delete from Firestore
     const deletedInFirestore = await deleteProductFromFirestore(id);
+    if (!deletedInFirestore && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "El producto no se eliminó. No se pudo confirmar el cambio." }, { status: 503 });
 
     if (!deletedInFirestore && (isFirebaseConfigured() || isFirebaseAdminConfigured())) {
       return NextResponse.json({ success: false, error: "No se pudo eliminar el producto de la base de datos" }, { status: 503 });
@@ -553,3 +562,9 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+
+export const POST = withAdminHistory(postHandler);
+
+export const PUT = withAdminHistory(putHandler);
+
+export const DELETE = withAdminHistory(deleteHandler);

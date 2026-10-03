@@ -1,3 +1,4 @@
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     if (!(await verifyAdminAuthorization(request)).authorized) {
       return NextResponse.json({ success: false, error: "Se requiere una sesión administrativa válida." }, { status: 403 });
@@ -56,3 +57,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: "No se guardaron los cambios. Comprueba la conexión de Firebase Admin en el servidor y vuelve a intentar." }, { status: 503 });
   }
 }
+
+export const POST = withAdminHistory(postHandler);

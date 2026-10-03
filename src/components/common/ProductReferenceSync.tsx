@@ -1,4 +1,6 @@
 "use client";
+import { useCompareStore } from "@/lib/store/compareStore";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { useAuthStore, DEFAULT_USERS } from "@/lib/store/authStore";
@@ -10,6 +12,7 @@ import type { ProductDomainEntity } from "@/lib/types/domain";
 /** Reconciles persisted browser references only after a successful authoritative read. */
 export function reconcileLocalProductReferences(products: ProductDomainEntity[]) {
   const ids = new Set(products.map(product => product.id));
+  useCompareStore.getState().reconcile(ids);
   const auth = useAuthStore.getState();
   const guestWishlist = auth.guestWishlist.filter(id => ids.has(id));
   if (guestWishlist.length !== auth.guestWishlist.length) useAuthStore.setState({ guestWishlist });
@@ -39,8 +42,10 @@ export function reconcileLocalProductReferences(products: ProductDomainEntity[])
 }
 
 export function ProductReferenceSync() {
+  const pathname = usePathname();
   const currentUser = useAuthStore(state => state.currentUser);
   useEffect(() => {
+    if (pathname === "/portfolio") return;
     let disposed = false;
     const unsubscribe = catalogClient.subscribe(products => {
       if (!disposed) reconcileLocalProductReferences(products);
@@ -52,6 +57,6 @@ export function ProductReferenceSync() {
     window.addEventListener("focus", refresh);
     const timer = window.setInterval(refresh, 60_000);
     return () => { disposed = true; unsubscribe(); window.removeEventListener("focus", refresh); window.clearInterval(timer); };
-  }, [currentUser]);
+  }, [currentUser, pathname]);
   return null;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { CompareButton } from "@/components/catalog/ProductComparison";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -1281,6 +1282,7 @@ export default function ProductDetailClient({ initialProduct, slug: propSlug }: 
             </span>
           )}
         </h1>
+        <CompareButton product={product}/>
       </div>
 
       {/* Main 2-Column Section */}

@@ -119,7 +119,7 @@ export function PromotionalSlider({ initialProducts }: PromotionalSliderProps = 
     let isMounted = true;
 
     const loadSlides = () => {
-      fetch("/api/admin/slider")
+      fetch("/api/storefront/slider")
         .then((res) => res.json())
         .then((json) => {
           if (!isMounted) return;

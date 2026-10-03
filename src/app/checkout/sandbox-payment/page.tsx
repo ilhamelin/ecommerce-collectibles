@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -51,7 +52,7 @@ function SandboxPaymentContent() {
         // Process balance settlement
         const response = await fetch(`/api/orders/${orderId}/settle-balance`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...await identityHeaders() },
           body: JSON.stringify({
             paymentMethod: "Mercado Pago (Tarjeta Sandbox)",
             paymentId: `SIM-BAL-${Date.now()}`,

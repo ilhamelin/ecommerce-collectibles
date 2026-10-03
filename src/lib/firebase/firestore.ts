@@ -1,3 +1,4 @@
+import { writeAdminDocument } from "@/lib/services/adminHistory";
 import { changePersistedStock } from "./commerce";
 import { adminDb, isFirebaseAdminConfigured } from "./admin";
 import { db, isFirebaseConfigured } from "./config";
@@ -205,7 +206,7 @@ export async function saveProductToFirestore(product: ProductDomainEntity): Prom
     const cleanProduct = cleanFirestoreData(product);
 
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.PRODUCTS).doc(product.id).set(cleanProduct, { merge: true });
+      await writeAdminDocument(COLLECTIONS.PRODUCTS, product.id, cleanProduct);
       invalidateProductsCache();
       return true;
     }
@@ -234,7 +235,7 @@ export async function deleteProductFromFirestore(productId: string): Promise<boo
 
     // Server Admin SDK
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.PRODUCTS).doc(cleanId).delete();
+      await writeAdminDocument(COLLECTIONS.PRODUCTS, cleanId, null);
 
       // Delete by 'sku'
       const skuSnap = await adminDb
@@ -847,7 +848,7 @@ export async function saveSliderSettingsToFirestore(slides: any[]): Promise<bool
     };
 
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.SLIDER_SETTINGS).doc("home_slider").set(payload, { merge: true });
+      await writeAdminDocument(COLLECTIONS.SLIDER_SETTINGS, "home_slider", payload);
       return true;
     }
 
@@ -905,7 +906,7 @@ export async function saveBrandingSettingsToFirestore(branding: any): Promise<bo
     };
 
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.BRANDING_SETTINGS).doc("main_brand").set(payload, { merge: true });
+      await writeAdminDocument(COLLECTIONS.BRANDING_SETTINGS, "main_brand", payload);
       return true;
     }
 
@@ -963,7 +964,7 @@ export async function saveAnnouncementSettingsToFirestore(announcement: any): Pr
     };
 
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.ANNOUNCEMENT_SETTINGS).doc("main_bar").set(payload, { merge: true });
+      await writeAdminDocument(COLLECTIONS.ANNOUNCEMENT_SETTINGS, "main_bar", payload);
       return true;
     }
 
@@ -1021,7 +1022,7 @@ export async function saveSideBannersSettingsToFirestore(sideBanners: any): Prom
     };
 
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.SIDE_BANNERS_SETTINGS).doc("main_skins").set(payload, { merge: true });
+      await writeAdminDocument(COLLECTIONS.SIDE_BANNERS_SETTINGS, "main_skins", payload);
       return true;
     }
 
@@ -1110,7 +1111,7 @@ export async function saveCustomCategoryToFirestore(category: CustomCategoryEnti
   try {
     const clean = cleanFirestoreData(category);
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.CUSTOM_CATEGORIES).doc(category.id).set(clean, { merge: true });
+      await writeAdminDocument(COLLECTIONS.CUSTOM_CATEGORIES, category.id, clean);
       return true;
     }
 
@@ -1129,7 +1130,7 @@ export async function saveCustomCategoryToFirestore(category: CustomCategoryEnti
 export async function deleteCustomCategoryFromFirestore(categoryId: string): Promise<boolean> {
   try {
     if (typeof window === "undefined" && adminDb) {
-      await adminDb.collection(COLLECTIONS.CUSTOM_CATEGORIES).doc(categoryId).delete();
+      await writeAdminDocument(COLLECTIONS.CUSTOM_CATEGORIES, categoryId, null);
       return true;
     }
 
@@ -1191,10 +1192,7 @@ export async function saveDeletedNativeCategoriesToFirestore(ids: string[]): Pro
     };
 
     if (typeof window === "undefined" && adminDb) {
-      await adminDb
-        .collection(COLLECTIONS.CUSTOM_CATEGORIES)
-        .doc(DELETED_NATIVE_DOC_ID)
-        .set(payload, { merge: true });
+      await writeAdminDocument(COLLECTIONS.CUSTOM_CATEGORIES, DELETED_NATIVE_DOC_ID, payload);
       return true;
     }
 

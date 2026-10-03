@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -153,7 +154,7 @@ export function VisualSearchModal({
     try {
       const response = await fetch("/api/catalog/visual-search", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/x-ndjson" },
+        headers: { ...await identityHeaders(true), "Content-Type": "application/json", "Accept": "application/x-ndjson" },
         body: JSON.stringify({ imageBase64: selectedImage, mimeType }),
         signal: abort.signal,
       });

@@ -104,15 +104,13 @@ describe("Chilean Couriers & Logistics Tracking System", () => {
       paymentMethod: "WEBPAY",
       items: [
         {
-          id: "item_1",
           productId: "prod_1",
           name: "Figura Iron Man Mark VII 1/6",
           sku: "HT-IM-MK7",
-          price: 349990,
           unitPrice: 349990,
           quantity: 1,
           isPreOrder: false,
-          totalPrice: 349990,
+          isPartialDeposit: false, unitDeposit: 349990, remainingBalancePerUnit: 0,
         },
       ],
       subtotal: 349990,

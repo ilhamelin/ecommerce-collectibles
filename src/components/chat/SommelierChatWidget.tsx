@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -102,7 +103,7 @@ export function SommelierChatWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Hide widget inside /admin routes to keep dashboard clean
-  const isAdmin = pathname?.startsWith("/admin");
+  const isAdmin = pathname?.startsWith("/admin") || pathname === "/portfolio";
 
   // Load chat from localStorage or init default message
   useEffect(() => {
@@ -182,7 +183,7 @@ export function SommelierChatWidget() {
     try {
       const res = await fetch("/api/sommelier/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...await identityHeaders(true), "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: newMessages.map((m) => ({
             role: m.role,

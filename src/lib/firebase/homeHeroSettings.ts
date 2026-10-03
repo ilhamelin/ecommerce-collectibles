@@ -1,3 +1,4 @@
+import { writeAdminDocument } from "@/lib/services/adminHistory";
 import { adminDb } from "./admin";
 import { COLLECTIONS } from "./collections";
 import { DEFAULT_HOME_HERO, HomeHeroSettingsSchema, type HomeHeroSettings } from "@/lib/constants/homeHeroDefaults";
@@ -15,7 +16,7 @@ export async function readHomeHeroSettings() {
 /** A successful response always means the durable write completed. No memory fallback. */
 export async function saveHomeHeroSettings(settings: HomeHeroSettings): Promise<void> {
   if (!adminDb) throw new Error("La configuración no se guardó: Firebase Admin no está disponible en el servidor.");
-  await adminDb.collection(COLLECTIONS.BRANDING_SETTINGS).doc(documentId).set({
+  await writeAdminDocument(COLLECTIONS.BRANDING_SETTINGS, documentId, {
     settings: HomeHeroSettingsSchema.parse(settings),
     updatedAt: new Date().toISOString(),
   });

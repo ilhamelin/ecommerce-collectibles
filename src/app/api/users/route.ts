@@ -1,3 +1,5 @@
+import { requestIdentity } from "@/lib/auth/requestIdentity";
+import { ProfileUpdateSchema } from "@/lib/auth/profileSchema";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { cleanupPersistedProductReferences } from "@/lib/firebase/productReferenceCleanup";
 import { pruneOrderProductReferences } from "@/lib/services/productReferences";
@@ -21,9 +23,12 @@ export async function GET(request: NextRequest) {
     const identifier = searchParams.get("id") || searchParams.get("email");
 
     if (identifier) {
+      const identity = await requestIdentity(request);
+      if (!identity) return NextResponse.json({ success: false, error: "Inicia sesión para consultar tu cuenta." }, { status: 401 });
       // 1. Try Firestore first
       const firestoreUser = await getUserFromFirestore(identifier);
       if (firestoreUser) {
+        if (!identity.admin && identity.uid !== firestoreUser.id && (!identity.email || identity.email !== firestoreUser.email.toLowerCase())) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
         const products = await getProductsFromFirestore(true);
         if (products !== null) {
           const ids = new Set(products.map(product => product.id));
@@ -46,6 +51,7 @@ export async function GET(request: NextRequest) {
       );
 
       if (fallbackUser) {
+        if (!identity.admin && identity.uid !== fallbackUser.id && (!identity.email || identity.email !== fallbackUser.email.toLowerCase())) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
         const isPermAdmin = isConfiguredAdminEmail(fallbackUser.email);
         const resolvedRole = isPermAdmin ? "ADMIN" : (fallbackUser.role || "CUSTOMER");
         return NextResponse.json({
@@ -101,7 +107,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const body = (await request.json()) as Partial<UserAccount>;
+    const identity = await requestIdentity(request);
+    if (!identity) return NextResponse.json({ success: false, error: "Inicia sesión para guardar tu cuenta." }, { status: 401 });
+    const parsed = ProfileUpdateSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ success: false, error: "Perfil inválido." }, { status: 400 });
+    const body = parsed.data;
     const { id, email, fullName, phone, rut, addresses, paymentMethods, wishlist, role } = body;
 
     if (!id && !email) {
@@ -113,7 +123,9 @@ export async function PUT(request: NextRequest) {
 
     // Lookup existing or create
     const cleanEmail = (email || "").toLowerCase().trim();
-    const existing = await getUserFromFirestore(id || cleanEmail);
+    const existingById = await getUserFromFirestore(id || cleanEmail);
+    const existing = existingById || (identity.email && identity.email === cleanEmail ? await getUserFromFirestore(cleanEmail) : null);
+    if (!identity.admin && ((existing && existing.id !== identity.uid && (!identity.email || existing.email.toLowerCase() !== identity.email)) || (email && cleanEmail !== identity.email) || (!existing && id && id !== identity.uid))) return NextResponse.json({ success: false, error: "No puedes modificar otra cuenta." }, { status: 403 });
 
     // Only allow setting role if authorized admin
     let resolvedRole: "ADMIN" | "CUSTOMER" = existing?.role || "CUSTOMER";
@@ -123,12 +135,12 @@ export async function PUT(request: NextRequest) {
         resolvedRole = role;
       }
     }
-    if (isConfiguredAdminEmail(cleanEmail || existing?.email)) {
+    if (identity.admin && isConfiguredAdminEmail(cleanEmail || existing?.email)) {
       resolvedRole = "ADMIN";
     }
 
     const userToSave: UserAccount = {
-      id: id || existing?.id || `usr-${Date.now()}`,
+      id: existing?.id || (identity.admin ? id || identity.uid : identity.uid),
       email: cleanEmail || existing?.email || "",
       fullName: fullName !== undefined ? sanitizeText(fullName) : (existing?.fullName || ""),
       phone: phone !== undefined ? sanitizeText(phone) : (existing?.phone || ""),
@@ -142,6 +154,7 @@ export async function PUT(request: NextRequest) {
     };
 
     const saved = await syncUserProfileToFirestore(userToSave);
+    if (!saved) return NextResponse.json({ success: false, error: "No se guardó el perfil. La base de datos no está disponible." }, { status: 503 });
 
     // Also update default users in-memory fallback
     const index = DEFAULT_USERS.findIndex((u) => u.id === userToSave.id || u.email.toLowerCase() === userToSave.email.toLowerCase());
@@ -286,8 +299,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 1. Delete in Firestore
-    const deletedInFirestore = await deleteUserFromFirestore(id);
+    const identity = await requestIdentity(request);
+    if (!identity) return NextResponse.json({ success: false, error: "Sesión requerida." }, { status: 401 });
+    const target = await getUserFromFirestore(id);
+    if (!identity.admin && (!target || (target.id !== identity.uid && (!identity.email || target.email.toLowerCase() !== identity.email)))) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
+    const deletedInFirestore = await deleteUserFromFirestore(target?.id || id);
+    if (!deletedInFirestore) return NextResponse.json({ success: false, error: "La cuenta no se eliminó de la base de datos." }, { status: 503 });
 
     // 2. Remove from default users array
     const clean = id.toLowerCase().trim();

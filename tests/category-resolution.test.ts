@@ -9,7 +9,7 @@ describe("Category Resolution & Breadcrumbs Integrity", () => {
         sku: "VG-FORZAH6-PS5",
         name: "Forza Horizon 6 [Juego PS5]",
         type: "VIDEO_GAME",
-        gameMetadata: {
+        gameMetadata: { id: "meta-game", productId: "product-test", edition: "STANDARD",
           platform: "PS5",
           gameType: "CONSOLE",
           isDigital: false,

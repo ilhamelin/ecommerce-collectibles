@@ -1,3 +1,5 @@
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { NextRequest, NextResponse } from "next/server";
 import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
 import {
@@ -48,7 +50,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Update in-memory cache immediately
-    inMemoryBranding = updatedBranding;
+
 
     // Persist to Firestore if available
     let persistedToFirestore = false;
@@ -111,6 +113,9 @@ export async function POST(request: NextRequest) {
     } catch (fsErr) {
       console.warn("[BRANDING_POST_FIRESTORE_WARN] Saved in memory, Firestore skipped:", fsErr);
     }
+
+    if (!persistedToFirestore && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se guardó la configuración. Comprueba la conexión con Firestore." }, { status: 503 });
+    inMemoryBranding = updatedBranding;
 
     return NextResponse.json({
       success: true,
@@ -131,3 +136,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminHistory(postHandler);

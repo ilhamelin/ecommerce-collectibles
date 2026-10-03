@@ -1,3 +1,5 @@
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { NextRequest, NextResponse } from "next/server";
 import { DEFAULT_PROMO_SLIDES, PromoSlideData } from "@/lib/constants/sliderDefaults";
 import {
@@ -127,7 +129,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -145,8 +147,9 @@ export async function POST(request: NextRequest) {
 
     // Check if reset action requested
     if (body.action === "RESET") {
+      const saved = await saveSliderSettingsToFirestore(DEFAULT_PROMO_SLIDES);
+      if (!saved && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se restableció el carrusel." }, { status: 503 });
       inMemorySlides = [...DEFAULT_PROMO_SLIDES];
-      await saveSliderSettingsToFirestore(DEFAULT_PROMO_SLIDES);
       return NextResponse.json({
         success: true,
         message: "Slider restablecido a los valores por defecto con éxito",
@@ -192,8 +195,11 @@ export async function POST(request: NextRequest) {
       linkedProductSku: slide.linkedProductSku || undefined,
     }));
 
-    inMemorySlides = sanitizedSlides;
+
     const firestoreSuccess = await saveSliderSettingsToFirestore(sanitizedSlides);
+
+    if (!firestoreSuccess && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se guardó la configuración. Comprueba la conexión con Firestore." }, { status: 503 });
+    inMemorySlides = sanitizedSlides;
 
     return NextResponse.json({
       success: true,
@@ -215,3 +221,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminHistory(postHandler);

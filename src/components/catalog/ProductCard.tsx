@@ -1,5 +1,6 @@
 "use client";
 
+import { CompareButton } from "./ProductComparison";
 import { motion, useReducedMotion } from "motion/react";
 import React, { useState } from "react";
 import Link from "next/link";
@@ -250,6 +251,7 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.description}
           </p>
 
+          <CompareButton product={product}/>
           {/* Domain Metadata Tags */}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {product.gameMetadata && (

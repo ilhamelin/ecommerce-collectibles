@@ -1,3 +1,4 @@
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { ConfirmedOrderEntity } from "@/lib/types/domain";
@@ -222,7 +223,7 @@ export async function checkRemoteSession(email: string, forceOverride: boolean =
   activeDevice?: string;
   lastSeenMinutesAgo?: number;
 }> {
-  if (typeof window === "undefined" || process.env.NODE_ENV === "test") {
+  if (typeof window === "undefined" || process.env.NODE_ENV === "test" || !getFirebaseAuth()?.currentUser) {
     return { allowed: true };
   }
 
@@ -231,7 +232,7 @@ export async function checkRemoteSession(email: string, forceOverride: boolean =
     const deviceName = getDeviceName();
     const res = await fetch("/api/auth/session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...await identityHeaders() },
       body: JSON.stringify({
         action: forceOverride ? "FORCE_LOGOUT" : "LOGIN_CHECK",
         email: email.trim().toLowerCase(),
@@ -388,7 +389,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== "undefined") {
           fetch("/api/users", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...await identityHeaders() },
             body: JSON.stringify(user),
           }).catch(() => {});
         }
@@ -398,7 +399,7 @@ export const useAuthStore = create<AuthState>()(
             const idToken = await getFirebaseAuth()?.currentUser?.getIdToken();
             const sessionResponse = await fetch("/api/auth/admin-session", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", ...await identityHeaders() },
               body: JSON.stringify({ idToken }),
             });
             if (!sessionResponse.ok) {
@@ -463,13 +464,6 @@ export const useAuthStore = create<AuthState>()(
 
         // Sync to Cloud Firestore
         syncUserProfileToFirestore(newUser).catch(() => {});
-        if (typeof window !== "undefined") {
-          fetch("/api/users", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newUser),
-          }).catch(() => {});
-        }
 
         set({
           currentUser: newUser,
@@ -523,7 +517,7 @@ export const useAuthStore = create<AuthState>()(
           let saved = false;
           if (typeof window !== "undefined") {
             const response = await fetch("/api/users", {
-              method: "PUT", headers: { "Content-Type": "application/json" },
+              method: "PUT", headers: { "Content-Type": "application/json", ...await identityHeaders() },
               body: JSON.stringify(updated),
             });
             if (response.ok) {
@@ -552,9 +546,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           // 1. Delete in Firestore via server API
           if (typeof window !== "undefined") {
-            await fetch(`/api/users?id=${encodeURIComponent(userId)}&email=${encodeURIComponent(userEmail)}`, {
-              method: "DELETE",
+            const deletion = await fetch(`/api/users?id=${encodeURIComponent(userId)}&email=${encodeURIComponent(userEmail)}`, {
+              method: "DELETE", headers: await identityHeaders(),
             });
+            if (!deletion.ok && isFirebaseConfigured()) return { success: false, message: "La cuenta no se eliminó. Inicia sesión con Google e intenta nuevamente." };
           }
           // 2. Fallback client deletion
           deleteUserFromFirestoreClient(userId).catch(() => {});
@@ -587,7 +582,7 @@ export const useAuthStore = create<AuthState>()(
         if (!current) return;
         try {
           if (typeof window !== "undefined") {
-            const res = await fetch(`/api/users?id=${encodeURIComponent(current.id)}`);
+            const res = await fetch(`/api/users?id=${encodeURIComponent(current.id)}`, { headers: await identityHeaders() });
             if (res.ok) {
               const data = await res.json();
               if (data.success && data.data?.user) {

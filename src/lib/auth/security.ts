@@ -2,10 +2,10 @@ import { NextRequest } from "next/server";
 import { verifyAdminSessionToken } from "./adminSessionToken";
 
 /** Administrative authority comes exclusively from a verified server-issued cookie. */
-export async function verifyAdminAuthorization(req: NextRequest): Promise<{ authorized: boolean; reason?: string }> {
+export async function verifyAdminAuthorization(req: NextRequest): Promise<{ authorized: boolean; reason?: string; actor?: string }> {
   const session = await verifyAdminSessionToken(req.cookies.get("omni_admin_session")?.value);
   return session.valid && session.role === "ADMIN"
-    ? { authorized: true }
+    ? { authorized: true, actor: session.email }
     : { authorized: false, reason: "Acceso restringido: Se requiere una sesión administrativa válida." };
 }
 

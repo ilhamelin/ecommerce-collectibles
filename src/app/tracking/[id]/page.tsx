@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -87,7 +88,7 @@ export default function OrderTrackingPage() {
         .catch((e) => console.warn("[Tracking] Error consultando AfterShip:", e));
 
       // 2. Consultar datos de la orden en Firestore
-      const res = await fetch(`/api/orders/${orderIdParam}`);
+      const res = await fetch(`/api/orders/${orderIdParam}`, { headers: await identityHeaders() });
       const data = await res.json();
       if (data.success && data.data) {
         setOrder(data.data);
@@ -99,7 +100,7 @@ export default function OrderTrackingPage() {
       }
 
       // If not found by direct ID, search in orders list by orderNumber
-      const searchRes = await fetch(`/api/orders?q=${encodeURIComponent(orderIdParam)}`);
+      const searchRes = await fetch(`/api/orders?q=${encodeURIComponent(orderIdParam)}`, { headers: await identityHeaders() });
       const searchData = await searchRes.json();
       if (searchData.success && Array.isArray(searchData.data?.orders) && searchData.data.orders.length > 0) {
         const found = searchData.data.orders[0];
@@ -208,25 +209,9 @@ export default function OrderTrackingPage() {
 
     try {
       const deliveredAt = new Date().toISOString();
-      await fetch(`/api/orders/${displayOrder.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "DELIVERED",
-          deliveredAt,
-          clientTrackingUpdate: true,
-        }),
-      });
 
-      setOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "DELIVERED",
-              deliveredAt,
-            }
-          : null
-      );
+
+      // The animated route only changes this local demonstration, never the persisted order.
       setDeliveredSuccess(true);
       setDeliveryConfirmedAt(deliveredAt);
       setProgressPercent(100);
@@ -652,7 +637,7 @@ export default function OrderTrackingPage() {
                     Corredor Logístico y Georreferenciación
                   </h3>
                   <p className="text-xs text-[#666666]">
-                    Trazado de ruta entre Bodega Central ENEA Pudahuel y {destinationLabel}
+                    Simulación visual de ruta entre Bodega Central ENEA Pudahuel y {destinationLabel}
                   </p>
                 </div>
                 <div className="text-right">

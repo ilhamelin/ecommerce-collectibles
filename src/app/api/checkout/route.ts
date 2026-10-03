@@ -1,3 +1,4 @@
+import { signOrderReceipt } from "@/lib/auth/orderAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { formatCheckoutValidationIssues } from "@/lib/utils/checkoutValidation";
@@ -124,11 +125,14 @@ async function executeCheckout(validated: CheckoutRequestDTO, baseUrl: string): 
     MemoryTransactionalStore.getInstance().orders.set(result.order.id, result.order);
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     data: {
       ...result,
       gateway,
     },
   }, { status: 201 });
+  const receipt = signOrderReceipt(result.order.id);
+  if (receipt) response.cookies.set("omni_order_access", receipt, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 48 * 3600 });
+  return response;
 }

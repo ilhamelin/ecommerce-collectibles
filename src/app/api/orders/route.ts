@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/auth/requestIdentity";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
 import { pruneOrderProductReferences } from "@/lib/services/productReferences";
@@ -12,7 +13,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get("status");
-    const emailFilter = (searchParams.get("email") || "").toLowerCase().trim();
+    const identity = await requestIdentity(req);
+    if (!identity) return NextResponse.json({ success: false, error: "Inicia sesión para consultar pedidos." }, { status: 401 });
+    const suppliedEmail = (searchParams.get("email") || "").toLowerCase().trim();
+    if (!identity.admin && (suppliedEmail && suppliedEmail !== identity.email || !identity.email)) return NextResponse.json({ success: false, error: "Solo puedes consultar tus pedidos." }, { status: 403 });
+    const emailFilter = identity.admin ? suppliedEmail : identity.email;
     const query = (searchParams.get("q") || "").toLowerCase().trim();
 
     // 1. Fetch from Firestore

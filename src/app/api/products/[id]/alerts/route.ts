@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/auth/requestIdentity";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { NextRequest, NextResponse } from "next/server";
@@ -52,7 +53,10 @@ export async function POST(
       );
     }
 
-    const isGuest = !userId;
+    const identity = await requestIdentity(req);
+    if (identity && !identity.admin && email.toLowerCase().trim() !== identity.email) return NextResponse.json({ success: false, error: "Utiliza el correo de tu cuenta verificada." }, { status: 403 });
+    const verifiedUserId = identity?.uid || null;
+    const isGuest = !verifiedUserId;
     const alertRecord = {
       id: `alert-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       productId,
@@ -62,7 +66,7 @@ export async function POST(
       productOriginalPrice: originalPrice ? Number(originalPrice) : undefined,
       productImageUrl: body.productImageUrl || undefined,
       email: email.toLowerCase().trim(),
-      userId: userId || null,
+      userId: verifiedUserId,
       userName: body.userName || (isGuest ? "Invitado Web" : email.split("@")[0]),
       isGuest,
       alertType: alertType as any,
@@ -122,9 +126,12 @@ export async function GET(
       return NextResponse.json({ success: true, active: false });
     }
 
+    const identity = await requestIdentity(req);
+    if (!identity) return NextResponse.json({ success: false, error: "Sesión requerida." }, { status: 401 });
+    if (!identity.admin && email && email.toLowerCase().trim() !== identity.email) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
     const allAlerts = await alertService.getAllAlerts();
-    const normalizedEmail = email ? email.toLowerCase().trim() : "";
-    const normalizedUserId = userId ? userId.trim() : "";
+    const normalizedEmail = identity.admin ? email?.toLowerCase().trim() || "" : identity.email;
+    const normalizedUserId = identity.admin ? userId?.trim() || "" : identity.uid;
     const targetId = params.id;
 
     const foundAlert = allAlerts.find((a) => {

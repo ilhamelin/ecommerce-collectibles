@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/auth/requestIdentity";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { db, isFirebaseConfigured } from "@/lib/firebase/config";
@@ -119,6 +120,8 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
+    const identity = await requestIdentity(request);
+    if (!identity || identity.email !== cleanEmail) return NextResponse.json({ success: false, error: "Sesión verificada requerida." }, { status: 401 });
     const cleanDeviceId = String(deviceId).trim();
     const cleanDeviceName = deviceName ? String(deviceName).trim() : "Navegador Web";
     const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";

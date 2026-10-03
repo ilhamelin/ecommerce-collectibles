@@ -1,3 +1,5 @@
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { NextRequest, NextResponse } from "next/server";
 import {
   getCustomCategoriesFromFirestore,
@@ -68,7 +70,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -143,8 +145,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Persist to disk and Firestore
+    const persisted = await saveCustomCategoryToFirestore(newCategory);
+    if (!persisted && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "La categoría no se guardó en Firestore." }, { status: 503 });
     saveCategoryToDisk(newCategory);
-    await saveCustomCategoryToFirestore(newCategory);
 
     return NextResponse.json({
       success: true,
@@ -163,3 +166,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminHistory(postHandler);

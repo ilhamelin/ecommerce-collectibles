@@ -1,3 +1,4 @@
+import { canReadOrder } from "@/lib/auth/orderAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import {
@@ -40,6 +41,7 @@ export async function POST(
       );
     }
 
+    if (!(await canReadOrder(req, order))) return NextResponse.json({ error: "Forbidden", message: "No tienes acceso a este pedido." }, { status: 403 });
     // 2. Check if already settled
     if (order.balancePaid && order.remainingBalanceLater === 0) {
       return NextResponse.json({

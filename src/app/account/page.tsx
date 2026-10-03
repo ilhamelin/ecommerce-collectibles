@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import Link from "next/link";
@@ -126,7 +127,7 @@ function AccountContent() {
     if (!currentUser?.email) return;
     setLoadingOrders(true);
     try {
-      const res = await fetch(`/api/orders?email=${encodeURIComponent(currentUser.email.toLowerCase().trim())}`);
+      const res = await fetch(`/api/orders?email=${encodeURIComponent(currentUser.email.toLowerCase().trim())}`, { headers: await identityHeaders() });
       const data = await res.json();
       if (data.success && Array.isArray(data.data?.orders)) {
         const fetchedOrders: ConfirmedOrderEntity[] = data.data.orders;
@@ -152,7 +153,7 @@ function AccountContent() {
       const res = await fetch(
         `/api/users/alerts?email=${encodeURIComponent(currentUser.email.toLowerCase().trim())}&userId=${encodeURIComponent(
           currentUser.id || ""
-        )}`
+        )}`, { headers: await identityHeaders() }
       );
       const data = await res.json();
       if (data.success && Array.isArray(data.data?.alerts)) {
@@ -183,7 +184,7 @@ function AccountContent() {
     }
     setCancellingAlertId(alertId);
     try {
-      const res = await fetch(`/api/users/alerts?id=${alertId}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/alerts?id=${alertId}`, { method: "DELETE", headers: await identityHeaders() });
       const data = await res.json();
       if (data.success) {
         setUserAlerts((prev) => prev.filter((a) => a.id !== alertId));

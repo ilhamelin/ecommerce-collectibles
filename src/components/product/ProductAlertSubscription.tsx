@@ -1,5 +1,6 @@
 "use client";
 
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, BellRing, Check, Mail, Loader2, ArrowUpRight } from "lucide-react";
@@ -48,11 +49,11 @@ export function ProductAlertSubscription({
       const targetSku = productSku || "";
       const targetUserId = currentUser.id || "";
 
-      fetch(
+      identityHeaders().then(headers => fetch(
         `/api/products/${encodeURIComponent(productId)}/alerts?email=${encodeURIComponent(
           targetEmail
-        )}&sku=${encodeURIComponent(targetSku)}&userId=${encodeURIComponent(targetUserId)}`
-      )
+        )}&sku=${encodeURIComponent(targetSku)}&userId=${encodeURIComponent(targetUserId)}`, { headers }
+      ))
         .then((res) => res.json())
         .then((data) => {
           if (!isCurrent) return;
@@ -99,7 +100,7 @@ export function ProductAlertSubscription({
     try {
       const res = await fetch(`/api/products/${encodeURIComponent(productId)}/alerts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...await identityHeaders() },
         body: JSON.stringify({
           email: targetEmail,
           userId: currentUser?.id || null,
@@ -154,7 +155,7 @@ export function ProductAlertSubscription({
         : `email=${encodeURIComponent(currentUser.email.toLowerCase().trim())}&sku=${encodeURIComponent(
             productSku || productId
           )}`;
-      const res = await fetch(`/api/users/alerts?${targetParam}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/alerts?${targetParam}`, { method: "DELETE", headers: await identityHeaders() });
       const data = await res.json();
       if (data.success) {
         setIsSubscribed(false);

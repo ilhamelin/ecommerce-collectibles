@@ -1,3 +1,5 @@
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { NextRequest, NextResponse } from "next/server";
 import {
   DEFAULT_SIDE_BANNERS,
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -111,8 +113,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (body.action === "RESET") {
-      inMemoryConfig = { ...DEFAULT_SIDE_BANNERS };
       const firestoreSuccess = await saveSideBannersSettingsToFirestore(DEFAULT_SIDE_BANNERS);
+      if (!firestoreSuccess && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se restablecieron los banners." }, { status: 503 });
+      inMemoryConfig = { ...DEFAULT_SIDE_BANNERS };
       return NextResponse.json({
         success: true,
         message: "Banners laterales restablecidos a los valores por defecto.",
@@ -141,8 +144,11 @@ export async function POST(request: NextRequest) {
       rightBanner: sanitizeBannerItem(config.rightBanner, DEFAULT_SIDE_BANNERS.rightBanner),
     };
 
-    inMemoryConfig = sanitizedConfig;
+
     const firestoreSuccess = await saveSideBannersSettingsToFirestore(sanitizedConfig);
+
+    if (!firestoreSuccess && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se guardó la configuración. Comprueba la conexión con Firestore." }, { status: 503 });
+    inMemoryConfig = sanitizedConfig;
 
     return NextResponse.json({
       success: true,
@@ -166,3 +172,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminHistory(postHandler);

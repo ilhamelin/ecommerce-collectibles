@@ -2,10 +2,7 @@ import { CustomCategoryEntity } from "@/lib/types/domain";
 import { getAdminHeaders } from "@/lib/auth/security";
 import {
   getCustomCategoriesFromFirestoreClient,
-  saveCustomCategoryToFirestoreClient,
-  deleteCustomCategoryFromFirestoreClient,
   getDeletedNativeCategoriesFromFirestoreClient,
-  saveDeletedNativeCategoriesToFirestoreClient,
 } from "@/lib/firebase/client-firestore";
 
 export const NATIVE_CATEGORY_IDS = [
@@ -97,7 +94,7 @@ export const categoryClient = {
     try {
       // Parallel fetch from API and Firestore client SDK
       const [apiRes, firestoreCats] = await Promise.all([
-        fetch("/api/admin/categories", {
+        fetch("/api/storefront/categories", {
           headers: getAdminHeaders(),
           cache: "no-store",
         })
@@ -162,7 +159,7 @@ export const categoryClient = {
 
     try {
       const [apiRes, firestoreIds] = await Promise.all([
-        fetch("/api/admin/categories", {
+        fetch("/api/storefront/categories", {
           headers: getAdminHeaders(),
           cache: "no-store",
         })
@@ -208,11 +205,6 @@ export const categoryClient = {
       if (res.ok && json.success && json.data?.category) {
         const savedCategory: CustomCategoryEntity = json.data.category;
 
-        // Also persist directly via Firestore Client SDK
-        saveCustomCategoryToFirestoreClient(savedCategory).catch((e) =>
-          console.warn("[categoryClient] Client Firestore save error:", e)
-        );
-
         // Update local memory and storage immediately
         const current = inMemoryCache || [];
         const next = [...current.filter((c) => c.id !== savedCategory.id), savedCategory];
@@ -252,15 +244,12 @@ export const categoryClient = {
           method: "DELETE",
           headers: getAdminHeaders(),
         });
+        if (!res.ok) return false;
 
-        // 2. Persist to Firestore Client SDK
+        // Update the browser cache only after the server confirms persistence.
         const current = inMemoryDeletedNative || [];
         const next = Array.from(new Set([...current, upperId]));
         inMemoryDeletedNative = next;
-
-        saveDeletedNativeCategoriesToFirestoreClient(next).catch((e) =>
-          console.warn("[categoryClient] Firestore save deleted native error:", e)
-        );
 
         if (typeof window !== "undefined") {
           try {
@@ -278,11 +267,7 @@ export const categoryClient = {
         method: "DELETE",
         headers: getAdminHeaders(),
       });
-
-      // 2. Delete from Client Firestore SDK
-      deleteCustomCategoryFromFirestoreClient(id).catch((e) =>
-        console.warn("[categoryClient] Client Firestore delete error:", e)
-      );
+      if (!res.ok) return false;
 
       // 3. Immediately update local cache so UI reflects deletion permanently
       if (inMemoryCache) {
@@ -315,14 +300,11 @@ export const categoryClient = {
         method: "DELETE",
         headers: getAdminHeaders(),
       });
+      if (!res.ok) return false;
 
       const current = inMemoryDeletedNative || [];
       const next = current.filter((item) => item !== upperId);
       inMemoryDeletedNative = next;
-
-      saveDeletedNativeCategoriesToFirestoreClient(next).catch((e) =>
-        console.warn("[categoryClient] Firestore save restored native error:", e)
-      );
 
       if (typeof window !== "undefined") {
         try {

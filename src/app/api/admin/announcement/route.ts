@@ -1,3 +1,5 @@
+import { isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { withAdminHistory } from "@/lib/services/adminHistory";
 import { NextRequest, NextResponse } from "next/server";
 import { DEFAULT_ANNOUNCEMENT_DATA, StoreAnnouncementData } from "@/lib/constants/announcementDefaults";
 import {
@@ -48,7 +50,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(request);
     if (!authCheck.authorized) {
@@ -101,10 +103,13 @@ export async function POST(request: NextRequest) {
       accentColor: String(incoming.accentColor || DEFAULT_ANNOUNCEMENT_DATA.accentColor).trim(),
     };
 
-    inMemoryAnnouncement = sanitizedAnnouncement;
+
 
     // Persist in Firestore
     const savedToFirestore = await saveAnnouncementSettingsToFirestore(sanitizedAnnouncement);
+
+    if (!savedToFirestore && (isFirebaseAdminConfigured() || process.env.NODE_ENV === "production")) return NextResponse.json({ success: false, error: "No se guardó la configuración. Comprueba la conexión con Firestore." }, { status: 503 });
+    inMemoryAnnouncement = sanitizedAnnouncement;
 
     return NextResponse.json({
       success: true,
@@ -125,3 +130,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAdminHistory(postHandler);

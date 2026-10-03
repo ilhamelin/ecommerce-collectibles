@@ -1,3 +1,4 @@
+import { withAiProtection, protectedAiFetch, AiProtectionError } from "@/lib/services/aiProtection";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminAuthorization } from "@/lib/auth/security";
 import { recordApiUsage } from "@/lib/services/apiTelemetryService";
@@ -113,7 +114,7 @@ function sanitizeSvg(rawSvg: string): string {
   return cleaned;
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const authCheck = await verifyAdminAuthorization(req);
     if (!authCheck.authorized) {
@@ -189,7 +190,7 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
 
     for (const model of candidateModels) {
       try {
-        const geminiRes = await fetch(
+        const geminiRes = await protectedAiFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
@@ -244,6 +245,7 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
           lastErrorText = await geminiRes.text();
         }
       } catch (geminiError: unknown) {
+            if (geminiError instanceof AiProtectionError) throw geminiError;
         lastErrorText = geminiError instanceof Error ? geminiError.message : String(geminiError);
         console.warn(`[GenerateIcon] Intento fallido con modelo ${model}:`, geminiError);
       }
@@ -295,3 +297,5 @@ Devuelve únicamente el tag <svg viewBox="0 0 24 24" width="100%" height="100%" 
     );
   }
 }
+
+export const POST = withAiProtection("icono", postHandler);

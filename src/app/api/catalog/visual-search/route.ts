@@ -1,3 +1,4 @@
+import { withAiProtection, protectedAiFetch, AiProtectionError } from "@/lib/services/aiProtection";
 import { z } from "zod";
 import { visualSearchAnalysisSchema, type VisualSearchEvent, type VisualSearchResult } from "@/lib/services/visualSearch";
 import { NextRequest, NextResponse } from "next/server";
@@ -97,7 +98,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
       signal.throwIfAborted();
       usedModel = model;
       emit({ kind: "progress", stage: "model", message: `Consultando ${model}: identificación visual con Gemini.` });
-      const res = await fetch(
+      const res = await protectedAiFetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
         {
           method: "POST",
@@ -138,6 +139,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
         emit({ kind: "progress", stage: "model", message: `El modelo ${model} respondió HTTP ${res.status}; comprobando alternativas.` });
       }
     } catch (err: unknown) {
+      if (err instanceof AiProtectionError) throw err;
       signal.throwIfAborted();
       lastErrorText = err instanceof Error ? err.message : String(err);
     }
@@ -300,7 +302,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura estricta (sin
 }
 
 /** Keeps JSON compatibility; the photo console opts into newline-delimited progress events. */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const input = inputSchema.safeParse(await req.json());
     if (!input.success) return NextResponse.json({ success: false, error: "Selecciona una imagen JPG, PNG o WEBP de hasta 8 MB." }, { status: 400 });
@@ -329,8 +331,8 @@ export async function POST(req: NextRequest) {
             emit({ kind: "result", data });
           } catch (error: unknown) {
             if (!abort.signal.aborted) {
-              console.error("[Visual Search API] Identification failed:", error instanceof VisualSearchError ? error.message : "Unexpected processing error");
-              emit({ kind: "error", message: error instanceof VisualSearchError ? error.message : "No se pudo completar la búsqueda por foto. Puedes reintentar." });
+              console.error("[Visual Search API] Identification failed:", error instanceof VisualSearchError || error instanceof AiProtectionError ? error.message : "Unexpected processing error");
+              emit({ kind: "error", message: error instanceof VisualSearchError || error instanceof AiProtectionError ? error.message : "No se pudo completar la búsqueda por foto. Puedes reintentar." });
             }
           } finally {
             req.signal.removeEventListener("abort", onAbort);
@@ -343,7 +345,9 @@ export async function POST(req: NextRequest) {
     return new Response(stream, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" } });
   } catch (error: unknown) {
     if (error instanceof SyntaxError) return NextResponse.json({ success: false, error: "La solicitud no contiene un JSON válido." }, { status: 400 });
-    console.error("[Visual Search API] Request failed:", error instanceof VisualSearchError ? error.message : "Unexpected processing error");
-    return NextResponse.json({ success: false, error: error instanceof VisualSearchError ? error.message : "No se pudo completar la búsqueda por foto." }, { status: error instanceof VisualSearchError ? error.status : 500 });
+    console.error("[Visual Search API] Request failed:", error instanceof VisualSearchError || error instanceof AiProtectionError ? error.message : "Unexpected processing error");
+    return NextResponse.json({ success: false, error: error instanceof VisualSearchError || error instanceof AiProtectionError ? error.message : "No se pudo completar la búsqueda por foto." }, { status: error instanceof VisualSearchError || error instanceof AiProtectionError ? error.status : 500 });
   }
 }
+
+export const POST = withAiProtection("foto", postHandler);

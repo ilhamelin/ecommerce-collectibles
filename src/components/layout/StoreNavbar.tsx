@@ -201,7 +201,7 @@ function StoreNavbarContent() {
       setBranding(cachedBranding);
     } else {
       // Fetch live branding settings once
-      fetch("/api/admin/branding")
+      fetch("/api/storefront/branding")
         .then((res) => {
           if (!res.ok) throw new Error("Branding fetch failed");
           return res.json();
@@ -256,6 +256,7 @@ function StoreNavbarContent() {
 
   const navLinks = [
     { href: "/", label: "Inicio" },
+    { href: "/portfolio", label: "El proyecto" },
     { href: "/catalog", label: "Catálogo" },
     { href: "/catalog?category=VIDEO_GAME", label: "Videojuegos", icon: Gamepad2, categoryKey: "VIDEO_GAME" },
     { href: "/catalog?category=FIGURE", label: "Figuras", icon: Sparkles, categoryKey: "FIGURE" },

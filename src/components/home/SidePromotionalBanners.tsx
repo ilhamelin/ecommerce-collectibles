@@ -158,7 +158,7 @@ export function SidePromotionalBanners() {
   }, [pathname]);
 
   // Hide on admin and checkout panels
-  if (!mounted || !config.enabled || pathname?.startsWith("/admin") || pathname?.startsWith("/checkout")) {
+  if (!mounted || !config.enabled || pathname?.startsWith("/admin") || pathname?.startsWith("/checkout") || pathname === "/portfolio") {
     return null;
   }
 

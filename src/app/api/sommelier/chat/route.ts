@@ -1,3 +1,4 @@
+import { withAiProtection, protectedAiFetch, AiProtectionError } from "@/lib/services/aiProtection";
 import { NextRequest, NextResponse } from "next/server";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { adminDb } from "@/lib/firebase/admin";
@@ -28,7 +29,7 @@ async function logChatInquiry(userQuery: string, recommendedSkus: string[], repl
   }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const geminiApiKey = getGeminiApiKey();
 
@@ -121,7 +122,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
 
     for (const model of candidateModels) {
       try {
-        const res = await fetch(
+        const res = await protectedAiFetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
           {
             method: "POST",
@@ -152,6 +153,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
           console.warn(`[Sommelier Chat] Model ${model} returned ${res.status}:`, lastErrorText);
         }
       } catch (err: any) {
+            if (err instanceof AiProtectionError) throw err;
         lastErrorText = err.message || String(err);
       }
     }
@@ -256,6 +258,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
         "Hola OmniCollector, me gustaría recibir más información sobre sus productos.",
     });
   } catch (error: any) {
+            if (error instanceof AiProtectionError) throw error;
     console.error("[Sommelier API Error]:", error);
     return NextResponse.json(
       {
@@ -266,3 +269,5 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura (sin texto ad
     );
   }
 }
+
+export const POST = withAiProtection("sommelier", postHandler);

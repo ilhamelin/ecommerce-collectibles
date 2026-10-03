@@ -243,6 +243,7 @@ export function StoreFooter() {
         {/* Payment & Logistics Badges Bar */}
         <div className="border-t border-white/10 py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
           <div>
+            <Link href="/portfolio" className="block mb-3 text-white font-semibold hover:text-[#FF6B35]">Explorar el proyecto · Recorrido interactivo →</Link>
             © 2026 OmniCollector SpA (Chile). Especialistas en Figuras, Videojuegos y Coleccionismo. Todos los precios en CLP.
           </div>
 

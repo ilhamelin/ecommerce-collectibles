@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -37,7 +38,7 @@ function OrderConfirmationContent() {
   useEffect(() => {
     async function fetchOrder() {
       try {
-        const res = await fetch(`/api/orders/${orderId}`);
+        const res = await fetch(`/api/orders/${orderId}`, { headers: await identityHeaders() });
         const json = await res.json();
         if (res.ok && json.data) {
           setOrder(json.data);

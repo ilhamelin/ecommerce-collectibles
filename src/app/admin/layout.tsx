@@ -56,10 +56,10 @@ export default function AdminLayout({
   const isMetricsActive =
     pathname === "/admin" ||
     pathname.startsWith("/admin/predictive-stock") ||
-    pathname.startsWith("/admin/api-usage");
+    pathname.startsWith("/admin/api-usage") || pathname.startsWith("/admin/security");
   const isInventoryActive = pathname.startsWith("/admin/products") || pathname.startsWith("/admin/orders");
   const isVisualActive =
-    pathname.startsWith("/admin/home-hero") ||
+    pathname.startsWith("/admin/visual-versions") || pathname.startsWith("/admin/home-hero") ||
     pathname.startsWith("/admin/slider") ||
     pathname.startsWith("/admin/branding") ||
     pathname.startsWith("/admin/announcement") ||
@@ -132,6 +132,7 @@ export default function AdminLayout({
                       </span>
                     </div>
 
+                    <Link href="/admin/security" onClick={() => setIsMetricsMenuOpen(false)} className="block rounded-xl p-3 text-sm font-bold text-[#1F3A5F] hover:bg-orange-50">Seguridad e historial<span className="block text-xs font-normal text-slate-500 mt-1">Cuotas IA y cambios administrativos</span></Link>
                     <Link
                       href="/admin"
                       onClick={() => setIsMetricsMenuOpen(false)}
@@ -360,6 +361,7 @@ export default function AdminLayout({
                       </span>
                     </div>
 
+                    <Link href="/admin/visual-versions" onClick={() => setIsVisualMenuOpen(false)} className="block rounded-xl p-3 text-sm font-bold text-[#1F3A5F] hover:bg-orange-50">Versiones y campañas<span className="block text-xs font-normal text-slate-500 mt-1">Guardar, revisar y recuperar diseños</span></Link>
                     <Link href="/admin/home-hero" onClick={() => setIsVisualMenuOpen(false)}
                       className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${pathname === "/admin/home-hero" ? "bg-orange-50 text-[#1F3A5F]" : "hover:bg-gray-50 text-[#333333]"}`}>
                       <div className="p-2 rounded-lg bg-orange-50 text-[#FF6B35] shrink-0 mt-0.5"><ImageIcon className="w-4 h-4" /></div>

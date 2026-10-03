@@ -1,4 +1,5 @@
 "use client";
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 import { normalizeAutoFillSalePrice } from "@/lib/utils/autoFillPrice";
 import { readAutoFillResponse, type AutoFillEvent } from "@/lib/services/autoFillStream";
 
@@ -65,7 +66,6 @@ import {
 import { CustomSpecificationsForm } from "@/components/admin/CustomSpecificationsForm";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
-import { saveProductToFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { AutoFillConsole, type AutoFillRun } from "@/components/admin/AutoFillConsole";
 import { categoryClient } from "@/lib/services/categoryClient";
@@ -852,7 +852,7 @@ export default function NewProductAdminPage() {
     try {
       const res = await fetch("/api/admin/auto-fill-product", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/x-ndjson" },
+        headers: { ...await identityHeaders(true), "Content-Type": "application/json", "Accept": "application/x-ndjson" },
         body: JSON.stringify({
           name,
           selectedType: chosenType,
@@ -903,7 +903,7 @@ export default function NewProductAdminPage() {
 
         const res = await fetch("/api/admin/auto-fill-product", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/x-ndjson" },
+          headers: { ...await identityHeaders(true), "Content-Type": "application/json", "Accept": "application/x-ndjson" },
           body: JSON.stringify({
             name: name.trim() || undefined,
             selectedType: chosenType,
@@ -1480,13 +1480,6 @@ export default function NewProductAdminPage() {
         const prod = data.data.product;
         // Invalidate and broadcast client catalog cache so new product appears immediately across site
         catalogClient.notifyListeners();
-
-        // Background client sync to Firestore if not confirmed by server
-        if (!data.data?.syncedToFirestore) {
-          saveProductToFirestoreClient(prod).catch((e) =>
-            console.warn("[Client Firestore Sync]", e)
-          );
-        }
         setCreatedProduct(prod);
         // Do not force scroll to top: floating toast notifies admin right where they are!
       }

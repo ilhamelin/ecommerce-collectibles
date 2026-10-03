@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EditorialHero, CollectionShelves } from "../src/components/home/EditorialShowcase";
 import type { ProductDomainEntity } from "../src/lib/types/domain";
-const product: ProductDomainEntity = { id: "visual-test", sku: "VG-TEST", name: "Producto visual", type: "VIDEO_GAME", price: 60000, costPrice: 30000, stockAvailable: 2, stockReserved: 0, isPreOrder: false, images: ["https://example.com/product.jpg"] };
+const product: ProductDomainEntity = { id: "visual-test", sku: "VG-TEST", name: "Producto visual", description: "Descripción de prueba", type: "VIDEO_GAME", price: 60000, costPrice: 30000, stockAvailable: 2, stockReserved: 0, isPreOrder: false, images: ["https://example.com/product.jpg"] };
 describe("Editorial product discovery", () => {
   it("does not feature fully reserved products", () => {
     const html = renderToStaticMarkup(<EditorialHero products={[{ ...product, stockReserved: 2 }]} />);

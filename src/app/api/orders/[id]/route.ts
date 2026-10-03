@@ -1,3 +1,4 @@
+import { canReadOrder } from "@/lib/auth/orderAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 import {
@@ -19,6 +20,7 @@ export async function GET(
   // 1. Try Firestore first
   const firestoreOrder = await getOrderByIdFromFirestore(params.id);
   if (firestoreOrder) {
+    if (!(await canReadOrder(req, firestoreOrder))) return NextResponse.json({ success: false, error: "Sesión o comprobante de este pedido requerido." }, { status: 403 });
     return NextResponse.json({ success: true, data: firestoreOrder });
   }
 
@@ -30,6 +32,7 @@ export async function GET(
     // Also search by orderNumber just in case
     for (const ord of store.orders.values()) {
       if (ord.orderNumber === params.id) {
+        if (!(await canReadOrder(req, ord))) return NextResponse.json({ success: false, error: "Sesión o comprobante de este pedido requerido." }, { status: 403 });
         return NextResponse.json({ success: true, data: ord });
       }
     }
@@ -40,6 +43,7 @@ export async function GET(
     );
   }
 
+  if (!(await canReadOrder(req, order))) return NextResponse.json({ success: false, error: "Sesión o comprobante de este pedido requerido." }, { status: 403 });
   return NextResponse.json({ success: true, data: order });
 }
 
@@ -49,15 +53,11 @@ export async function PATCH(
 ) {
   try {
     const body = await req.json();
-    const { status, trackingNumber, adminNotes, shippingCourier, preOrderWarehouseArrivalNotified, deliveredAt, clientTrackingUpdate } = body;
+    const { status, trackingNumber, adminNotes, shippingCourier, preOrderWarehouseArrivalNotified, deliveredAt } = body;
 
-    // Admin check: required for admin notes, manual edits, or non-tracking modifications
+    // Every persisted order edit requires a verified administrator session.
     const authCheck = await verifyAdminAuthorization(req);
-    const isAllowedTrackingTransition =
-      clientTrackingUpdate === true &&
-      (status === "DISPATCHED" || status === "DELIVERED" || status === "PREPARING" || status === "CONFIRMED");
-
-    if (!authCheck.authorized && !isAllowedTrackingTransition) {
+    if (!authCheck.authorized) {
       return NextResponse.json(
         {
           error: "Forbidden",

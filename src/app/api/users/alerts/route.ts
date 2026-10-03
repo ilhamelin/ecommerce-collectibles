@@ -1,3 +1,4 @@
+import { requestIdentity } from "@/lib/auth/requestIdentity";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
 import { createProductReferenceIndex } from "@/lib/services/productReferences";
 import { NextRequest, NextResponse } from "next/server";
@@ -18,9 +19,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const identity = await requestIdentity(req);
+    if (!identity) return NextResponse.json({ success: false, error: "Sesión requerida." }, { status: 401 });
+    if (!identity.admin && email && email.toLowerCase().trim() !== identity.email) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
     const allAlerts = await alertService.getAllAlerts();
-    const cleanEmail = email ? email.toLowerCase().trim() : "";
-    const cleanUserId = userId ? userId.trim() : "";
+    const cleanEmail = identity.admin ? email?.toLowerCase().trim() || "" : identity.email;
+    const cleanUserId = identity.admin ? userId?.trim() || "" : identity.uid;
 
     const products = await getProductsFromFirestore(true);
     const index = products === null ? null : createProductReferenceIndex(products);
@@ -56,8 +60,14 @@ export async function DELETE(req: NextRequest) {
     const sku = searchParams.get("sku");
     const productId = searchParams.get("productId");
 
+    const identity = await requestIdentity(req);
+    if (!identity) return NextResponse.json({ success: false, error: "Sesión requerida." }, { status: 401 });
+    const owned = (alert: { email?: string; userId?: string | null }) => identity.admin || (!!identity.email && alert.email?.toLowerCase() === identity.email) || (!!identity.uid && alert.userId === identity.uid);
     if (alertId) {
-      await alertService.deleteAlert(alertId);
+      const target = (await alertService.getAllAlerts()).find(alert => alert.id === alertId);
+      if (!target || !owned(target)) return NextResponse.json({ success: false, error: "Alerta no disponible." }, { status: 403 });
+      const deleted = await alertService.deleteAlert(alertId);
+      if (!deleted) return NextResponse.json({ success: false, error: "La alerta no se eliminó." }, { status: 503 });
       return NextResponse.json({
         success: true,
         message: "Alerta cancelada exitosamente",
@@ -75,7 +85,9 @@ export async function DELETE(req: NextRequest) {
           (a.productId === (productId || sku) || a.productSku === (sku || productId))
       );
       if (match) {
-        await alertService.deleteAlert(match.id);
+        if (!owned(match)) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
+        const deleted = await alertService.deleteAlert(match.id);
+        if (!deleted) return NextResponse.json({ success: false, error: "La alerta no se eliminó." }, { status: 503 });
         return NextResponse.json({
           success: true,
           message: "Alerta cancelada exitosamente",

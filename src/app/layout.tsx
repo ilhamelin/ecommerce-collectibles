@@ -1,3 +1,4 @@
+import { ProductComparison } from "@/components/catalog/ProductComparison";
 import "swiper/css";
 import { ProductReferenceSync } from "@/components/common/ProductReferenceSync";
 import type { Metadata, Viewport } from "next";
@@ -42,6 +43,7 @@ export default function RootLayout({
           <ProductReferenceSync />
           <StoreNavbar />
           <CartDrawer />
+          <ProductComparison />
           <main className="flex-1">{children}</main>
         </div>
         <SidePromotionalBanners />

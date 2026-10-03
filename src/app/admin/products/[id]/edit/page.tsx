@@ -59,7 +59,6 @@ import {
 import { CustomSpecificationsForm } from "@/components/admin/CustomSpecificationsForm";
 import { formatCLP, formatCLPShort } from "@/lib/utils/currency";
 import { getAdminHeaders } from "@/lib/auth/security";
-import { saveProductToFirestoreClient, deleteProductFromFirestoreClient } from "@/lib/firebase/client-firestore";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { categoryClient } from "@/lib/services/categoryClient";
 import { WORLDWIDE_AGE_RATINGS, normalizeProductAgeRating } from "@/lib/constants/ageRatings";
@@ -559,9 +558,6 @@ export default function EditProductAdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        deleteProductFromFirestoreClient(productId).catch((e) =>
-          console.warn("[Client Delete Sync]", e)
-        );
         catalogClient.notifyListeners();
         toast.success("Producto eliminado", `SKU ${sku} eliminado con éxito de Cloud Firestore.`);
         router.push("/admin/products");
@@ -1306,12 +1302,6 @@ export default function EditProductAdminPage() {
 
       if (!res.ok || !data.success) {
         throw new Error(data.error || "No se pudo actualizar el producto.");
-      }
-
-      if (data.data?.product && !data.data?.syncedToFirestore) {
-        saveProductToFirestoreClient(data.data.product).catch((e) =>
-          console.warn("[Client Edit Firestore Sync]", e)
-        );
       }
 
       catalogClient.invalidateCache();

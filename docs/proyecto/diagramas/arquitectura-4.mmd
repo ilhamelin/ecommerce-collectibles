@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant C as Interfaz
+  participant AC as App Check
+  participant API as API IA
+  participant F as Firestore cuotas
+  participant G as Gemini
+  C->>AC: Obtener token
+  AC-->>C: Token
+  C->>API: Entrada, token e identidad disponible
+  API->>API: Verificar acceso y App Check
+  alt enforce y token inválido
+    API-->>C: 403 antes de ejecutar IA
+  else Token admitido según modo
+    API->>F: Reservar consulta y 48000 tokens
+    alt Cuota agotada
+      API-->>C: 429
+    else Cuota disponible
+      API->>G: Hasta tres intentos
+      G-->>API: Resultado y usageMetadata
+      API->>F: Telemetría cuando corresponde
+      API-->>C: JSON o NDJSON
+    end
+  end

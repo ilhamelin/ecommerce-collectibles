@@ -1,0 +1,8 @@
+flowchart LR
+  E[Editor admin] --> H[Actor en withAdminHistory]
+  H --> T[Transacción]
+  T --> D[Documento actual]
+  T --> A[admin_audit: antes y después]
+  T --> V[visual_versions]
+  V --> R[Restaurar mediante editor validado]
+  R --> H

@@ -1,5 +1,9 @@
 # 🎮 OmniCollector Chile — Plataforma de E-Commerce Especializada
 
+## Documentación técnica actualizada
+
+Consulta [la documentación del proyecto](docs/proyecto/README.md): frontend, backend, APIs, datos, seguridad, operación y diagramas Mermaid. Revisión del código del 3 de octubre de 2026, con limitaciones verificadas y distinción de simuladores.
+
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict_Mode-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)

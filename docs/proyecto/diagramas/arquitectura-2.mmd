@@ -1,0 +1,17 @@
+flowchart TB
+  subgraph Navegador
+    UI[React y componentes] --> ST[Zustand]
+    UI --> HTTP[Clientes HTTP y lectores NDJSON]
+    SDK[Firebase Auth y App Check] --> HTTP
+  end
+  HTTP --> MW[Middleware: cookie, filtros y rate limit]
+  subgraph Servidor_Next
+    MW --> API[Route Handlers]
+    API --> PER[Identidad y permisos]
+    PER --> SV[Servicios de dominio e IA]
+    SV --> DB[Adaptadores y transacciones]
+    SV --> EXT[Adaptadores de proveedores]
+  end
+  DB --> FS[(Firestore)]
+  DB -. alternativas locales .-> MEM[Memoria y JSON]
+  EXT --> PR[Gemini, pagos, tracking, SMTP]

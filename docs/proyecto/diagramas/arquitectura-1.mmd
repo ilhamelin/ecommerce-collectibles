@@ -1,0 +1,14 @@
+flowchart LR
+  C[Cliente] --> W[Tienda y cuenta]
+  A[Administrador] --> P[Panel admin]
+  W --> N[Next.js en Vercel]
+  P --> N
+  N --> F[(Firestore)]
+  N --> AUTH[Firebase Auth]
+  N --> G[Gemini]
+  N --> MP[Mercado Pago]
+  N --> FL[Flow y Webpay]
+  N --> AS[AfterShip]
+  N --> E[SMTP]
+  W --> AC[Firebase App Check]
+  P --> AC

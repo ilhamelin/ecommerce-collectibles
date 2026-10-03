@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant B as Navegador
+  participant API as POST checkout
+  participant S as CheckoutService
+  participant F as Firestore
+  participant P as Mercado Pago o Flow
+  B->>API: Carrito y clave idempotente
+  API->>API: Validar y calcular hash
+  API->>F: Buscar pedido por ID derivado
+  alt Pedido nuevo
+    API->>S: Calcular importes y reservas
+    S-->>API: Pedido candidato
+    API->>F: Transacción pedido y descuento stock
+  else Reintento compatible
+    F-->>API: Pedido existente
+  end
+  API->>P: Crear preferencia u orden
+  P-->>API: URL de pago
+  API-->>B: 201, gateway y cookie recibo
+  B->>P: Pagar
+  P->>API: Webhook proveedor
+  API->>P: Consultar estado real
+  API->>F: Confirmar pago sin doble descuento

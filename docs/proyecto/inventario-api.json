@@ -1,0 +1,495 @@
+{
+  "reviewedAt": "2026-10-03",
+  "routes": [
+    {
+      "path": "/api/admin/alerts",
+      "methods": [
+        "GET",
+        "DELETE"
+      ],
+      "access": "Admin por middleware",
+      "description": "Listar alertas; DELETE query id.",
+      "source": "src/app/api/admin/alerts/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/announcement",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Leer/guardar anuncios; POST audita.",
+      "source": "src/app/api/admin/announcement/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/auto-fill-product",
+      "methods": [
+        "POST"
+      ],
+      "access": "Admin por middleware; App Check según modo",
+      "description": "Proponer ficha desde nombre/tipo/imagen; JSON o NDJSON.",
+      "source": "src/app/api/admin/auto-fill-product/route.ts",
+      "aiProtection": true
+    },
+    {
+      "path": "/api/admin/backups",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "GET type=csv/kpi/all; POST SAVE_CSV_BACKUP/SAVE_KPI_SNAPSHOT.",
+      "source": "src/app/api/admin/backups/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/branding/generate-icon",
+      "methods": [
+        "POST"
+      ],
+      "access": "Admin por middleware; App Check según modo",
+      "description": "SVG desde prompt/presetId, con presets/fallback.",
+      "source": "src/app/api/admin/branding/generate-icon/route.ts",
+      "aiProtection": true
+    },
+    {
+      "path": "/api/admin/branding",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Leer/guardar marca; POST audita.",
+      "source": "src/app/api/admin/branding/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/categories/[id]",
+      "methods": [
+        "DELETE"
+      ],
+      "access": "Admin por middleware",
+      "description": "Eliminar; query restore=true activa rama heredada.",
+      "source": "src/app/api/admin/categories/[id]/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/categories",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Leer/crear categorías; POST audita.",
+      "source": "src/app/api/admin/categories/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/generate-sku",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "access": "Admin por middleware",
+      "description": "Generar/comprobar SKU; name/type/customCategoryLabel/checkSku o query sku.",
+      "source": "src/app/api/admin/generate-sku/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/history",
+      "methods": [
+        "GET"
+      ],
+      "access": "Admin por middleware",
+      "description": "Auditoría reciente y estado de protección IA.",
+      "source": "src/app/api/admin/history/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/home-hero",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Leer/guardar portada editorial.",
+      "source": "src/app/api/admin/home-hero/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/predictive-stock",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware; App Check según modo",
+      "description": "GET métricas guardadas; POST generar diagnóstico IA.",
+      "source": "src/app/api/admin/predictive-stock/route.ts",
+      "aiProtection": true
+    },
+    {
+      "path": "/api/admin/product-requests",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "access": "Admin por middleware",
+      "description": "Listar; PATCH id/status; DELETE query id.",
+      "source": "src/app/api/admin/product-requests/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/radar",
+      "methods": [
+        "GET"
+      ],
+      "access": "Admin por middleware; App Check según modo",
+      "description": "Generar informe de tendencias; admite heurística.",
+      "source": "src/app/api/admin/radar/route.ts",
+      "aiProtection": true
+    },
+    {
+      "path": "/api/admin/seed-firebase",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Inspección/carga inicial; POST modifica base.",
+      "source": "src/app/api/admin/seed-firebase/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/side-banners",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Leer/guardar banners, cuerpo config.",
+      "source": "src/app/api/admin/side-banners/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/slider",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Leer/guardar carrusel, cuerpo slides.",
+      "source": "src/app/api/admin/slider/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/telemetry",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "GET timeframe=today/7d/30d/all; POST RESET/SIMULATE_CALL; SEED deshabilitado.",
+      "source": "src/app/api/admin/telemetry/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/visual-versions",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Admin por middleware",
+      "description": "Listar 100 versiones; POST capture/restore.",
+      "source": "src/app/api/admin/visual-versions/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/analytics",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Público",
+      "description": "Consultar/registrar estadísticas de actividad.",
+      "source": "src/app/api/analytics/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/announcement",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Configuración publicada de anuncios.",
+      "source": "src/app/api/announcement/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/auth/admin-session",
+      "methods": [
+        "GET",
+        "POST",
+        "DELETE"
+      ],
+      "access": "Token/credenciales para POST; cookie para GET",
+      "description": "Verificar/emitir/cerrar cookie admin.",
+      "source": "src/app/api/auth/admin-session/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/auth/session",
+      "methods": [
+        "POST"
+      ],
+      "access": "Identidad verificada",
+      "description": "Coordinar sesión activa por dispositivo.",
+      "source": "src/app/api/auth/session/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/bundles/[id]/availability",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Disponibilidad de componentes.",
+      "source": "src/app/api/bundles/[id]/availability/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/catalog/product-requests",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Crear solicitud; GET listado global.",
+      "source": "src/app/api/catalog/product-requests/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/catalog",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Catálogo de dominio.",
+      "source": "src/app/api/catalog/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/catalog/visual-search",
+      "methods": [
+        "POST"
+      ],
+      "access": "Público; App Check según modo",
+      "description": "Identificación de imagen/contraste catálogo; JSON o NDJSON.",
+      "source": "src/app/api/catalog/visual-search/route.ts",
+      "aiProtection": true
+    },
+    {
+      "path": "/api/checkout/flow/webhook",
+      "methods": [
+        "POST"
+      ],
+      "access": "Proveedor/simulador según rama",
+      "description": "Formulario token; consulta estado Flow.",
+      "source": "src/app/api/checkout/flow/webhook/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/checkout/mercadopago/callback",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Retorno navegador, parámetros de pago y redirección.",
+      "source": "src/app/api/checkout/mercadopago/callback/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/checkout/mercadopago/webhook",
+      "methods": [
+        "POST"
+      ],
+      "access": "Proveedor/simulador según rama",
+      "description": "Notificación real y rama simulada; consulta proveedor en rama real.",
+      "source": "src/app/api/checkout/mercadopago/webhook/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/checkout",
+      "methods": [
+        "POST"
+      ],
+      "access": "Público",
+      "description": "Crear/recuperar pedido idempotente e iniciar pasarela.",
+      "source": "src/app/api/checkout/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/contact",
+      "methods": [
+        "POST"
+      ],
+      "access": "Público",
+      "description": "Validación/honeypot y log; no envío SMTP aquí.",
+      "source": "src/app/api/contact/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/orders/[id]",
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "access": "Propietario/admin; recibo en detalle; PATCH/DELETE admin",
+      "description": "Detalle autorizado; PATCH logística/estado; DELETE admin.",
+      "source": "src/app/api/orders/[id]/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/orders/[id]/settle-balance",
+      "methods": [
+        "POST"
+      ],
+      "access": "Propietario/admin; recibo en detalle; PATCH/DELETE admin",
+      "description": "Liquidar saldo autorizado; no cobro real.",
+      "source": "src/app/api/orders/[id]/settle-balance/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/orders",
+      "methods": [
+        "GET"
+      ],
+      "access": "Propietario/admin; recibo en detalle; PATCH/DELETE admin",
+      "description": "Pedidos propietario/admin; filtros status/email/q.",
+      "source": "src/app/api/orders/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/preorders/[id]/transition",
+      "methods": [
+        "POST"
+      ],
+      "access": "Público: handler sin autorización explícita",
+      "description": "Cambio de estado mediante PreOrderService.",
+      "source": "src/app/api/preorders/[id]/transition/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/products/[id]/alerts",
+      "methods": [
+        "POST",
+        "GET"
+      ],
+      "access": "Identidad: alcance propietario/admin según método",
+      "description": "Alta/consulta de suscripción por identidad.",
+      "source": "src/app/api/products/[id]/alerts/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/products",
+      "methods": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
+      "access": "GET público; mutaciones admin",
+      "description": "GET catálogo/sku/slug; POST crear; PUT editar; DELETE id/sku.",
+      "source": "src/app/api/products/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/side-banners",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Banners publicados.",
+      "source": "src/app/api/side-banners/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/sommelier/chat",
+      "methods": [
+        "POST"
+      ],
+      "access": "Público; App Check según modo",
+      "description": "Conversación con messages/currentContext.",
+      "source": "src/app/api/sommelier/chat/route.ts",
+      "aiProtection": true
+    },
+    {
+      "path": "/api/storefront/branding",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Alias público de GET marca.",
+      "source": "src/app/api/storefront/branding/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/storefront/categories",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Alias público de GET categorías.",
+      "source": "src/app/api/storefront/categories/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/storefront/slider",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público",
+      "description": "Carrusel publicado.",
+      "source": "src/app/api/storefront/slider/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/tracking/[id]",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Público",
+      "description": "GET estado por pedido/OT; POST registrar AfterShip.",
+      "source": "src/app/api/tracking/[id]/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/users/alerts",
+      "methods": [
+        "GET",
+        "DELETE"
+      ],
+      "access": "Identidad: alcance propietario/admin según método",
+      "description": "Listar/borrar suscripciones autorizadas.",
+      "source": "src/app/api/users/alerts/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/users",
+      "methods": [
+        "GET",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ],
+      "access": "Identidad: alcance propietario/admin según método",
+      "description": "Perfil/lista; PUT perfil; PATCH rol admin; DELETE según identidad.",
+      "source": "src/app/api/users/route.ts",
+      "aiProtection": false
+    }
+  ]
+}

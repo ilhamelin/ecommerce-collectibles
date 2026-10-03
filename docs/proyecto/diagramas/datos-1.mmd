@@ -1,0 +1,8 @@
+erDiagram
+  USUARIO ||--o{ PEDIDO : compra
+  PEDIDO ||--|{ ITEM_PEDIDO : contiene
+  PRODUCTO ||--o{ ITEM_PEDIDO : referencia
+  PRODUCTO ||--o{ COMPONENTE_BUNDLE : integra
+  PRODUCTO ||--o{ SUSCRIPCION : recibe
+  CONFIG_VISUAL ||--o{ VERSION_VISUAL : conserva
+  ADMINISTRADOR ||--o{ AUDITORIA : realiza

@@ -1,102 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getFlowPaymentStatus } from "@/lib/payments/flow";
-import {
-  getOrderByIdFromFirestore,
-  createOrderInFirestore,
-  deductProductStockAtomic,
-} from "@/lib/firebase/firestore";
-import { MemoryTransactionalStore } from "@/lib/db/memory-db";
+import { confirmVerifiedPayment, PaymentConfirmationError } from "@/lib/payments/paymentConfirmation";
+import { getOrderByIdFromFirestore } from "@/lib/firebase/firestore";
 import { sendOrderConfirmationEmail } from "@/lib/services/emailService";
-import { ConfirmedOrderEntity } from "@/lib/types/domain";
-
 export const dynamic = "force-dynamic";
-
-/**
- * Webhook receiver for Flow.cl (Transbank Webpay Plus)
- * Flow notifies this endpoint via POST with token in the form body
- */
+const paymentSchema = z.object({ flowOrder: z.number().int().positive(), commerceOrder: z.string(), status: z.number().int(), currency: z.string(), amount: z.number() });
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const token = formData.get("token") as string;
-
-    if (!token) {
-      return NextResponse.json({ error: "Token not found" }, { status: 400 });
-    }
-
-    const flowPayment = await getFlowPaymentStatus(token);
-    if (!flowPayment) {
-      return NextResponse.json({ error: "Could not fetch Flow status" }, { status: 400 });
-    }
-
-    const orderId = flowPayment.commerceOrder;
-    // Flow status: 1 = Pending, 2 = Paid, 3 = Rejected, 4 = Cancelled
-    const isPaid = flowPayment.status === 2;
-
-    if (isPaid && orderId) {
-      const store = MemoryTransactionalStore.getInstance();
-      const memOrder = store.orders.get(orderId);
-      const firestoreOrder = await getOrderByIdFromFirestore(orderId);
-
-      // IDEMPOTENCY GUARD: Do not process duplicate fulfillment
-      const isAlreadyProcessed =
-        (firestoreOrder && (firestoreOrder.paymentStatus === "PAID" || firestoreOrder.status === "CANCELLED")) ||
-        (memOrder && (memOrder.paymentStatus === "PAID" || memOrder.status === "CANCELLED"));
-
-      if (isAlreadyProcessed) {
-        console.info(`[FLOW_WEBHOOK_IDEMPOTENT] Order ${orderId} already fulfilled. Skipping duplicate processing.`);
-        return NextResponse.json({
-          received: true,
-          idempotent: true,
-          status: flowPayment.status,
-          message: "Orden Flow ya procesada previamente.",
-        });
-      }
-
-      // 1. In-memory update
-      if (memOrder) {
-        memOrder.status = "CONFIRMED";
-        memOrder.paymentStatus = "PAID";
-        memOrder.paymentId = String(flowPayment.flowOrder);
-        memOrder.updatedAt = new Date().toISOString();
-        store.orders.set(orderId, memOrder);
-      }
-
-      // 2. Firestore update
-      if (firestoreOrder) {
-        const updated: ConfirmedOrderEntity = {
-          ...firestoreOrder,
-          status: "CONFIRMED",
-          paymentStatus: "PAID",
-          paymentId: String(flowPayment.flowOrder),
-          updatedAt: new Date().toISOString(),
-        };
-        await createOrderInFirestore(updated);
-
-        // Atomic stock deduction
-        try {
-          if (!firestoreOrder.stockDeducted) await deductProductStockAtomic(
-            (firestoreOrder.items || []).map((it) => ({
-              productId: it.productId,
-              quantity: it.quantity,
-            }))
-          );
-        } catch (stkErr) {
-          console.warn("[Flow Webhook] Stock deduction warning:", stkErr);
-        }
-
-        // Transactional email
-        try {
-          await sendOrderConfirmationEmail(updated);
-        } catch (mailErr) {
-          console.warn("[Flow Webhook] Failed to dispatch email receipt:", mailErr);
-        }
-      }
-    }
-
-    return NextResponse.json({ received: true, status: flowPayment.status });
+    const form = await req.formData(); const token = form.get("token");
+    if (typeof token !== "string" || !/^[a-zA-Z0-9_-]{10,200}$/.test(token)) return NextResponse.json({ error: "Token inválido." }, { status: 400 });
+    const parsed = paymentSchema.safeParse(await getFlowPaymentStatus(token));
+    if (!parsed.success) return NextResponse.json({ error: "No se pudo comprobar el pago en Flow." }, { status: 503 });
+    const payment = parsed.data;
+    if (payment.status !== 2) return NextResponse.json({ received: true, confirmed: false });
+    // Legacy Flow references used orderNumber. Resolve them before the transaction.
+    const balance = payment.commerceOrder.endsWith("~balance");
+    const reference = balance ? payment.commerceOrder.slice(0, -8) : payment.commerceOrder;
+    const order = await getOrderByIdFromFirestore(reference);
+    if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    const result = await confirmVerifiedPayment({ provider: "FLOW", id: String(payment.flowOrder), reference: order.id + (balance ? "~balance" : ""), amount: payment.amount, currency: payment.currency, approved: true, live: process.env.FLOW_SANDBOX_MODE === "false" });
+    if (!result.idempotent && !balance) await sendOrderConfirmationEmail(result.order).catch(() => console.warn("[Flow] Pago confirmado; correo no enviado."));
+    return NextResponse.json({ received: true, confirmed: true, idempotent: result.idempotent });
   } catch (error) {
-    console.error("[Flow Webhook Error]:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof PaymentConfirmationError ? error.message : "No se pudo confirmar el pago." }, { status: error instanceof PaymentConfirmationError ? error.status : 503 });
   }
 }

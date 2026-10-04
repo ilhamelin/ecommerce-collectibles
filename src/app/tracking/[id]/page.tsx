@@ -75,7 +75,7 @@ export default function OrderTrackingPage() {
     setLoading(true);
     try {
       // 1. Consultar estado unificado de tracking (AfterShip / Couriers)
-      fetch(`/api/tracking/${orderIdParam}`)
+      fetch(`/api/tracking/${orderIdParam}`, { headers: await identityHeaders() })
         .then((res) => res.json())
         .then((trackData) => {
           if (trackData.success && trackData.data) {

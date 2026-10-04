@@ -85,16 +85,10 @@ export async function createMercadoPagoPreference(
   // (In Mercado Pago, items sum must equal total, so if discount is present, adjust)
   const itemsTotal = items.reduce((acc, it) => acc + it.unit_price * it.quantity, 0);
   const targetTotal = Math.round(order.totalChargedNow);
-  if (itemsTotal !== targetTotal && itemsTotal > 0) {
-    const diff = targetTotal - itemsTotal;
-    if (diff < 0) {
-      // Apply discount item with negative or discount description
-      // Mercado Pago rejects negative unit_price in some regions, so proportional scaling or item adjustment
-      const scale = targetTotal / itemsTotal;
-      items.forEach((it) => {
-        it.unit_price = Math.max(1, Math.round(it.unit_price * scale));
-      });
-    }
+  if (!Number.isSafeInteger(targetTotal) || targetTotal <= 0) throw new Error("Importe de pedido inválido.");
+  if (itemsTotal !== targetTotal) {
+    // CLP uses integer amounts. One billing line avoids rounding drift with coupons/deposits.
+    items.splice(0, items.length, { id: order.id, title: `Pedido OmniCollector ${order.orderNumber}`, description: "Productos, descuento y despacho del pedido", quantity: 1, unit_price: targetTotal, currency_id: "CLP", picture_url: undefined });
   }
 
   // Split name

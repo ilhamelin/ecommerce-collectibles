@@ -9,7 +9,7 @@ import { getOrderByIdFromFirestore, updateOrderInFirestore, invalidateProductsCa
 import { commitOrderAndStock } from "@/lib/firebase/commerce";
 import { CheckoutResult } from "@/lib/types/domain";
 import { IdempotencyConflictError } from "@/lib/errors/DomainErrors";
-import { initiatePaymentGateway } from "@/lib/payments/payment-gateway";
+import { initiatePaymentGateway, PaymentGatewayUnavailableError } from "@/lib/payments/payment-gateway";
 
 import { MemoryTransactionalStore } from "@/lib/db/memory-db";
 
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       pendingCheckouts.delete(validated.idempotencyKey);
     }
   } catch (error) {
+    if (error instanceof PaymentGatewayUnavailableError) return NextResponse.json({ error: "GatewayUnavailable", message: error.message }, { status: 503 });
     if (error instanceof DomainError) {
       return NextResponse.json(error.toJSON(), { status: error.statusCode });
     }
@@ -118,10 +119,11 @@ async function executeCheckout(validated: CheckoutRequestDTO, baseUrl: string): 
   }
 
   // Initiate real payment gateway (Mercado Pago / Flow / Sandbox)
-  const gateway = result.order.checkoutGateway || await initiatePaymentGateway(result.order, baseUrl);
-  if (!result.order.checkoutGateway) {
+  const gateway = (result.order.checkoutGateway?.mode !== "SIMULATED" ? result.order.checkoutGateway : undefined) || await initiatePaymentGateway(result.order, baseUrl);
+  if (!result.order.checkoutGateway || result.order.checkoutGateway.mode === "SIMULATED") {
     result.order.checkoutGateway = gateway;
-    await updateOrderInFirestore(result.order.id, { checkoutGateway: gateway });
+    const saved = await updateOrderInFirestore(result.order.id, { checkoutGateway: gateway });
+    if (saved === false) throw new Error("No se pudo guardar la pasarela. El pedido sigue pendiente de pago.");
     MemoryTransactionalStore.getInstance().orders.set(result.order.id, result.order);
   }
 

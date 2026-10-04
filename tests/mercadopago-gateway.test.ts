@@ -106,14 +106,9 @@ describe("Mercado Pago Integration & Gateway Integrity", () => {
     expect(gatewayResult.preferenceId).toBe("pref-live-456");
   });
 
-  it("should fall back to interactive sandbox simulator when credentials are empty", async () => {
+  it("fails closed without credentials instead of simulating a paid checkout", async () => {
     delete process.env.MERCADOPAGO_ACCESS_TOKEN;
-
-    const gatewayResult = await initiatePaymentGateway(mockOrder, "https://omnicollector.cl");
-
-    expect(gatewayResult.gatewayName).toBe("SIMULATED_SANDBOX");
-    expect(gatewayResult.mode).toBe("SIMULATED");
-    expect(gatewayResult.redirectUrl).toContain("/checkout/sandbox-payment");
+    await expect(initiatePaymentGateway(mockOrder, "https://omnicollector.cl")).rejects.toThrow("No se realizó ningún cobro");
   });
 
   it("should route to Flow.cl when paymentMethod is WEBPAY", async () => {

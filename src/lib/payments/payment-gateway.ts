@@ -11,6 +11,7 @@ export interface GatewayCheckoutResponse {
   gatewayName: "MERCADO_PAGO" | "FLOW" | "SIMULATED_SANDBOX" | "DIRECT_TRANSFER";
   mode: "LIVE" | "SANDBOX" | "SIMULATED";
   preferenceId?: string;
+  providerPaymentId?: string;
   message: string;
 }
 
@@ -44,6 +45,7 @@ export async function initiatePaymentGateway(
             requiresRedirect: true,
             redirectUrl: flowResult.url,
             gatewayName: "FLOW",
+            providerPaymentId: String(flowResult.flowOrder),
             mode: process.env.FLOW_SANDBOX_MODE !== "false" ? "SANDBOX" : "LIVE",
             message: "Orden de pago Webpay Plus generada con Flow Chile.",
           };
@@ -70,6 +72,7 @@ export async function initiatePaymentGateway(
             ? (preference.sandboxInitPoint || preference.initPoint)
             : (preference.initPoint || preference.sandboxInitPoint);
 
+          if (!redirectUrl || !preference.id) throw new PaymentGatewayUnavailableError();
           return {
             requiresRedirect: true,
             redirectUrl,
@@ -85,18 +88,7 @@ export async function initiatePaymentGateway(
     }
   }
 
-  // 4. Realistic Interactive Sandbox Simulator
-  // (Used when Mercado Pago credentials are not yet pasted in .env.local)
-  if (method === "MERCADO_PAGO" || method === "WEBPAY") {
-    const simulatedUrl = `/checkout/sandbox-payment?orderId=${encodeURIComponent(order.id)}&amount=${Math.round(order.totalChargedNow)}`;
-    return {
-      requiresRedirect: true,
-      redirectUrl: simulatedUrl,
-      gatewayName: "SIMULATED_SANDBOX",
-      mode: "SIMULATED",
-      message: "Modo Sandbox Activo: Simulador de cobro con tarjeta y Mercado Pago listo para pruebas.",
-    };
-  }
+  if (method === "MERCADO_PAGO" || method === "WEBPAY") throw new PaymentGatewayUnavailableError();
 
   // Default fallback
   return {
@@ -107,3 +99,5 @@ export async function initiatePaymentGateway(
     message: "Orden creada.",
   };
 }
+
+export class PaymentGatewayUnavailableError extends Error { constructor() { super("La pasarela no está disponible. No se realizó ningún cobro; vuelve a intentar con el mismo pedido."); } }

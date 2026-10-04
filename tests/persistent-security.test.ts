@@ -8,6 +8,7 @@ vi.mock("@/lib/firebase/admin", async () => {
   return { adminDb: getFirestore(app), adminApp: app };
 });
 vi.mock("@/lib/auth/security", () => ({ verifyAdminAuthorization: async () => ({ authorized: true, actor: "verified@example.com" }) }));
+import { confirmVerifiedPayment } from "@/lib/payments/paymentConfirmation";
 import { adminDb } from "@/lib/firebase/admin";
 import { withAdminHistory, writeAdminDocument } from "@/lib/services/adminHistory";
 import { reserveAiUsage, readAiProtectionStatus } from "@/lib/services/aiProtection";
@@ -55,4 +56,22 @@ describe.skipIf(!enabled)("Persistent security · real Firestore transactions", 
     await expect(reserveAiUsage("new-account", true, 48000, false)).rejects.toThrow("límite diario");
     expect((await readAiProtectionStatus()).usage.requests).toBe(2);
   }, 60000);
+  it("confirms concurrent duplicate payments once with atomic stock/receipt persistence", async () => {
+    await adminDb!.doc("products/piece").set({ stockAvailable: 10 });
+    await adminDb!.doc("orders/pay-one").set({ id: "pay-one", status: "PENDING", paymentMethod: "MERCADO_PAGO", paymentStatus: "PENDING", totalChargedNow: 100, remainingBalanceLater: 0, stockDeducted: false, checkoutGateway: { mode: "SANDBOX", gatewayName: "MERCADO_PAGO" }, items: [{ productId: "piece", quantity: 2 }] });
+    const payment = { provider: "MERCADO_PAGO" as const, id: "123", reference: "pay-one", amount: 100, currency: "CLP", approved: true, live: false };
+    const results = await Promise.all(Array.from({ length: 8 }, () => confirmVerifiedPayment(payment)));
+    expect(results.filter(result => !result.idempotent)).toHaveLength(1);
+    expect((await adminDb!.doc("products/piece").get()).data()?.stockAvailable).toBe(8);
+    expect((await adminDb!.doc("orders/pay-one").get()).data()?.paymentStatus).toBe("PAID");
+    expect((await adminDb!.collection("payment_confirmations").get()).size).toBe(1);
+  }, 60000);
+  it("rolls back all payment writes when stock is insufficient", async () => {
+    await adminDb!.doc("products/piece").set({ stockAvailable: 1 });
+    await adminDb!.doc("orders/pay-one").set({ id: "pay-one", status: "PENDING", paymentMethod: "MERCADO_PAGO", paymentStatus: "PENDING", totalChargedNow: 100, remainingBalanceLater: 0, stockDeducted: false, checkoutGateway: { mode: "SANDBOX", gatewayName: "MERCADO_PAGO" }, items: [{ productId: "piece", quantity: 2 }] });
+    await expect(confirmVerifiedPayment({ provider: "MERCADO_PAGO", id: "123", reference: "pay-one", amount: 100, currency: "CLP", approved: true, live: false })).rejects.toThrow();
+    expect((await adminDb!.doc("orders/pay-one").get()).data()?.paymentStatus).toBe("PENDING");
+    expect((await adminDb!.collection("payment_confirmations").get()).size).toBe(0);
+  }, 60000);
+
 });

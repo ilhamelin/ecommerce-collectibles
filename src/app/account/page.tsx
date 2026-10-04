@@ -1,6 +1,7 @@
 "use client";
 import { identityHeaders } from "@/lib/auth/clientIdentity";
 
+import { BalancePaymentButton } from "@/components/account/BalancePaymentButton";
 import { NotificationCenter } from "@/components/account/NotificationCenter";
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import Link from "next/link";
@@ -978,13 +979,7 @@ function AccountContent() {
                             </p>
                           </div>
 
-                          <Link
-                            href={`/checkout/sandbox-payment?orderId=${encodeURIComponent(ord.id || ord.orderNumber)}&amount=${ord.remainingBalanceLater}&mode=balance_settlement`}
-                            className="shrink-0 px-4 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#ff5517] text-white font-black text-xs transition flex items-center gap-2 shadow-md hover:scale-[1.02] active:scale-95"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                            <span>Pagar Saldo {formatCLP(ord.remainingBalanceLater)}</span>
-                          </Link>
+                          <BalancePaymentButton orderId={ord.id || ord.orderNumber} />
                         </div>
                       )}
 

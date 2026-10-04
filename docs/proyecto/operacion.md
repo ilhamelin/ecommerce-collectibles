@@ -31,9 +31,9 @@ test:rules ejecuta emulador y tests de reglas/persistencia con proyecto demo. La
 | App Check | NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY, FIREBASE_APPCHECK_MODE | Sitio público y modo servidor |
 | Gemini | GEMINI_API_KEY o GOOGLE_API_KEY | Privado servidor |
 | Cuotas | AI_USER_DAILY_REQUESTS, AI_GUEST_DAILY_REQUESTS, AI_GLOBAL_DAILY_REQUESTS, AI_GLOBAL_DAILY_TOKENS | Servidor |
-| Mercado Pago | MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_SANDBOX_MODE | Servidor; false activa live según adapter/token |
+| Mercado Pago | MERCADOPAGO_ACCESS_TOKEN, MERCADOPAGO_SANDBOX_MODE, MERCADOPAGO_WEBHOOK_SECRET | Servidor; false activa live según adapter/token |
 | Flow | FLOW_API_KEY, FLOW_SECRET_KEY, FLOW_SANDBOX_MODE | Servidor; default sandbox |
-| Simulación | SANDBOX_SIMULATION_KEY | Rama simulada |
+| Simulación | SANDBOX_SIMULATION_KEY | Obsoleta: no habilita pagos simulados |
 | Tracking | AFTERSHIP_API_KEY | Servidor |
 | SMTP | SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM | Correo; puerto default 587 |
 | Prisma alternativo | DATABASE_URL | Esquema relacional no activo en flujos inspeccionados |
@@ -68,3 +68,5 @@ Fuentes: [scripts](../../package.json), [Firebase](../../src/lib/firebase/config
 ## Integración continua
 
 [ci.yml](../../.github/workflows/ci.yml) ejecuta npm ci, tests y build, y guarda artefacto .next. Actualmente usa Node 20, distinto de 24.x declarado en package.json; se registra la discrepancia como pendiente, sin modificar el workflow en esta entrega. Revisar .github/workflows/deploy.yml antes de atribuirle un despliegue efectivo de Vercel.
+
+Configuración y pruebas de pagos: [guía](permisos-y-pagos.md).

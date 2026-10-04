@@ -54,8 +54,7 @@ function SandboxPaymentContent() {
           method: "POST",
           headers: { "Content-Type": "application/json", ...await identityHeaders() },
           body: JSON.stringify({
-            paymentMethod: "Mercado Pago (Tarjeta Sandbox)",
-            paymentId: `SIM-BAL-${Date.now()}`,
+            paymentMethod: "MERCADO_PAGO",
           }),
         });
         const data = await response.json();
@@ -65,44 +64,14 @@ function SandboxPaymentContent() {
           return;
         }
 
-        setTimeout(() => {
-          router.push(`/account?tab=orders&settled=true&orderId=${encodeURIComponent(orderId)}`);
-        }, 1500);
+        if (data.gateway?.redirectUrl) window.location.assign(data.gateway.redirectUrl);
+        else setErrorMsg("Actualiza tus pedidos para consultar el saldo.");
+        setIsProcessing(false);
         return;
       }
 
-      // Simulate normal checkout payment confirmation via webhook/update endpoint
-      const response = await fetch("/api/checkout/mercadopago/webhook", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-simulation-key": "omnicollector-sandbox-key",
-        },
-        body: JSON.stringify({
-          type: "payment",
-          action: "payment.created",
-          data: {
-            id: `SIM-MP-${Date.now()}`,
-          },
-          simulated: true,
-          orderId,
-          paymentDetails: {
-            status: "approved",
-            status_detail: "accredited",
-            payment_method_id: "visa",
-            payment_type_id: "credit_card",
-            installments: Number(installments),
-            transaction_amount: amount,
-            card: {
-              last_four_digits: cardNumber.replace(/\s/g, "").slice(-4) || "4455",
-            },
-          },
-        }),
-      });
-
-      setTimeout(() => {
-        router.push(`/order-confirmation/${orderId}?status=approved&payment_id=SIM-MP-${Date.now()}`);
-      }, 1500);
+      setErrorMsg("El simulador no acredita pagos. Usa la pasarela real desde el checkout.");
+      setIsProcessing(false);
     } catch (err) {
       setIsProcessing(false);
       setErrorMsg("Error al conectar con la pasarela.");

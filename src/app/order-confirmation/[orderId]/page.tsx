@@ -29,8 +29,7 @@ function OrderConfirmationContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const orderId = params.orderId as string;
-  const paymentIdParam = searchParams.get("payment_id") || searchParams.get("collection_id");
-  const paymentStatusParam = searchParams.get("status") || searchParams.get("collection_status");
+
 
   const [order, setOrder] = useState<ConfirmedOrderEntity | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +86,8 @@ function OrderConfirmationContent() {
   }
 
   const displayOrder: ConfirmedOrderEntity = order;
+  const paymentConfirmed = order.paymentStatus === "PAID";
+  const paymentIdParam = order.paymentId;
   const trackingNumber = displayOrder.shippingMethod?.trackingNumber || `STK-${displayOrder.id}`;
 
   return (
@@ -98,13 +99,13 @@ function OrderConfirmationContent() {
         </div>
         <div>
           <span className="text-xs font-bold text-[#2E9E5B] uppercase tracking-wider">
-            ¡Pago Confirmado & Orden Generada!
+            {paymentConfirmed ? "Pago confirmado · Pedido generado" : "Pedido recibido · Pago pendiente de confirmación"}
           </span>
           <h1 className="text-3xl sm:text-4xl font-black text-[#1A1A1A] tracking-tight mt-1">
             ¡Gracias por tu compra, {displayOrder.customer.fullName.split(" ")[0]}!
           </h1>
           <p className="text-xs sm:text-sm text-[#666666] mt-2 leading-relaxed">
-            Tu pedido ha sido procesado con éxito. Hemos reservado tu producto en bodega y te enviamos la boleta electrónica y comprobante a{" "}
+            Tu pedido está registrado. {paymentConfirmed ? "El proveedor confirmó el pago." : "El pago todavía no ha sido confirmado por el proveedor."} Correo del pedido:{" "}
             <strong className="text-[#1A1A1A]">{displayOrder.customer.email}</strong>.
           </p>
         </div>
@@ -159,7 +160,7 @@ function OrderConfirmationContent() {
               ✓
             </div>
             <h4 className="text-xs font-bold text-[#2E9E5B]">1. Pedido Confirmado</h4>
-            <p className="text-[11px] text-[#666666]">Pago verificado y stock descontado del inventario.</p>
+            <p className="text-[11px] text-[#666666]">{paymentConfirmed ? "Pago verificado por el proveedor." : "Esperando confirmación del proveedor. El retorno del navegador no acredita el pago."}</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white border border-[#FF6B35]/60 space-y-2 relative shadow-sm">
@@ -225,7 +226,7 @@ function OrderConfirmationContent() {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className="text-[10px] text-[#666666]">Pagado hoy:</div>
+                  <div className="text-[10px] text-[#666666]">{paymentConfirmed ? "Pagado inicialmente:" : "Importe por pagar:"}</div>
                   <div className="font-mono font-black text-[#FF6B35] text-sm">
                     {formatCLP(item.unitDeposit * item.quantity)}
                   </div>
@@ -274,7 +275,7 @@ function OrderConfirmationContent() {
             )}
 
             <div className="flex justify-between items-baseline pt-3 border-t border-[#E5E5E5] text-base">
-              <span className="font-black text-[#1A1A1A]">Total Pagado Hoy:</span>
+              <span className="font-black text-[#1A1A1A]">{paymentConfirmed ? "Total pagado inicialmente:" : "Total pendiente de pago:"}</span>
               <span className="font-mono font-black text-2xl text-[#2E9E5B]">
                 {formatCLP(displayOrder.totalChargedNow)}
               </span>
@@ -328,7 +329,7 @@ function OrderConfirmationContent() {
                   ID Transacción Pasarela: <strong className="text-[#1A1A1A]">{paymentIdParam}</strong>
                 </p>
               )}
-              <p className="text-[11px] text-[#666666] mt-1">Transacción procesada y boleta electrónica timbrada por el SII.</p>
+              <p className="text-[11px] text-[#666666] mt-1">Consulta el estado del pedido para comprobar el pago. Esta vista no confirma la emisión de una boleta tributaria.</p>
             </div>
           </div>
 

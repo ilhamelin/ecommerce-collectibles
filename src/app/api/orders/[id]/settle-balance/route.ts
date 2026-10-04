@@ -1,96 +1,27 @@
-import { canReadOrder } from "@/lib/auth/orderAccess";
 import { NextRequest, NextResponse } from "next/server";
-import { MemoryTransactionalStore } from "@/lib/db/memory-db";
-import {
-  getOrderByIdFromFirestore,
-  updateOrderInFirestore,
-} from "@/lib/firebase/firestore";
-import { ConfirmedOrderEntity } from "@/lib/types/domain";
-
+import { z } from "zod";
+import { canReadOrder } from "@/lib/auth/orderAccess";
+import { getOrderByIdFromFirestore, updateOrderInFirestore } from "@/lib/firebase/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { initiatePaymentGateway, PaymentGatewayUnavailableError } from "@/lib/payments/payment-gateway";
+const input = z.object({ paymentMethod: z.enum(["MERCADO_PAGO", "WEBPAY"]).default("MERCADO_PAGO") }).strict();
 export const dynamic = "force-dynamic";
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const orderId = params.id;
-    const body = await req.json().catch(() => ({}));
-    const { paymentMethod = "Webpay Plus", paymentId } = body;
-
-    // 1. Locate existing order in Firestore or Memory
-    let order: ConfirmedOrderEntity | null = await getOrderByIdFromFirestore(orderId);
-    const store = MemoryTransactionalStore.getInstance();
-
-    if (!order) {
-      order = store.orders.get(orderId) || null;
-      if (!order) {
-        for (const ord of store.orders.values()) {
-          if (ord.orderNumber === orderId) {
-            order = ord;
-            break;
-          }
-        }
-      }
-    }
-
-    if (!order) {
-      return NextResponse.json(
-        { error: "NotFound", message: `Pedido '${orderId}' no encontrado.` },
-        { status: 404 }
-      );
-    }
-
-    if (!(await canReadOrder(req, order))) return NextResponse.json({ error: "Forbidden", message: "No tienes acceso a este pedido." }, { status: 403 });
-    // 2. Check if already settled
-    if (order.balancePaid && order.remainingBalanceLater === 0) {
-      return NextResponse.json({
-        success: true,
-        message: "El saldo de este pedido ya ha sido liquidado en su totalidad.",
-        data: order,
-      });
-    }
-
-    const settledAmount = order.remainingBalanceLater;
-    const transactionId = paymentId || `SIM-BAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const now = new Date().toISOString();
-
-    // 3. Prepare updates
-    const updates: Partial<ConfirmedOrderEntity> = {
-      remainingBalanceLater: 0,
-      balancePaid: true,
-      balancePaidAt: now,
-      balancePaymentTransactionId: transactionId,
-      status: order.status === "CONFIRMED" || order.status === "PENDING" ? "PREPARING" : order.status,
-      updatedAt: now,
-    };
-
-    // 4. Update Firestore if configured
-    const docId = order.id || order.orderNumber;
-    await updateOrderInFirestore(docId, updates);
-
-    // 5. Update Memory Store
-    const updatedOrder: ConfirmedOrderEntity = {
-      ...order,
-      ...updates,
-    };
-    store.orders.set(order.id, updatedOrder);
-    if (order.orderNumber && order.orderNumber !== order.id) {
-      store.orders.set(order.orderNumber, updatedOrder);
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: `¡Saldo de pre-venta ($${settledAmount.toLocaleString("es-CL")} CLP) liquidado exitosamente! El pedido ahora está completamente pagado.`,
-      data: updatedOrder,
-      settledAmount,
-      transactionId,
-    });
-  } catch (error) {
-    console.error("[SettleBalance API] Error:", error);
-    return NextResponse.json(
-      { error: "InternalError", message: "Error al procesar la liquidación del saldo." },
-      { status: 500 }
-    );
-  }
+/** Starts payment only. Balance fields are changed exclusively by provider confirmation. */
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+ try {
+  const order = await getOrderByIdFromFirestore(params.id);
+  if (!order) return NextResponse.json({ error: "Pedido no disponible." }, { status: 404 });
+  if (!await canReadOrder(req, order)) return NextResponse.json({ error: "No tienes acceso a este pedido." }, { status: 403 });
+  const parsed = input.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Selecciona una pasarela válida; no envíes un ID de pago." }, { status: 400 });
+  if (order.status === "CANCELLED" || order.paymentStatus !== "PAID") return NextResponse.json({ error: "El abono inicial debe estar confirmado y el pedido activo." }, { status: 409 });
+  if (order.balancePaid || order.remainingBalanceLater <= 0) return NextResponse.json({ success: true, alreadyPaid: true });
+  if (!adminDb) return NextResponse.json({ error: "La persistencia del pago no está disponible." }, { status: 503 });
+  const gateway = order.balanceCheckoutGateway?.gatewayName === (parsed.data.paymentMethod === "WEBPAY" ? "FLOW" : "MERCADO_PAGO") ? order.balanceCheckoutGateway : await initiatePaymentGateway({ ...order, id: order.id + "~balance", paymentMethod: parsed.data.paymentMethod, totalChargedNow: order.remainingBalanceLater, shippingCost: 0, shippingMethod: { ...order.shippingMethod, cost: 0 }, items: [{ productId: order.id, sku: "SALDO", name: "Saldo de preventa " + order.orderNumber, quantity: 1, unitPrice: order.remainingBalanceLater, isPreOrder: false, isPartialDeposit: false, unitDeposit: 0, remainingBalancePerUnit: 0 }] }, req.nextUrl.origin);
+  const saved = await updateOrderInFirestore(order.id, { balanceCheckoutGateway: gateway });
+  if (saved === false) throw new Error("No se pudo persistir la pasarela del saldo.");
+  return NextResponse.json({ success: true, gateway, message: "Saldo pendiente hasta confirmación de la pasarela." }, { headers: { "Cache-Control": "no-store" } });
+ } catch (error) {
+  return NextResponse.json({ error: error instanceof PaymentGatewayUnavailableError ? error.message : "No se pudo iniciar el pago del saldo." }, { status: 503 });
+ }
 }

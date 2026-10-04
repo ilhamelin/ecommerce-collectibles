@@ -9,8 +9,9 @@ export function configuredServices(env: Record<string, string | undefined>): Hea
   const flow = configured(env.FLOW_API_KEY) && configured(env.FLOW_SECRET_KEY);
   return [
     { id: "gemini", name: "Gemini IA", configured: configured(env.GEMINI_API_KEY || env.GOOGLE_API_KEY || env.NEXT_PUBLIC_GEMINI_API_KEY), mode: "Configuración" },
-    { id: "mercadopago", name: "Mercado Pago", configured: mp, mode: mp ? env.MERCADOPAGO_SANDBOX_MODE !== "false" || env.MERCADOPAGO_ACCESS_TOKEN?.startsWith("TEST-") ? "Sandbox" : "Producción" : "Simulador disponible" },
-    { id: "flow", name: "Flow / Webpay", configured: flow, mode: flow ? env.FLOW_SANDBOX_MODE !== "false" ? "Sandbox" : "Producción" : "Simulador disponible" },
+    { id: "mercadopago", name: "Mercado Pago", configured: mp, mode: mp ? env.MERCADOPAGO_SANDBOX_MODE !== "false" || env.MERCADOPAGO_ACCESS_TOKEN?.startsWith("TEST-") ? "Sandbox" : "Producción" : "No disponible" },
+    { id: "mercadopago-webhook", name: "Firma de Mercado Pago", configured: configured(env.MERCADOPAGO_WEBHOOK_SECRET), mode: "Notificaciones firmadas" },
+    { id: "flow", name: "Flow / Webpay", configured: flow, mode: flow ? env.FLOW_SANDBOX_MODE !== "false" ? "Sandbox" : "Producción" : "No disponible" },
     { id: "aftership", name: "AfterShip", configured: configured(env.AFTERSHIP_API_KEY), mode: configured(env.AFTERSHIP_API_KEY) ? "Configuración" : "Seguimiento simulado" },
     { id: "smtp", name: "Correo SMTP", configured: configured(env.SMTP_HOST) && configured(env.SMTP_USER) && configured(env.SMTP_PASS), mode: "Configuración" },
     { id: "appcheck", name: "App Check", configured: configured(env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY), mode: env.FIREBASE_APPCHECK_MODE || "monitor" },

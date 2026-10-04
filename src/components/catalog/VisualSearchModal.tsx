@@ -202,7 +202,7 @@ export function VisualSearchModal({
     try {
       const res = await fetch("/api/catalog/product-requests", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...await identityHeaders() },
         body: JSON.stringify({
           title: result.analysis.itemOrCharacter || "Coleccionable Solicitado",
           franchise: result.analysis.franchise,

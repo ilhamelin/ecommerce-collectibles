@@ -708,6 +708,7 @@ export interface ShippingAddressInfo {
 
 export interface ConfirmedOrderEntity {
   checkoutRequestHash?: string;
+  balanceCheckoutGateway?: import("../payments/payment-gateway").GatewayCheckoutResponse;
   checkoutGateway?: import("../payments/payment-gateway").GatewayCheckoutResponse;
   stockDeducted?: boolean;
   id: string;

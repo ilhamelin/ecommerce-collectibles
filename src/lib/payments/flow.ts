@@ -45,9 +45,9 @@ export async function createFlowPaymentOrder(
   const secretKey = process.env.FLOW_SECRET_KEY!.trim();
   const flowUrl = getFlowApiUrl();
 
-  const params: Record<string, any> = {
+  const params: Record<string, string | number> = {
     apiKey,
-    commerceOrder: order.orderNumber || order.id,
+    commerceOrder: order.id,
     subject: `Compra OmniCollector - Orden #${order.orderNumber}`,
     currency: "CLP",
     amount: Math.round(order.totalChargedNow),
@@ -68,6 +68,7 @@ export async function createFlowPaymentOrder(
     const res = await fetch(`${flowUrl}/payment/create`, {
       method: "POST",
       body: formData,
+      signal: AbortSignal.timeout(10000),
     });
 
     const latencyMs = Date.now() - startTime;
@@ -83,10 +84,10 @@ export async function createFlowPaymentOrder(
       errorMessage: !res.ok ? JSON.stringify(data) : undefined,
     }).catch(() => {});
 
-    if (data.url && data.token) {
-      console.log(`[Flow] Orden creada exitosamente: flowOrder=${data.flowOrder}, token=${data.token}`);
+    if (res.ok && data.url && data.token) {
+      console.log(`[Flow] Orden creada exitosamente: flowOrder=${data.flowOrder}, token=[redactado]`);
       return {
-        url: `${data.url}?token=${data.token}`,
+        url: `${data.url}?token=[redactado]`,
         token: data.token,
         flowOrder: data.flowOrder,
       };
@@ -157,6 +158,7 @@ export async function getFlowPaymentStatus(token: string): Promise<FlowPaymentSt
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${flowUrl}/payment/getStatus?${query}`, {
       method: "GET",
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) {

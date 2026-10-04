@@ -149,7 +149,7 @@ describe("Webhook Payment Idempotency Guard (Mercado Pago)", () => {
     store.orders.set(mockOrder.id, mockOrder);
   });
 
-  it("should detect duplicate simulated payment and return idempotent: true without error", async () => {
+  it("rejects simulated payment notifications even with the former public key", async () => {
     const req = new NextRequest("http://localhost:3000/api/checkout/mercadopago/webhook", {
       method: "POST",
       headers: {
@@ -164,8 +164,8 @@ describe("Webhook Payment Idempotency Guard (Mercado Pago)", () => {
     });
 
     const res = await mpWebhookPOST(req);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
     const data = await res.json();
-    expect(data.success).toBe(true);
+    expect(data.error).toContain("simulados");
   });
 });

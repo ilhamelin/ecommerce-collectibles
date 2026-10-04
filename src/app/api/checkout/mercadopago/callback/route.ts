@@ -1,66 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrderByIdFromFirestore, createOrderInFirestore } from "@/lib/firebase/firestore";
-import { MemoryTransactionalStore } from "@/lib/db/memory-db";
-
+import { reconcileMercadoPagoPayment } from "@/lib/payments/reconcilePayment";
+import { paymentReference } from "@/lib/payments/paymentConfirmation";
+export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const paymentId = searchParams.get("payment_id") || searchParams.get("collection_id");
-  const status = searchParams.get("status") || searchParams.get("collection_status");
-  const orderId = searchParams.get("external_reference") || searchParams.get("orderId");
-
-  const baseUrl = req.nextUrl.origin;
-
-  if (!orderId) {
-    return NextResponse.redirect(`${baseUrl}/checkout`);
+  const params = req.nextUrl.searchParams;
+  const reference = params.get("external_reference") || params.get("orderId") || "";
+  let orderId: string;
+  try { orderId = paymentReference(reference).orderId; } catch { return NextResponse.redirect(new URL("/checkout", req.url)); }
+  const id = params.get("payment_id") || params.get("collection_id") || "";
+  let status = "pending";
+  if (/^\d{1,30}$/.test(id)) {
+    try { const result = await reconcileMercadoPagoPayment(id, orderId); status = result.confirmed ? "approved" : "pending"; }
+    catch { console.warn("[MP Callback] El pago sigue pendiente de verificación."); }
   }
-
-  // If payment is approved, mark as PAID
-  if (status === "approved" && paymentId) {
-    const paymentDetails = {
-      paymentId,
-      status: "approved",
-      paymentMethodId: searchParams.get("payment_type") || "credit_card",
-      merchantOrderId: searchParams.get("merchant_order_id"),
-      dateApproved: new Date().toISOString(),
-    };
-
-    // In-memory update
-    const store = MemoryTransactionalStore.getInstance();
-    const memOrder = store.orders.get(orderId);
-    if (memOrder) {
-      memOrder.status = "CONFIRMED";
-      (memOrder as any).paymentStatus = "PAID";
-      (memOrder as any).paymentDetails = paymentDetails;
-      store.orders.set(orderId, memOrder);
-    }
-
-    // Firestore update
-    const firestoreOrder = await getOrderByIdFromFirestore(orderId);
-    if (firestoreOrder) {
-      const updated = {
-        ...firestoreOrder,
-        status: "CONFIRMED" as const,
-        paymentStatus: "PAID",
-        paymentDetails,
-        updatedAt: new Date().toISOString(),
-      };
-      await createOrderInFirestore(updated);
-    }
-
-    return NextResponse.redirect(
-      `${baseUrl}/order-confirmation/${orderId}?status=approved&payment_id=${paymentId}`
-    );
-  }
-
-  // If pending or other
-  if (status === "pending") {
-    return NextResponse.redirect(
-      `${baseUrl}/order-confirmation/${orderId}?status=pending&payment_id=${paymentId}`
-    );
-  }
-
-  // If rejected or cancelled
-  return NextResponse.redirect(
-    `${baseUrl}/checkout?status=failure&orderId=${orderId}`
-  );
+  // This query is informational. Order views must read the persisted payment status.
+  return NextResponse.redirect(new URL(`/order-confirmation/${encodeURIComponent(orderId)}?status=${status}`, req.url));
 }

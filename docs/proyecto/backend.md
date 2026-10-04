@@ -33,7 +33,7 @@ Los Map/JSON locales no son almacenamiento compartido en serverless. Cache clien
 
 ## Integraciones
 
-Mercado Pago crea preferencias y webhook consulta pagos; callback tiene otra lógica. WEBPAY usa Flow, no un adaptador Transbank independiente. Transferencia registra orden/instrucciones sin proveedor de cobro. Gemini puede acabar en heurística o presets. AfterShip puede devolver simulación. SMTP requiere configuración; el handler de contacto no envía correo.
+Mercado Pago crea preferencias y webhook consulta pagos; callback también consulta el proveedor y valida la referencia, sin confiar en el estado de la URL. WEBPAY usa Flow, no un adaptador Transbank independiente. Transferencia registra orden/instrucciones sin proveedor de cobro. Gemini puede acabar en heurística o presets. AfterShip puede devolver simulación. SMTP requiere configuración; el handler de contacto no envía correo.
 
 No hay formato de error global: algunas rutas usan success/data/error, otras error/code/message. Comprobar HTTP y validar body; un stream iniciado puede llevar HTTP 200 y evento error posterior.
 
@@ -53,4 +53,6 @@ stateDiagram-v2
   FULFILLED --> [*]
 ```
 
-Transiciones de PreOrderService; cierre final no admite siguiente estado. La ruta transition usa el servicio de memoria y no incluye autorización explícita: este diagrama no demuestra persistencia de esas transiciones. Un depósito usa la configuración del producto; no asumir 20% obligatorio para todos los casos.
+Transiciones de PreOrderService; cierre final no admite siguiente estado. La ruta transition usa el servicio de memoria y requiere sesión administrativa firmada: este diagrama no demuestra persistencia de esas transiciones. Un depósito usa la configuración del producto; no asumir 20% obligatorio para todos los casos.
+
+Confirmación de pagos y permisos: [guía](permisos-y-pagos.md).

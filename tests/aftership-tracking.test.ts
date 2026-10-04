@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+vi.mock("@/lib/auth/security", () => ({ verifyAdminAuthorization: async () => ({ authorized: true }) }));
+vi.mock("@/lib/firebase/firestore", () => ({ getOrderByIdFromFirestore: async () => null }));
 import { AfterShipService } from "../src/lib/services/aftershipService";
 import { NextRequest } from "next/server";
 import { GET as trackingGet, POST as trackingPost } from "../src/app/api/tracking/[id]/route";
@@ -52,7 +54,7 @@ describe("AfterShip Tracking Adapter & API Suite", () => {
   });
 
   describe("API Route /api/tracking/[id]", () => {
-    it("should return tracking data on GET for a given tracking number", async () => {
+    it("returns direct OT tracking for an authorized admin", async () => {
       const req = new NextRequest("http://localhost:3000/api/tracking/STK-982410529", {
         method: "GET",
       });
@@ -67,7 +69,7 @@ describe("AfterShip Tracking Adapter & API Suite", () => {
       expect(json.data.checkpoints).toBeInstanceOf(Array);
     });
 
-    it("should handle POST request to register a tracking in AfterShip", async () => {
+    it("registers tracking with a verified admin session", async () => {
       const req = new NextRequest("http://localhost:3000/api/tracking/STK-982410529", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

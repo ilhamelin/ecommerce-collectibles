@@ -222,8 +222,8 @@
         "GET",
         "POST"
       ],
-      "access": "Público",
-      "description": "Consultar/registrar estadísticas de actividad.",
+      "access": "GET admin; POST público validado sin aceptar identidad declarada",
+      "description": "GET estadísticas privadas; POST lotes de 1 a 50 eventos, uid solo del token verificado.",
       "source": "src/app/api/analytics/route.ts",
       "aiProtection": false
     },
@@ -285,8 +285,8 @@
         "POST",
         "GET"
       ],
-      "access": "Público",
-      "description": "Crear solicitud; GET listado global.",
+      "access": "POST público/identidad verificada; GET propietario o admin",
+      "description": "POST crea solicitud con identidad derivada del servidor; GET solo propias o listado administrativo.",
       "source": "src/app/api/catalog/product-requests/route.ts",
       "aiProtection": false
     },
@@ -315,8 +315,8 @@
       "methods": [
         "POST"
       ],
-      "access": "Proveedor/simulador según rama",
-      "description": "Formulario token; consulta estado Flow.",
+      "access": "Proveedor: token consultado con API firmada del comercio",
+      "description": "Consulta estado Flow y verifica moneda, importe y referencia antes de confirmar en transacción.",
       "source": "src/app/api/checkout/flow/webhook/route.ts",
       "aiProtection": false
     },
@@ -325,8 +325,8 @@
       "methods": [
         "GET"
       ],
-      "access": "Público",
-      "description": "Retorno navegador, parámetros de pago y redirección.",
+      "access": "Público: consulta al proveedor; sin confiar en status de URL",
+      "description": "Consulta pago auténtico y verifica referencia del pedido; redirige pendiente si no se confirma.",
       "source": "src/app/api/checkout/mercadopago/callback/route.ts",
       "aiProtection": false
     },
@@ -335,8 +335,8 @@
       "methods": [
         "POST"
       ],
-      "access": "Proveedor/simulador según rama",
-      "description": "Notificación real y rama simulada; consulta proveedor en rama real.",
+      "access": "Proveedor: firma HMAC del manifiesto",
+      "description": "Verifica firma, consulta pago con token privado y acredita en transacción. Simulaciones rechazadas.",
       "source": "src/app/api/checkout/mercadopago/webhook/route.ts",
       "aiProtection": false
     },
@@ -377,8 +377,8 @@
       "methods": [
         "POST"
       ],
-      "access": "Propietario/admin; recibo en detalle; PATCH/DELETE admin",
-      "description": "Liquidar saldo autorizado; no cobro real.",
+      "access": "Propietario/recibo/admin",
+      "description": "Inicia pago real del saldo con pasarela; no admite paymentId ni altera saldo hasta confirmación del proveedor.",
       "source": "src/app/api/orders/[id]/settle-balance/route.ts",
       "aiProtection": false
     },
@@ -387,8 +387,8 @@
       "methods": [
         "POST"
       ],
-      "access": "Público: handler sin autorización explícita",
-      "description": "Cambio de estado mediante PreOrderService.",
+      "access": "Admin: cookie firmada",
+      "description": "Transición del estado de preventa mediante PreOrderService; persistencia sigue siendo en memoria.",
       "source": "src/app/api/preorders/[id]/transition/route.ts",
       "aiProtection": false
     },
@@ -472,8 +472,8 @@
         "GET",
         "POST"
       ],
-      "access": "Público",
-      "description": "GET estado por pedido/OT; POST registrar AfterShip.",
+      "access": "GET propietario/recibo/admin; POST admin",
+      "description": "GET exige acceso al pedido; consulta OT directa solo admin. POST registra AfterShip con sesión administrativa.",
       "source": "src/app/api/tracking/[id]/route.ts",
       "aiProtection": false
     },

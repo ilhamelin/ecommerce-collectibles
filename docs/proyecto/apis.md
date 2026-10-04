@@ -35,23 +35,23 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 | `/api/admin/slider` | GET, POST | Admin por middleware | Leer/guardar carrusel, cuerpo slides. [Código](../../src/app/api/admin/slider/route.ts) |
 | `/api/admin/telemetry` | GET, POST | Admin por middleware | GET timeframe=today/7d/30d/all; POST RESET/SIMULATE_CALL; SEED deshabilitado. [Código](../../src/app/api/admin/telemetry/route.ts) |
 | `/api/admin/visual-versions` | GET, POST | Admin por middleware | Listar 100 versiones; POST capture/restore. [Código](../../src/app/api/admin/visual-versions/route.ts) |
-| `/api/analytics` | GET, POST | Público | Consultar/registrar estadísticas de actividad. [Código](../../src/app/api/analytics/route.ts) |
+| `/api/analytics` | GET, POST | GET admin; POST público validado sin aceptar identidad declarada | GET estadísticas privadas; POST lotes de 1 a 50 eventos, uid solo del token verificado. [Código](../../src/app/api/analytics/route.ts) |
 | `/api/announcement` | GET | Público | Configuración publicada de anuncios. [Código](../../src/app/api/announcement/route.ts) |
 | `/api/auth/admin-session` | GET, POST, DELETE | Token/credenciales para POST; cookie para GET | Verificar/emitir/cerrar cookie admin. [Código](../../src/app/api/auth/admin-session/route.ts) |
 | `/api/auth/session` | POST | Identidad verificada | Coordinar sesión activa por dispositivo. [Código](../../src/app/api/auth/session/route.ts) |
 | `/api/bundles/[id]/availability` | GET | Público | Disponibilidad de componentes. [Código](../../src/app/api/bundles/[id]/availability/route.ts) |
-| `/api/catalog/product-requests` | POST, GET | Público | Crear solicitud; GET listado global. [Código](../../src/app/api/catalog/product-requests/route.ts) |
+| `/api/catalog/product-requests` | POST, GET | POST público/identidad verificada; GET propietario o admin | POST crea solicitud con identidad derivada del servidor; GET solo propias o listado administrativo. [Código](../../src/app/api/catalog/product-requests/route.ts) |
 | `/api/catalog` | GET | Público | Catálogo de dominio. [Código](../../src/app/api/catalog/route.ts) |
 | `/api/catalog/visual-search` | POST | Público; App Check según modo | Identificación de imagen/contraste catálogo; JSON o NDJSON. [Código](../../src/app/api/catalog/visual-search/route.ts) |
-| `/api/checkout/flow/webhook` | POST | Proveedor/simulador según rama | Formulario token; consulta estado Flow. [Código](../../src/app/api/checkout/flow/webhook/route.ts) |
-| `/api/checkout/mercadopago/callback` | GET | Público | Retorno navegador, parámetros de pago y redirección. [Código](../../src/app/api/checkout/mercadopago/callback/route.ts) |
-| `/api/checkout/mercadopago/webhook` | POST | Proveedor/simulador según rama | Notificación real y rama simulada; consulta proveedor en rama real. [Código](../../src/app/api/checkout/mercadopago/webhook/route.ts) |
+| `/api/checkout/flow/webhook` | POST | Proveedor: token consultado con API firmada del comercio | Consulta estado Flow y verifica moneda, importe y referencia antes de confirmar en transacción. [Código](../../src/app/api/checkout/flow/webhook/route.ts) |
+| `/api/checkout/mercadopago/callback` | GET | Público: consulta al proveedor; sin confiar en status de URL | Consulta pago auténtico y verifica referencia del pedido; redirige pendiente si no se confirma. [Código](../../src/app/api/checkout/mercadopago/callback/route.ts) |
+| `/api/checkout/mercadopago/webhook` | POST | Proveedor: firma HMAC del manifiesto | Verifica firma, consulta pago con token privado y acredita en transacción. Simulaciones rechazadas. [Código](../../src/app/api/checkout/mercadopago/webhook/route.ts) |
 | `/api/checkout` | POST | Público | Crear/recuperar pedido idempotente e iniciar pasarela. [Código](../../src/app/api/checkout/route.ts) |
 | `/api/contact` | POST | Público | Validación/honeypot y log; no envío SMTP aquí. [Código](../../src/app/api/contact/route.ts) |
 | `/api/orders/[id]` | GET, PATCH, DELETE | Propietario/admin; recibo en detalle; PATCH/DELETE admin | Detalle autorizado; PATCH logística/estado; DELETE admin. [Código](../../src/app/api/orders/[id]/route.ts) |
-| `/api/orders/[id]/settle-balance` | POST | Propietario/admin; recibo en detalle; PATCH/DELETE admin | Liquidar saldo autorizado; no cobro real. [Código](../../src/app/api/orders/[id]/settle-balance/route.ts) |
+| `/api/orders/[id]/settle-balance` | POST | Propietario/recibo/admin | Inicia pago real del saldo con pasarela; no admite paymentId ni altera saldo hasta confirmación del proveedor. [Código](../../src/app/api/orders/[id]/settle-balance/route.ts) |
 | `/api/orders` | GET | Propietario/admin; recibo en detalle; PATCH/DELETE admin | Pedidos propietario/admin; filtros status/email/q. [Código](../../src/app/api/orders/route.ts) |
-| `/api/preorders/[id]/transition` | POST | Público: handler sin autorización explícita | Cambio de estado mediante PreOrderService. [Código](../../src/app/api/preorders/[id]/transition/route.ts) |
+| `/api/preorders/[id]/transition` | POST | Admin: cookie firmada | Transición del estado de preventa mediante PreOrderService; persistencia sigue siendo en memoria. [Código](../../src/app/api/preorders/[id]/transition/route.ts) |
 | `/api/products/[id]/alerts` | POST, GET | Identidad: alcance propietario/admin según método | Alta/consulta de suscripción por identidad. [Código](../../src/app/api/products/[id]/alerts/route.ts) |
 | `/api/products` | GET, POST, PUT, DELETE | GET público; mutaciones admin | GET catálogo/sku/slug; POST crear; PUT editar; DELETE id/sku. [Código](../../src/app/api/products/route.ts) |
 | `/api/side-banners` | GET | Público | Banners publicados. [Código](../../src/app/api/side-banners/route.ts) |
@@ -59,7 +59,7 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 | `/api/storefront/branding` | GET | Público | Alias público de GET marca. [Código](../../src/app/api/storefront/branding/route.ts) |
 | `/api/storefront/categories` | GET | Público | Alias público de GET categorías. [Código](../../src/app/api/storefront/categories/route.ts) |
 | `/api/storefront/slider` | GET | Público | Carrusel publicado. [Código](../../src/app/api/storefront/slider/route.ts) |
-| `/api/tracking/[id]` | GET, POST | Público | GET estado por pedido/OT; POST registrar AfterShip. [Código](../../src/app/api/tracking/[id]/route.ts) |
+| `/api/tracking/[id]` | GET, POST | GET propietario/recibo/admin; POST admin | GET exige acceso al pedido; consulta OT directa solo admin. POST registra AfterShip con sesión administrativa. [Código](../../src/app/api/tracking/[id]/route.ts) |
 | `/api/users/alerts` | GET, DELETE | Identidad: alcance propietario/admin según método | Listar/borrar suscripciones autorizadas. [Código](../../src/app/api/users/alerts/route.ts) |
 | `/api/users` | GET, PUT, PATCH, DELETE | Identidad: alcance propietario/admin según método | Perfil/lista; PUT perfil; PATCH rol admin; DELETE según identidad. [Código](../../src/app/api/users/route.ts) |
 
@@ -163,7 +163,7 @@ Secciones: portada/marca/carrusel/anuncios/laterales. Captura exige configuraci�
 
 POST /api/auth/admin-session admite idToken de Firebase verificado/permitido o credenciales demo configuradas; emite cookie. GET verifica y DELETE expira cookie. No recibe claves de cuenta de servicio.
 
-Flow webhook recibe formulario token. Mercado Pago webhook recibe tipo/ID y consulta pago; callback y simulación tienen alcance distinto, ver limitaciones. App Check de navegador no se aplica a notificaciones del proveedor.
+Flow consulta payment/getStatus con firma del comercio. Mercado Pago verifica el manifiesto HMAC y consulta el pago; callback no confía en status ni importe de URL. App Check de navegador no se aplica a notificaciones del proveedor. [Confirmación y permisos](permisos-y-pagos.md).
 
 ## Compatibilidad
 

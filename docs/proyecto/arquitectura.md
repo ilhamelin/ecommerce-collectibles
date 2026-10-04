@@ -77,7 +77,7 @@ sequenceDiagram
   API->>F: Confirmar pago sin doble descuento
 ```
 
-Transferencia no necesita redirección externa. Una pasarela no configurada puede devolver simulación. El callback de retorno Mercado Pago tiene otro camino que confía en URL: ver limitaciones. La llamada a pasarela es posterior a la transacción de inventario y no es atómica con ella.
+Transferencia no necesita redirección externa. Una pasarela no configurada falla sin simular cobros. Callback y webhook Mercado Pago consultan al proveedor y comparten confirmación atómica. La llamada a pasarela es posterior a la transacción de inventario y no es atómica con ella.
 
 ## Protección IA
 

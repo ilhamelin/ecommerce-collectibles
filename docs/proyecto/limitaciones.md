@@ -4,18 +4,18 @@ Observaciones del código; no se modificó lógica ni se auditó el despliegue a
 
 | Área | Comportamiento observado | Implicación |
 |---|---|---|
-| Callback Mercado Pago | Marca PAID con status=approved/paymentId de URL sin consulta al proveedor en ese handler | Revisar: retorno del navegador no debe probar pago. Webhook real sí consulta proveedor |
-| Saldo preventa | settle-balance verifica acceso y actualiza saldo; genera ID simulado si falta paymentId | No ejecuta cobro real ni verifica pago externo |
-| Webhook simulado | Admite host local o clave de simulación con fallback en código | Separar simulación y revisar exposición productiva |
-| Firmas entrantes | WebhookSecurityService existe, sin llamadas halladas desde handlers actuales | No afirmar que su existencia/tests garantizan firmas de Mercado Pago/Flow |
-| Solicitudes catálogo | GET público devuelve todas las solicitudes del servicio | Revisar privacidad de emails/notas y acceso propietario |
-| Tracking | GET y POST sin autorización propietaria/admin interna | Revisar alcance público y registro en proveedor |
-| Analytics | GET/POST públicos; memoria/archivo como respaldo | Revisar exposición y concurrencia/persistencia |
+| Callback Mercado Pago | Corregido: consulta proveedor y referencia; sin confirmación redirige pendiente | Revisar configuración y pagos anteriores a esta corrección |
+| Saldo preventa | Corregido: inicia pasarela con importe almacenado; webhook liquida en transacción | Interfaz cliente ofrece Mercado Pago; API también admite Flow |
+| Webhook simulado | Corregido: rechaza toda notificación simulada | El simulador antiguo no acredita pagos |
+| Firmas entrantes | Mercado Pago valida su manifiesto; Flow consulta API con firma del comercio | WebhookSecurityService genérico no es el verificador de este flujo |
+| Solicitudes catálogo | Corregido: GET solo propietario/admin; POST deriva identidad del servidor | Invitados pueden crear sin quedar vinculados a una identidad declarada |
+| Tracking | Corregido: lectura por acceso al pedido; registro y OT directa solo admin | AfterShip todavía puede usar fallback simulado |
+| Analytics | Corregido: GET admin; POST público acotado con uid derivado del token | Los eventos anónimos no prueban identidad; persistencia/concurrencia sigue limitada |
 | Contacto | Valida/honeypot/sanitiza y registra metadatos en logs | Respuesta no implica email, ticket o persistencia de mensaje |
-| Transición preventa | POST fuera de /api/admin sin autorización explícita; servicio opera en memoria | Revisar permisos y persistencia antes de usar como administración real |
+| Transición preventa | Corregido: requiere cookie administrativa firmada | Servicio sigue en memoria; no asumir persistencia |
 | CI | ci.yml configura Node 20; package.json exige 24.x | Alinear workflow y runtime al mantener despliegues |
 | Reservas | TTL/barrido de servicio en memoria | No se halló cron que cancele pedidos persistidos por expiración |
-| Pagos | Pasarela ausente/fallida puede devolver SIMULATED_SANDBOX | Leer gateway.mode; éxito checkout no prueba cobro externo |
+| Pagos | Corregido: falla sin pasarela real; no devuelve simulación como alternativa | Sandbox del proveedor debe coincidir con el modo del pedido |
 | IA | Radar/iconos/autocompletado tienen heurísticas/presets | No todos los datos proceden de Gemini o búsqueda web |
 | AfterShip | Fallback simulado sin clave o según fallo | Vista de tracking no prueba movimiento real |
 | Prisma/Stripe | Esquema/dependencias/enums sin adaptadores operativos hallados | No presentarlos como servicios activos |
@@ -23,6 +23,6 @@ Observaciones del código; no se modificó lógica ni se auditó el despliegue a
 | SDK/JSON/memoria | Fallbacks no uniformes entre servicios | No equivalen a persistencia duradera Firestore |
 | Auditoría | Solo escrituras integradas con contexto | No incluye todas las mutaciones |
 
-Prioridades para ampliar operación: pago confirmado por proveedor, liquidación real de saldo y privacidad de rutas públicas. Este documento no declara que estos puntos estén corregidos.
+Prioridades para ampliar operación: pago confirmado por proveedor, liquidación real de saldo y privacidad de rutas públicas. Las filas marcadas como corregidas corresponden a la revisión de permisos y pagos; no implican que se hayan conciliado pagos antiguos. [Guía operativa](permisos-y-pagos.md).
 
 Fuentes: [callback](../../src/app/api/checkout/mercadopago/callback/route.ts), [saldo](../../src/app/api/orders/[id]/settle-balance/route.ts), [webhook](../../src/app/api/checkout/mercadopago/webhook/route.ts), [solicitudes](../../src/app/api/catalog/product-requests/route.ts), [tracking](../../src/app/api/tracking/[id]/route.ts), [contacto](../../src/app/api/contact/route.ts).

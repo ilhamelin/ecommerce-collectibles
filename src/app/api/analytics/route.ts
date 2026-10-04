@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { verifyAdminAuthorization } from "@/lib/auth/security";
+import { requestIdentity } from "@/lib/auth/requestIdentity";
 import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
@@ -168,6 +171,7 @@ function scheduleSaveAnalyticsToDb() {
 }
 
 export async function GET(request: NextRequest) {
+  if (!(await verifyAdminAuthorization(request)).authorized) return NextResponse.json({ success: false, error: "Sesión administrativa requerida." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   try {
     await syncAnalyticsWithFirestore();
 
@@ -214,8 +218,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const event = z.object({ type: z.enum(["PAGE_VIEW", "PRODUCT_CLICK", "PRODUCT_VIEW"]), visitorId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/).optional(), userId: z.string().max(150).nullable().optional(), productSku: z.string().trim().min(1).max(150).refine(value => !["__proto__", "constructor", "prototype"].includes(value)).optional(), productName: z.string().max(250).optional(), category: z.string().trim().min(1).max(100).refine(value => !["__proto__", "constructor", "prototype"].includes(value)).optional(), price: z.number().finite().min(0).max(100000000).optional(), timestamp: z.number().optional() });
     const body = await request.json();
-    const events = Array.isArray(body?.events) ? body.events : [body];
+    const parsed = z.array(event).min(1).max(50).safeParse(Array.isArray(body?.events) ? body.events : [body]);
+    if (!parsed.success) return NextResponse.json({ success: false, error: "Eventos inválidos o lote demasiado grande." }, { status: 400 });
+    const identity = await requestIdentity(request);
+    const events = parsed.data.map(item => ({ ...item, userId: identity?.uid && !["__proto__", "constructor", "prototype"].includes(identity.uid) ? identity.uid : undefined, timestamp: Date.now() }));
 
     const todayKey = new Date().toISOString().split("T")[0];
     if (!globalAnalytics.dailyViews[todayKey]) {

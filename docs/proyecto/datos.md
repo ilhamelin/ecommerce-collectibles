@@ -76,3 +76,7 @@ Una constante de colección no demuestra que todos sus datos se escriban en prod
 ## Lectura de notificaciones
 
 notification_reads almacena ids (hasta 500 hashes) y updatedAt por identidad. Acceso exclusivo del servidor: no habilitar lectura/escritura directa del cliente. [Detalles](salud-busqueda-notificaciones.md).
+
+## Confirmaciones de pago
+
+payment_confirmations registra provider, paymentId, orderId, purpose (CHECKOUT/BALANCE), amount, currency, live y confirmedAt. Documento identificado por SHA-256 del proveedor e ID del pago. Solo servidor; las reglas existentes deniegan lectura y escritura directa. Recibo y actualización del pedido se guardan en la misma transacción. [Detalles](permisos-y-pagos.md).

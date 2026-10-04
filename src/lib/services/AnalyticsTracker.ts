@@ -1,3 +1,4 @@
+import { identityHeaders } from "@/lib/auth/clientIdentity";
 /**
  * AnalyticsTracker: Non-blocking client-side analytics service
  * Tracks web visits, product clicks and user interest without degrading page performance.
@@ -137,12 +138,12 @@ class AnalyticsTrackerService {
       } catch (_) {}
     }
 
-    fetch("/api/analytics", {
+    void identityHeaders().then(headers => fetch("/api/analytics", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...headers },
       body: payload,
       keepalive: true,
-    }).catch(() => {});
+    })).catch(() => {});
   }
 }
 

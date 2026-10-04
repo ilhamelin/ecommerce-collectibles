@@ -16,7 +16,7 @@ vi.mock("@/lib/firebase/firestore", () => ({
   },
 }));
 vi.mock("@/lib/firebase/commerce", () => ({ commitOrderAndStock: mocked.commit }));
-vi.mock("@/lib/payments/payment-gateway", () => ({ initiatePaymentGateway: mocked.gateway }));
+vi.mock("@/lib/payments/payment-gateway", () => ({ initiatePaymentGateway: mocked.gateway, PaymentGatewayUnavailableError: class extends Error {} }));
 
 function request(couponCode?: string, customerInfo?: { fullName: string; email: string; phone: string; rut?: string }) {
   return new NextRequest("http://localhost:3000/api/checkout", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": "integration-key-01" },
@@ -29,7 +29,7 @@ beforeEach(() => {
   mocked.commit.mockImplementation(async (order: ConfirmedOrderEntity) => {
     const saved = { ...order, stockDeducted: true }; mocked.persisted.set(order.id, saved); return saved;
   });
-  mocked.gateway.mockResolvedValue({ gatewayName: "SIMULATED_SANDBOX", requiresRedirect: true, redirectUrl: "/checkout/sandbox-payment", mode: "SIMULATED", message: "Demo" });
+  mocked.gateway.mockResolvedValue({ gatewayName: "MERCADO_PAGO", requiresRedirect: true, redirectUrl: "https://sandbox.mercadopago.cl/test", mode: "SANDBOX", message: "Sandbox del proveedor" });
 });
 
 describe("Checkout API handoff to persistence", () => {

@@ -1,0 +1,35 @@
+import { createHmac } from "node:crypto";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+const mock = vi.hoisted(() => ({ payment: vi.fn(), confirm: vi.fn(), email: vi.fn(), flow: vi.fn(), order: vi.fn() }));
+vi.mock("@/lib/payments/mercadopago", () => ({ getMercadoPagoPayment: mock.payment }));
+vi.mock("@/lib/payments/flow", () => ({ getFlowPaymentStatus: mock.flow }));
+vi.mock("@/lib/firebase/admin", () => ({ adminDb: null }));
+vi.mock("@/lib/firebase/firestore", () => ({ invalidateProductsCache: vi.fn(), getOrderByIdFromFirestore: mock.order }));
+vi.mock("@/lib/services/emailService", () => ({ sendOrderConfirmationEmail: mock.email }));
+import * as service from "@/lib/payments/paymentConfirmation";
+import { verifyMercadoPagoSignature } from "@/lib/payments/mercadoPagoSignature";
+import { GET as callback } from "@/app/api/checkout/mercadopago/callback/route";
+import { POST as webhook } from "@/app/api/checkout/mercadopago/webhook/route";
+import { POST as flowWebhook } from "@/app/api/checkout/flow/webhook/route";
+const ts = "1791068400"; const secret = "test-secret-never-live";
+const signature = (id = "123") => "ts=" + ts + ",v1=" + createHmac("sha256", secret).update(`id:${id};request-id:request1;ts:${ts};`).digest("hex");
+const request = (sig?: string, body: unknown = { type: "payment", data: { id: "123" } }) => new NextRequest("https://example.com/api/checkout/mercadopago/webhook?data.id=123", { method: "POST", headers: { "Content-Type": "application/json", ...(sig ? { "x-request-id": "request1", "x-signature": sig } : {}) }, body: JSON.stringify(body) });
+beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("MERCADOPAGO_WEBHOOK_SECRET", secret); mock.payment.mockResolvedValue({ id: 123, external_reference: "ord-one", status: "approved", transaction_amount: 100, currency_id: "CLP", live_mode: false }); mock.email.mockResolvedValue(undefined); vi.spyOn(service, "confirmVerifiedPayment").mockResolvedValue({ order: { id: "ord-one" } as never, idempotent: false }); });
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+describe("Mercado Pago evidence", () => {
+ it("validates the provider manifest and rejects tampering", () => { expect(verifyMercadoPagoSignature("123", "request1", signature(), secret)).toBe(true); expect(verifyMercadoPagoSignature("456", "request1", signature(), secret)).toBe(false); expect(verifyMercadoPagoSignature("123", "request1", "ts=abc,v1=no", secret)).toBe(false); });
+ it("rejects unsigned notifications before querying provider", async () => { expect((await webhook(request())).status).toBe(403); expect(mock.payment).not.toHaveBeenCalled(); });
+ it("rejects simulated notifications regardless of host/key", async () => { expect((await webhook(request(signature(), { simulated: true, orderId: "ord-one" }))).status).toBe(403); expect(mock.payment).not.toHaveBeenCalled(); });
+ it("requires the webhook secret", async () => { vi.stubEnv("MERCADOPAGO_WEBHOOK_SECRET", ""); expect((await webhook(request(signature()))).status).toBe(503); });
+ it("confirms a signed notice only using provider evidence", async () => { expect((await webhook(request(signature()))).status).toBe(200); expect(service.confirmVerifiedPayment).toHaveBeenCalledWith(expect.objectContaining({ id: "123", amount: 100, currency: "CLP", reference: "ord-one" })); });
+ it("does not accept conflicting body and signed IDs", async () => { expect((await webhook(request(signature(), { type: "payment", data: { id: "456" } }))).status).toBe(400); expect(mock.payment).not.toHaveBeenCalled(); });
+ it("never trusts approved status on browser return", async () => { mock.payment.mockResolvedValue(null); const result = await callback(new NextRequest("https://example.com/api/checkout/mercadopago/callback?orderId=ord-one&status=approved&payment_id=123")); expect(result.headers.get("location")).toContain("status=pending"); expect(service.confirmVerifiedPayment).not.toHaveBeenCalled(); });
+ it("rejects a provider reference different from the return order", async () => { mock.payment.mockResolvedValue({ id: 123, external_reference: "other-order", status: "approved", transaction_amount: 100, currency_id: "CLP", live_mode: false }); await callback(new NextRequest("https://example.com/api/checkout/mercadopago/callback?orderId=ord-one&payment_id=123")); expect(service.confirmVerifiedPayment).not.toHaveBeenCalled(); });
+ it("returns retryable failure when provider is unavailable", async () => { mock.payment.mockResolvedValue(null); expect((await webhook(request(signature()))).status).toBe(503); });
+});
+describe("Flow evidence", () => {
+ const req = () => new NextRequest("https://example.com/api/checkout/flow/webhook", { method: "POST", body: new URLSearchParams({ token: "FLOW-token-12345" }) });
+ it("queries Flow and passes confirmed currency/amount to the transaction", async () => { mock.flow.mockResolvedValue({ flowOrder: 567, commerceOrder: "ORD-LEGACY", status: 2, currency: "CLP", amount: 100 }); mock.order.mockResolvedValue({ id: "ord-one" }); expect((await flowWebhook(req())).status).toBe(200); expect(service.confirmVerifiedPayment).toHaveBeenCalledWith(expect.objectContaining({ provider: "FLOW", id: "567", reference: "ord-one", amount: 100 })); });
+ it("does not confirm a pending Flow payment", async () => { mock.flow.mockResolvedValue({ flowOrder: 567, commerceOrder: "ord-one", status: 1, currency: "CLP", amount: 100 }); expect((await flowWebhook(req())).status).toBe(200); expect(service.confirmVerifiedPayment).not.toHaveBeenCalled(); });
+});

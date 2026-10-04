@@ -1,3 +1,4 @@
+import { verifyAdminAuthorization } from "@/lib/auth/security";
 import { NextRequest, NextResponse } from "next/server";
 import { PreOrderService } from "@/lib/services/PreOrderService";
 import { PreOrderTransitionSchema } from "@/lib/validations/schemas";
@@ -7,6 +8,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!(await verifyAdminAuthorization(req)).authorized) return NextResponse.json({ error: "Sesión administrativa requerida." }, { status: 403 });
   try {
     const body = await req.json();
     const validated = PreOrderTransitionSchema.parse({

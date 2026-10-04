@@ -10,11 +10,12 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 
 ## Inventario
 
-48 rutas y 79 operaciones exportadas. [JSON estructurado](inventario-api.json).
+49 rutas y 83 operaciones exportadas. [JSON estructurado](inventario-api.json).
 
 | Ruta | Métodos | Acceso | Función y fuente |
 |---|---|---|---|
 | `/api/admin/health` | GET | Cookie administrativa firmada | Comprobación de Firestore, configuración y telemetría. [Código](../../src/app/api/admin/health/route.ts) |
+| `/api/users/collector` | GET, POST, PATCH, DELETE | Identidad verificada; solo lista propia | Mi colección, búsqueda y sugerencias. [Código](../../src/app/api/users/collector/route.ts), [contrato](coleccion-y-busqueda.md) |
 | `/api/users/notifications` | GET, PATCH | Identidad y correo verificado | Feed propio y lectura persistida. [Código](../../src/app/api/users/notifications/route.ts) |
 | `/api/admin/alerts` | GET, DELETE | Admin por middleware | Listar alertas; DELETE query id. [Código](../../src/app/api/admin/alerts/route.ts) |
 | `/api/admin/announcement` | GET, POST | Admin por middleware | Leer/guardar anuncios; POST audita. [Código](../../src/app/api/admin/announcement/route.ts) |

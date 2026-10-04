@@ -1,3 +1,4 @@
+import { collectorOwnerKey } from "@/lib/collector/storage";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
@@ -13,14 +14,15 @@ async function handle(request: NextRequest, mark: boolean) {
   if (!adminDb) return respond({ success: false, error: "Las notificaciones no están disponibles temporalmente." }, 503);
   try {
     const ref = adminDb.collection("notification_reads").doc(notificationOwnerKey(identity));
-    const [orders, alerts, products, reads] = await Promise.all([
+    const [orders, alerts, products, reads, collector] = await Promise.all([
       adminDb.collection("orders").where("customer.email", "==", identity.email).limit(200).get(),
       adminDb.collection("product_alerts").where("email", "==", identity.email).limit(200).get(),
       adminDb.collection("products").get(), ref.get(),
+      adminDb.collection("collector_profiles").doc(collectorOwnerKey(identity)).get(),
     ]);
     const parseRead = (value: unknown) => z.array(z.string()).safeParse(value);
     const prior = parseRead(reads.data()?.ids); let ids = prior.success ? prior.data : [];
-    const feed = () => buildNotifications(orders.docs.map(doc => ({ ...doc.data(), id: doc.id })), alerts.docs.map(doc => ({ ...doc.data(), id: doc.id })), products.docs.map(doc => ({ ...doc.data(), id: doc.id })), ids);
+    const feed = () => buildNotifications(orders.docs.map(doc => ({ ...doc.data(), id: doc.id })), alerts.docs.map(doc => ({ ...doc.data(), id: doc.id })), products.docs.map(doc => ({ ...doc.data(), id: doc.id })), ids, collector.data()?.entries);
     if (mark) {
       const parsed = input.safeParse(await request.json().catch(() => null)); if (!parsed.success) return respond({ success: false, error: "Selecciona notificaciones válidas." }, 400);
       const allowed = new Set(feed().map(item => item.id));

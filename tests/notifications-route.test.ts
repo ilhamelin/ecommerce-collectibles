@@ -11,6 +11,7 @@ const request = (ids?: string[]) => new NextRequest("https://example.com/api/use
 beforeEach(() => {
  vi.clearAllMocks(); mock.reads = []; mock.identity.mockResolvedValue({ uid: "u1", email: "one@example.com", admin: false });
  mock.collection.mockImplementation((name: string) => {
+  if (name === "collector_profiles") return { doc: () => ({ get: async () => ({ data: () => ({ entries: [] }) }) }) };
   if (name === "notification_reads") return { doc: () => ({ get: async () => ({ data: () => ({ ids: mock.reads }) }) }) };
   const docs = name === "orders" ? [{ id: "order1", data: () => ({ status: "CONFIRMED", createdAt: "2026-10-03" }) }] : [];
   const query = { where: (...args: unknown[]) => { mock.where(name, ...args); return query; }, limit: () => query, get: async () => ({ docs }) }; return query;

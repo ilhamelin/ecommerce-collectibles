@@ -8,6 +8,10 @@ vi.mock("@/lib/firebase/admin", async () => {
   return { adminDb: getFirestore(app), adminApp: app };
 });
 vi.mock("@/lib/auth/security", () => ({ verifyAdminAuthorization: async () => ({ authorized: true, actor: "verified@example.com" }) }));
+vi.mock("@/lib/auth/requestIdentity", () => ({ requestIdentity: async () => ({ uid: "collector", email: "collector@example.com", admin: false }) }));
+import { POST as addCollector, PATCH as editCollector } from "@/app/api/users/collector/route";
+import { collectorInput, parseCollectorEntries } from "@/lib/collector/schema";
+import { collectorOwnerKey } from "@/lib/collector/storage";
 import { confirmVerifiedPayment } from "@/lib/payments/paymentConfirmation";
 import { adminDb } from "@/lib/firebase/admin";
 import { withAdminHistory, writeAdminDocument } from "@/lib/services/adminHistory";
@@ -65,6 +69,16 @@ describe.skipIf(!enabled)("Persistent security · real Firestore transactions", 
     expect((await adminDb!.doc("products/piece").get()).data()?.stockAvailable).toBe(8);
     expect((await adminDb!.doc("orders/pay-one").get()).data()?.paymentStatus).toBe("PAID");
     expect((await adminDb!.collection("payment_confirmations").get()).size).toBe(1);
+  }, 60000);
+  it("preserves concurrent collector additions and moves a piece without duplication", async () => {
+    const input = collectorInput.parse({ title: "Link Nendoroid", category: "FIGURE" });
+    const replies = await Promise.all(Array.from({ length: 5 }, (_, index) => addCollector(new NextRequest("https://localhost/api/users/collector", { method: "POST", body: JSON.stringify({ kind: "WANTED", entry: { ...input, title: "Piece " + index } }), headers: { "Content-Type": "application/json" } }))));
+    expect(replies.map(reply => reply.status)).toEqual([200, 200, 200, 200, 200]);
+    const ref = adminDb!.collection("collector_profiles").doc(collectorOwnerKey({ uid: "collector", email: "collector@example.com" }));
+    const saved = parseCollectorEntries((await ref.get()).data()?.entries); expect(saved).toHaveLength(5);
+    const changed = await editCollector(new NextRequest("https://localhost/api/users/collector", { method: "PATCH", body: JSON.stringify({ kind: "COLLECTION", id: saved[0].id, entry: input }), headers: { "Content-Type": "application/json" } }));
+    expect(changed.status).toBe(200);
+    const moved = parseCollectorEntries((await ref.get()).data()?.entries); expect(moved).toHaveLength(5); expect(moved.filter(piece => piece.kind === "COLLECTION")).toHaveLength(1);
   }, 60000);
   it("rolls back all payment writes when stock is insufficient", async () => {
     await adminDb!.doc("products/piece").set({ stockAvailable: 1 });

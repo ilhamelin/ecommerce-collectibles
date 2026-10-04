@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
-  identity: vi.fn(), getUser: vi.fn(), save: vi.fn().mockResolvedValue(true), remove: vi.fn().mockResolvedValue(true),
+  deleteDoc: vi.fn(), commit: vi.fn(), identity: vi.fn(), getUser: vi.fn(), save: vi.fn().mockResolvedValue(true), remove: vi.fn().mockResolvedValue(true),
 }));
+vi.mock("@/lib/firebase/admin", () => ({ adminDb: { batch: () => ({ delete: mocks.deleteDoc, commit: mocks.commit }), collection: (name: string) => ({ doc: (id: string) => ({ path: name + "/" + id }) }) } }));
 vi.mock("@/lib/auth/requestIdentity", () => ({ requestIdentity: mocks.identity }));
 vi.mock("@/lib/auth/security", () => ({ verifyAdminAuthorization: vi.fn().mockResolvedValue({ authorized: false }) }));
 vi.mock("@/lib/firebase/firestore", () => ({
@@ -14,7 +15,13 @@ import { GET, PUT, DELETE } from "@/app/api/users/route";
 const alice = { id: "alice", email: "alice@example.com", role: "CUSTOMER", fullName: "Alice", phone: "", addresses: [], paymentMethods: [], wishlist: [], orders: [], createdAt: "2026-01-01" };
 const request = (method: string, body?: object, id = "alice") => new NextRequest("http://localhost/api/users?id=" + id, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
 describe("Private account API", () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.identity.mockResolvedValue({ uid: "alice", email: "alice@example.com", admin: false }); mocks.getUser.mockResolvedValue({ ...alice }); mocks.save.mockResolvedValue(true); });
+  it("removes private collector documents only after verifying the account owner", async () => {
+    mocks.identity.mockResolvedValue({ uid: "alice", email: "alice@example.com", admin: false }); mocks.getUser.mockResolvedValue({ ...alice });
+    expect((await DELETE(request("DELETE"))).status).toBe(200);
+    expect(mocks.deleteDoc).toHaveBeenCalledTimes(2); expect(mocks.commit).toHaveBeenCalledOnce();
+    expect(mocks.deleteDoc.mock.calls.every(([ref]) => ref.path.startsWith("collector_profiles/"))).toBe(true);
+  });
+  beforeEach(() => { vi.clearAllMocks(); mocks.identity.mockResolvedValue({ uid: "alice", email: "alice@example.com", admin: false }); mocks.getUser.mockResolvedValue({ ...alice }); mocks.save.mockResolvedValue(true); mocks.remove.mockResolvedValue(true); mocks.commit.mockResolvedValue(undefined); });
   it("rejects unauthenticated profile reads, updates and deletion", async () => {
     mocks.identity.mockResolvedValue(null);
     expect((await GET(request("GET"))).status).toBe(401); expect((await PUT(request("PUT", { id: "alice" }))).status).toBe(401); expect((await DELETE(request("DELETE"))).status).toBe(401);

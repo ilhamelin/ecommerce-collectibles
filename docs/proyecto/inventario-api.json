@@ -502,6 +502,19 @@
       "aiProtection": false
     },
     {
+      "path": "/api/users/collector",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "access": "Identidad verificada; solo lista propia",
+      "description": "Vitrina privada y piezas buscadas; mutaciones transaccionales, sugerencias de catálogo y traslado a colección.",
+      "source": "src/app/api/users/collector/route.ts",
+      "aiProtection": false
+    },
+    {
       "path": "/api/users/notifications",
       "methods": [
         "GET",

@@ -2,6 +2,7 @@
 import { identityHeaders } from "@/lib/auth/clientIdentity";
 
 import { BalancePaymentButton } from "@/components/account/BalancePaymentButton";
+import { CollectorCabinet } from "@/components/account/CollectorCabinet";
 import { NotificationCenter } from "@/components/account/NotificationCenter";
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import Link from "next/link";
@@ -86,7 +87,7 @@ function AccountContent() {
 
   const { addItem } = useCartStore();
 
-  const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS" | "NOTIFICATIONS">("ORDERS");
+  const [activeTab, setActiveTab] = useState<"PROFILE" | "ADDRESSES" | "PAYMENTS" | "ORDERS" | "WISHLIST" | "ALERTS" | "NOTIFICATIONS" | "COLLECTION" | "WANTED">("ORDERS");
   const [catalogProducts, setCatalogProducts] = useState<ProductDomainEntity[] | null>(null);
   const [addedWishlistId, setAddedWishlistId] = useState<string | null>(null);
 
@@ -108,6 +109,10 @@ function AccountContent() {
   useEffect(() => {
     if (settledParam === "true" || tabParam === "orders") {
       setActiveTab("ORDERS");
+    } else if (tabParam === "collection") {
+      setActiveTab("COLLECTION");
+    } else if (tabParam === "wanted") {
+      setActiveTab("WANTED");
     } else if (tabParam === "wishlist") {
       setActiveTab("WISHLIST");
     } else if (tabParam === "profile") {
@@ -507,6 +512,8 @@ function AccountContent() {
             { id: "PROFILE", label: "Información Personal", icon: User },
             { id: "ADDRESSES", label: "Libreta de Direcciones", icon: MapPin },
             { id: "PAYMENTS", label: "Métodos de Pago", icon: CreditCard },
+            { id: "COLLECTION", label: "Mi colección", icon: Layers },
+            { id: "WANTED", label: "Busco una pieza", icon: Search },
             { id: "NOTIFICATIONS", label: "Notificaciones", icon: Bell },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -550,6 +557,7 @@ function AccountContent() {
 
         {/* Right Side: Tab Contents (9 Cols) */}
         <div className="lg:col-span-9 bg-white border border-[#E5E5E5] rounded-3xl p-6 sm:p-8 shadow-sm min-h-[460px]">
+          {(activeTab === "COLLECTION" || activeTab === "WANTED") && <CollectorCabinet key={currentUser.email + activeTab} kind={activeTab === "COLLECTION" ? "COLLECTION" : "WANTED"} products={catalogProducts} />}
           {activeTab === "NOTIFICATIONS" && <NotificationCenter key={currentUser?.email} />}
           {/* TAB 1: HISTORIAL DE PEDIDOS & SEGUIMIENTO (MAIN REQUEST) */}
           {activeTab === "ORDERS" && (

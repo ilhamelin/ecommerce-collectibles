@@ -80,3 +80,7 @@ notification_reads almacena ids (hasta 500 hashes) y updatedAt por identidad. Ac
 ## Confirmaciones de pago
 
 payment_confirmations registra provider, paymentId, orderId, purpose (CHECKOUT/BALANCE), amount, currency, live y confirmedAt. Documento identificado por SHA-256 del proveedor e ID del pago. Solo servidor; las reglas existentes deniegan lectura y escritura directa. Recibo y actualización del pedido se guardan en la misma transacción. [Detalles](permisos-y-pagos.md).
+
+## Colecciones personales
+
+`collector_profiles/{hash-propietario}` conserva entradas privadas de colección/búsqueda y updatedAt; mutaciones transaccionales desde la API. Las reglas cliente existentes la deniegan. [Contrato y límites](coleccion-y-busqueda.md).

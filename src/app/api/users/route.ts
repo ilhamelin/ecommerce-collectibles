@@ -1,3 +1,5 @@
+import { adminDb } from "@/lib/firebase/admin";
+import { collectorOwnerKey } from "@/lib/collector/storage";
 import { requestIdentity } from "@/lib/auth/requestIdentity";
 import { ProfileUpdateSchema } from "@/lib/auth/profileSchema";
 import { getProductsFromFirestore } from "@/lib/firebase/firestore";
@@ -303,6 +305,17 @@ export async function DELETE(request: NextRequest) {
     if (!identity) return NextResponse.json({ success: false, error: "Sesión requerida." }, { status: 401 });
     const target = await getUserFromFirestore(id);
     if (!identity.admin && (!target || (target.id !== identity.uid && (!identity.email || target.email.toLowerCase() !== identity.email)))) return NextResponse.json({ success: false, error: "Acceso denegado." }, { status: 403 });
+    // Remove both Firebase-owner and signed-session variants before deleting the profile.
+    if (adminDb && target) {
+      const keys = new Set([
+        collectorOwnerKey({ uid: target.id, email: target.email }),
+        collectorOwnerKey({ uid: "", email: target.email.toLowerCase().trim() }),
+      ]);
+      if (!identity.admin && identity.uid) keys.add(collectorOwnerKey(identity));
+      const batch = adminDb.batch();
+      for (const key of keys) batch.delete(adminDb.collection("collector_profiles").doc(key));
+      await batch.commit();
+    }
     const deletedInFirestore = await deleteUserFromFirestore(target?.id || id);
     if (!deletedInFirestore) return NextResponse.json({ success: false, error: "La cuenta no se eliminó de la base de datos." }, { status: 503 });
 

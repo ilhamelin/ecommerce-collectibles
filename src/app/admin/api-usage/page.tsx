@@ -39,6 +39,8 @@ import {
   USD_TO_CLP_RATE,
 } from "@/lib/types/telemetry";
 
+const LOGS_PER_PAGE = 10;
+
 type TimeframeType = "today" | "7d" | "30d" | "all";
 type SortFieldType = "timestamp" | "tokens" | "cost" | "latency";
 type SortDirectionType = "asc" | "desc";
@@ -56,6 +58,12 @@ export default function ApiUsagePage() {
   const [logSearchQuery, setLogSearchQuery] = useState<string>("");
   const [sortField, setSortField] = useState<SortFieldType>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirectionType>("desc");
+
+  const [logPage, setLogPage] = useState(1);
+
+  useEffect(() => {
+    setLogPage(1);
+  }, [timeframe, logProviderFilter, logSearchQuery, sortField, sortDirection, summary?.recentLogs]);
 
   const requestVersion = useRef(0);
   const fetchTelemetry = useCallback(async (tf: TimeframeType = timeframe) => {
@@ -161,6 +169,11 @@ export default function ApiUsagePage() {
       return sortDirection === "desc" ? -comparison : comparison;
     });
   }, [summary, logProviderFilter, logSearchQuery, sortField, sortDirection]);
+
+  const logPageCount = Math.max(1, Math.ceil(filteredAndSortedLogs.length / LOGS_PER_PAGE));
+  const currentLogPage = Math.min(logPage, logPageCount);
+  const logStartIndex = (currentLogPage - 1) * LOGS_PER_PAGE;
+  const paginatedLogs = filteredAndSortedLogs.slice(logStartIndex, logStartIndex + LOGS_PER_PAGE);
 
   const featureLabels: Record<string, { label: string; desc: string }> = {
     AUTO_FILL_PRODUCT: { label: "Auto-Fill de Catálogo", desc: "Generación de ficha técnica y especificaciones con IA" },
@@ -839,7 +852,7 @@ export default function ApiUsagePage() {
             </thead>
             <tbody className="divide-y divide-[#F0F0F0]">
               {filteredAndSortedLogs.length > 0 ? (
-                filteredAndSortedLogs.map((log: ApiTelemetryRecord) => {
+                paginatedLogs.map((log: ApiTelemetryRecord) => {
                   const date = new Date(log.timestamp);
                   const formattedDate = date.toLocaleString("es-CL", {
                     day: "2-digit",
@@ -982,6 +995,34 @@ export default function ApiUsagePage() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="border-t border-[#F0F0F0] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs text-[#64748B]" role="status" aria-live="polite" aria-atomic="true">
+            {filteredAndSortedLogs.length > 0
+              ? `Mostrando ${logStartIndex + 1}–${logStartIndex + paginatedLogs.length} de ${filteredAndSortedLogs.length} peticiones`
+              : "0 peticiones"}
+          </p>
+          <nav aria-label="Páginas del registro de peticiones" className="flex items-center gap-3">
+            <button
+              type="button"
+              disabled={currentLogPage === 1 || isLoading}
+              onClick={() => setLogPage(currentLogPage - 1)}
+              className="px-3 py-2 rounded-xl border border-[#E5E5E5] text-xs font-semibold text-[#1F3A5F] hover:bg-[#F8F9FA] transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-offset-2"
+            >
+              Anterior
+            </button>
+            <span className="text-xs font-semibold text-[#1F3A5F] whitespace-nowrap">
+              Página {currentLogPage} de {logPageCount}
+            </span>
+            <button
+              type="button"
+              disabled={currentLogPage === logPageCount || isLoading}
+              onClick={() => setLogPage(currentLogPage + 1)}
+              className="px-3 py-2 rounded-xl bg-[#1F3A5F] text-xs font-semibold text-white hover:bg-[#162D4A] transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-offset-2"
+            >
+              Siguiente
+            </button>
+          </nav>
         </div>
       </div>
       </TabsContent>

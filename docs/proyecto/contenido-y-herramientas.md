@@ -18,6 +18,29 @@ La vista previa no modifica productos. Expira después de una hora. Cada vista p
 
 El servidor vuelve a verificar el catálogo durante la transacción. Si alguien cambió un producto o creó el mismo SKU, rechaza todo el lote con 409. Productos, historial y marca de lote confirmado se guardan juntos. Repetir una confirmación ya realizada no duplica productos.
 
+### Cargar Google Sheets desde Drive
+
+En el importador selecciona **Google Sheets (Drive)**. Se admite un archivo nativo de Google Sheets, mediante su enlace `https://docs.google.com/spreadsheets/d/ID/edit`; no es un explorador de todo Drive. Si tu archivo de Drive es XLSX, conviértelo a Google Sheets o usa la carga local de Excel.
+
+Configuración inicial:
+
+1. En Google Cloud, elige el proyecto de la cuenta de servicio que usas para Firebase y [habilita Google Sheets API](https://console.cloud.google.com/apis/library/sheets.googleapis.com).
+2. En Google Sheets pulsa **Compartir** y añade como **Lector** el correo mostrado dentro del importador. Es el valor de `FIREBASE_CLIENT_EMAIL`; la clave privada nunca se muestra. La hoja puede seguir privada.
+3. No añadas claves públicas ni variables OAuth nuevas en Vercel: se reutilizan `FIREBASE_CLIENT_EMAIL` y `FIREBASE_PRIVATE_KEY` del servidor. Despliega el código que contiene esta función.
+
+Carga y revisión:
+
+1. Pega el enlace y pulsa **Conectar hoja**. Se obtiene el nombre del documento y su lista de pestañas; un `gid` válido del enlace preselecciona la pestaña correspondiente.
+2. Elige la pestaña. Coloca los mismos ocho encabezados en **A1:H1** y los productos desde la fila 2.
+3. Pulsa **Previsualizar Google Sheets**. El servidor lee una copia de los datos actuales y aplica el mismo modo de crear/actualizar, validaciones por fila y límite de 25 productos por lote. Confirma el lote para guardar.
+4. Cambiar enlace, pestaña, origen o modo invalida la vista previa. La hoja original no se modifica. Si editas Google Sheets después de previsualizar, vuelve a cargar para incorporar esas ediciones: no hay sincronización automática.
+
+Se usa el alcance OAuth [spreadsheets.readonly](https://developers.google.com/workspace/sheets/api/scopes). La cuenta solo puede acceder a hojas que le compartas; no se solicita acceso al Drive de tu usuario. Los [valores se leen sin formato](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets.values/get), de forma que un precio mostrado como moneda llegue como número. En Sheets se importa el resultado calculado de las fórmulas; no se ejecutan sus expresiones en esta aplicación. Guarda SKU y tipo como texto. Se conserva el límite de 100 productos, 2000 caracteres por celda y 2 MiB por respuesta. Se leen las filas de A:H, más la columna I como comprobación de columnas extra; otras columnas no se importan. La respuesta completa está limitada a 2 MiB y las pestañas con más de 100 productos se rechazan, sin recortarlas silenciosamente. Divide una pestaña grande antes de cargarla. Se limita también la respuesta de metadatos a 200 pestañas compatibles.
+
+La ruta solo acepta enlaces del host `docs.google.com` y construye peticiones a `sheets.googleapis.com`, sin seguir redirecciones. Las credenciales y tokens permanecen en el servidor, los datos no se envían a IA y las respuestas administrativas no se almacenan en caché. Los errores 403 indican permisos o API deshabilitada, 404 hoja inexistente/no compartida, 409 pestaña eliminada, 429 cuota temporal y 503 autenticación o proveedor indisponible. Ninguno guarda productos.
+
+Las pruebas de esta integración usan respuestas de Google simuladas; una lectura real requiere habilitar la API y compartir una hoja. No se ha habilitado la API ni cambiado permisos de Drive automáticamente.
+
 ## Biblioteca de imágenes
 
 En Imágenes puedes subir PNG, JPG o WebP de hasta 5 MiB. El navegador reduce la resolución a un máximo de 1200 píxeles por lado y comprime a WebP hasta 350 KiB. Se rechazan imágenes de más de 20 megapíxeles. El servidor comprueba tamaño, tipo y firma del formato. SVG no se admite.
@@ -55,6 +78,7 @@ Descarga PNG o JPG. Se genera en el navegador; no publica en redes sociales ni e
 | API | Métodos | Uso |
 |---|---|---|
 | `/api/admin/tools/catalog` | GET | Catálogo privado para laboratorio y fichas |
+| `/api/admin/import/google-sheets` | GET, POST | Configuración de lectura, pestañas y valores de Google Sheets |
 | `/api/admin/import` | POST | Vista previa o confirmación del lote |
 | `/api/admin/media` | GET, POST, PATCH | Listado, subida y metadatos de imágenes |
 | `/api/media/[id]` | GET | Archivo raster público por UUID |

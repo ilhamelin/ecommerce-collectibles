@@ -27,6 +27,7 @@
     "exceljs": "^4.4.0",
     "firebase": "^12.19.0",
     "firebase-admin": "13.10.0",
+    "google-auth-library": "^10.9.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "mercadopago": "^3.6.1",

@@ -10,7 +10,7 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 
 ## Inventario
 
-55 rutas y 93 operaciones exportadas. [JSON estructurado](inventario-api.json).
+56 rutas y 95 operaciones exportadas. [JSON estructurado](inventario-api.json).
 
 | Ruta | Métodos | Acceso | Función y fuente |
 |---|---|---|---|
@@ -69,6 +69,7 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 | Ruta | Métodos | Acceso | Función y fuente |
 |---|---|---|---|
 | `/api/admin/tools/catalog` | GET | Sesión administrativa firmada | Catálogo privado para herramientas. [Código](../../src/app/api/admin/tools/catalog/route.ts) |
+| `/api/admin/import/google-sheets` | GET, POST | Sesión administrativa firmada | Configuración, pestañas y lectura protegida. [Código](../../src/app/api/admin/import/google-sheets/route.ts) |
 | `/api/admin/import` | POST | Sesión administrativa firmada | Vista previa y confirmación atómica de importación. [Código](../../src/app/api/admin/import/route.ts) |
 | `/api/admin/media` | GET, POST, PATCH | Sesión administrativa firmada | Biblioteca de imágenes y metadatos. [Código](../../src/app/api/admin/media/route.ts) |
 | `/api/media/[id]` | GET | Público: binario | Binario raster público por UUID. [Código](../../src/app/api/media/[id]/route.ts) |
@@ -188,3 +189,8 @@ Cambiar DTO/enums/stream exige actualizar ambos extremos y tests. Tienda públic
 GET /api/admin/health devuelve success/data con checkedAt, services, protection, telemetryAvailable e incidents. Firestore se comprueba mediante lectura acotada a un documento. Las comprobaciones tienen un plazo de cuatro segundos y admiten resultados parciales. Las credenciales de proveedores nunca se devuelven y su presencia no implica conectividad. No se ejecutan cobros, generaciones IA ni correos.
 
 GET /api/users/notifications devuelve success/data con items, unread y checkedAt. PATCH acepta { "ids": ["ID SHA-256"] }, de 1 a 100 IDs pertenecientes al feed de la cuenta. El estado de lectura se confirma mediante una transacción. Respuestas 401 sin identidad, 403 sin correo verificado o con ID ajeno, 400 cuerpo inválido, 503 persistencia no disponible. Ambas rutas usan Cache-Control no-store. Véase [guía de las funciones](salud-busqueda-notificaciones.md).
+
+
+### Google Sheets para importación
+
+GET `/api/admin/import/google-sheets` devuelve `{success,data:{serviceEmail,configured}}` sin claves o tokens. POST admite exclusivamente `{action:"inspect",url}` para obtener el documento y pestañas o `{action:"read",url,sheetId}` para obtener `{matrix,source}`. `sheetId` es entero no negativo; no se acepta un token del cliente ni una URL de descarga arbitraria. El endpoint no escribe el catálogo: la matriz pasa a POST `/api/admin/import` con `action:"preview"`, seguido de la confirmación existente. [Configuración y límites](contenido-y-herramientas.md#cargar-google-sheets-desde-drive).

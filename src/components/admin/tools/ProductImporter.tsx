@@ -1,10 +1,12 @@
 "use client";
 import React, { useState } from "react";
+import { GoogleSheetsSource } from "./GoogleSheetsSource";
 import { readImportFile, excelTemplate } from "@/lib/admin-tools/excel";
 import { importHeaders, type ImportRow } from "@/lib/admin-tools/import";
 import { toolRequest, downloadBlob } from "@/lib/admin-tools/client";
 type Preview = { jobId: string; rows: ImportRow[] };
 export function ProductImporter() {
+  const [source, setSource] = useState<"file" | "google">("file");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [mode, setMode] = useState<"CREATE" | "UPDATE">("CREATE");
   const [selected, setSelected] = useState<number[]>([]);
@@ -12,7 +14,14 @@ export function ProductImporter() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [confirm, setConfirm] = useState(false);
-  async function load(file: File) {
+  function resetPreview() {
+    setPreview(null);
+    setSelected([]);
+    setConfirm(false);
+    setError("");
+    setMessage("");
+  }
+  async function loadMatrix(loader: () => Promise<string[][]>) {
     setBusy(true);
     setError("");
     setMessage("");
@@ -20,7 +29,7 @@ export function ProductImporter() {
     setSelected([]);
     setConfirm(false);
     try {
-      const matrix = await readImportFile(file);
+      const matrix = await loader();
       const data = await toolRequest<Preview>("/api/admin/import", {
         action: "preview",
         mode,
@@ -63,7 +72,7 @@ export function ProductImporter() {
   return (
     <section className="space-y-5">
       <h2 className="text-2xl font-black text-[#1F3A5F]">
-        Importador Excel / CSV
+        Importador Excel / CSV y Google Sheets
       </h2>
       <p className="text-sm text-slate-600">
         Usa la plantilla. Previsualiza hasta 100 filas y confirma un lote de
@@ -117,8 +126,7 @@ export function ProductImporter() {
           value={mode}
           onChange={(e) => {
             setMode(e.target.value as typeof mode);
-            setPreview(null);
-            setConfirm(false);
+            resetPreview();
           }}
           className="block border rounded-xl p-3 mt-1"
         >
@@ -126,20 +134,65 @@ export function ProductImporter() {
           <option value="UPDATE">Actualizar existentes por SKU</option>
         </select>
       </label>
-      <label className="block rounded-2xl bg-slate-50 border p-5 text-sm font-bold">
-        Cargar archivo
-        <input
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="Origen de los productos"
+      >
+        <button
+          type="button"
           disabled={busy}
-          type="file"
-          accept=".csv,.xlsx"
-          className="block mt-3 text-xs"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void load(file);
-            e.target.value = "";
+          aria-pressed={source === "file"}
+          onClick={() => {
+            setSource("file");
+            resetPreview();
           }}
+          className={
+            "rounded-xl border px-4 py-3 text-sm font-bold " +
+            (source === "file" ? "bg-[#1F3A5F] text-white" : "bg-white")
+          }
+        >
+          Archivo Excel / CSV
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          aria-pressed={source === "google"}
+          onClick={() => {
+            setSource("google");
+            resetPreview();
+          }}
+          className={
+            "rounded-xl border px-4 py-3 text-sm font-bold " +
+            (source === "google" ? "bg-emerald-700 text-white" : "bg-white")
+          }
+        >
+          Google Sheets (Drive)
+        </button>
+      </div>
+      {source === "file" ? (
+        <label className="block rounded-2xl bg-slate-50 border p-5 text-sm font-bold">
+          Cargar archivo
+          <input
+            disabled={busy}
+            type="file"
+            accept=".csv,.xlsx"
+            className="block mt-3 text-xs"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void loadMatrix(() => readImportFile(file));
+              e.target.value = "";
+            }}
+          />
+        </label>
+      ) : (
+        <GoogleSheetsSource
+          onBusyChange={setBusy}
+          disabled={busy}
+          onReset={resetPreview}
+          onLoad={(matrix) => loadMatrix(() => Promise.resolve(matrix))}
         />
-      </label>
+      )}
       {busy && <p role="status">Procesando…</p>}
       {error && (
         <p role="alert" className="bg-red-50 text-red-700 rounded-xl p-3">

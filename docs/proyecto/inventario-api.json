@@ -150,6 +150,17 @@
       "aiProtection": false
     },
     {
+      "path": "/api/admin/import/google-sheets",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Sesión administrativa firmada",
+      "description": "Configuración, pestañas y lectura de Google Sheets; sin escritura al documento ni al catálogo.",
+      "source": "src/app/api/admin/import/google-sheets/route.ts",
+      "aiProtection": false
+    },
+    {
       "path": "/api/admin/laboratory",
       "methods": [
         "GET",

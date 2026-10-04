@@ -162,3 +162,143 @@ describe("Administrative tool review surfaces", () => {
     );
   });
 });
+
+describe("Google Sheets import review", () => {
+  async function enterLink() {
+    const input = host.querySelector<HTMLInputElement>("input[type=url]")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )!.set!.call(
+        input,
+        "https://docs.google.com/spreadsheets/d/abcdefghijklmnopqrstuv123456/edit#gid=7",
+      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  it("loads the selected Drive tab into the existing preview and requires confirmation", async () => {
+    const matrix = [
+      [
+        "sku",
+        "nombre",
+        "tipo",
+        "precio",
+        "costo",
+        "stock",
+        "descripcion",
+        "imagen",
+      ],
+      [
+        "FIG-001",
+        "Figura desde Drive",
+        "FIGURE",
+        "54990",
+        "42000",
+        "8",
+        "Descripción válida",
+        "",
+      ],
+    ];
+    mock.request.mockImplementation(
+      async (url: string, body?: { action?: string }) => {
+        if (url.endsWith("google-sheets")) {
+          if (!body)
+            return {
+              serviceEmail: "reader@example.iam.gserviceaccount.com",
+              configured: true,
+            };
+          if (body.action === "inspect")
+            return {
+              title: "Catálogo Drive",
+              spreadsheetId: "id",
+              selectedSheetId: 7,
+              sheets: [
+                { id: 0, title: "Otra" },
+                { id: 7, title: "Productos" },
+              ],
+            };
+          return { matrix };
+        }
+        if (body?.action === "preview")
+          return {
+            jobId: "google-job",
+            rows: [
+              {
+                row: 2,
+                product: {
+                  sku: "FIG-001",
+                  name: "Figura desde Drive",
+                  price: 54990,
+                  costPrice: 42000,
+                  stockAvailable: 8,
+                },
+                errors: [],
+                operation: "CREATE",
+              },
+            ],
+          };
+        return { count: 1 };
+      },
+    );
+    await act(async () => root.render(<ProductImporter />));
+    await click("Google Sheets (Drive)");
+    expect(host.textContent).toContain(
+      "reader@example.iam.gserviceaccount.com",
+    );
+    await enterLink();
+    await click("Conectar hoja");
+    expect(
+      host.querySelector<HTMLSelectElement>("select:last-of-type")?.value ||
+        host.textContent,
+    ).toBeTruthy();
+    expect(Array.from(host.querySelectorAll("select")).at(-1)?.value).toBe("7");
+    await click("Previsualizar Google Sheets");
+    expect(mock.request).toHaveBeenCalledWith(
+      "/api/admin/import/google-sheets",
+      expect.objectContaining({ action: "read", sheetId: 7 }),
+    );
+    expect(mock.request).toHaveBeenCalledWith("/api/admin/import", {
+      action: "preview",
+      mode: "CREATE",
+      matrix,
+    });
+    expect(host.textContent).toContain("Figura desde Drive");
+    expect(
+      mock.request.mock.calls.some((call) => call[1]?.action === "commit"),
+    ).toBe(false);
+    await click("Revisar y guardar lote");
+    await click("Confirmar importación");
+    expect(mock.request).toHaveBeenLastCalledWith("/api/admin/import", {
+      action: "commit",
+      jobId: "google-job",
+      rows: [2],
+    });
+    expect(mock.read).not.toHaveBeenCalled();
+  });
+  it("shows Google permission failures without creating a preview or committing products", async () => {
+    mock.request.mockImplementation(async (_url: string, body?: unknown) => {
+      if (!body)
+        return {
+          serviceEmail: "reader@example.iam.gserviceaccount.com",
+          configured: true,
+        };
+      throw new Error(
+        "Comparte la hoja con la cuenta de servicio como lector.",
+      );
+    });
+    await act(async () => root.render(<ProductImporter />));
+    await click("Google Sheets (Drive)");
+    await enterLink();
+    await click("Conectar hoja");
+    expect(host.querySelector("[role=alert]")?.textContent).toContain(
+      "Comparte la hoja",
+    );
+    expect(
+      mock.request.mock.calls.every((call) =>
+        call[0].endsWith("google-sheets"),
+      ),
+    ).toBe(true);
+    expect(host.textContent).not.toContain("Confirmar importación");
+  });
+});

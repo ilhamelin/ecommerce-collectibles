@@ -70,3 +70,8 @@ Fuentes: [scripts](../../package.json), [Firebase](../../src/lib/firebase/config
 [ci.yml](../../.github/workflows/ci.yml) ejecuta npm ci, tests y build, y guarda artefacto .next. Actualmente usa Node 20, distinto de 24.x declarado en package.json; se registra la discrepancia como pendiente, sin modificar el workflow en esta entrega. Revisar .github/workflows/deploy.yml antes de atribuirle un despliegue efectivo de Vercel.
 
 Configuración y pruebas de pagos: [guía](permisos-y-pagos.md).
+
+
+## Google Sheets en el importador
+
+No requiere variables nuevas. Habilita Google Sheets API en el proyecto de la cuenta de servicio Firebase y comparte cada hoja como lector con `FIREBASE_CLIENT_EMAIL`. El importador muestra ese correo y selecciona pestañas mediante enlace. [Guía de configuración](contenido-y-herramientas.md#cargar-google-sheets-desde-drive).

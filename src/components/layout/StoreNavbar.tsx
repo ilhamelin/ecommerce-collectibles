@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -38,11 +38,11 @@ import { useCartStore } from "@/lib/store/cartStore";
 import { useAuthStore } from "@/lib/store/authStore";
 import { DEFAULT_BRANDING_DATA, StoreBrandingData } from "@/lib/constants/brandingDefaults";
 import { DEFAULT_ANNOUNCEMENT_DATA, StoreAnnouncementData } from "@/lib/constants/announcementDefaults";
-import { getProductCategoryInfo } from "@/lib/utils/category";
+import { getCatalogCategoryCounts } from "@/lib/services/catalogCategories";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { categoryClient } from "@/lib/services/categoryClient";
 import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
-import type { CustomCategoryEntity } from "@/lib/types/domain";
+import type { CustomCategoryEntity, ProductDomainEntity } from "@/lib/types/domain";
 import { formatCLP } from "@/lib/utils/currency";
 
 let cachedBranding: StoreBrandingData | null = null;
@@ -76,21 +76,11 @@ function StoreNavbarContent() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({
-    VIDEO_GAME: 10,
-    FIGURE: 7,
-    COLLECTIBLE: 3,
-    BUNDLE: 0,
-    CONSOLE: 3,
-    HARDWARE: 1,
-    GAMING_ACCESSORY: 3,
-    APPAREL: 0,
-    BOOK: 1,
-    MERCH: 0,
-    AUDIO: 0,
-    OTHER: 0,
-    ALL: 28,
-  });
+  const [catalogProducts, setCatalogProducts] = useState<ProductDomainEntity[]>([]);
+  const categoryCounts = useMemo(
+    () => getCatalogCategoryCounts(catalogProducts, customCategories),
+    [catalogProducts, customCategories],
+  );
 
   // Auto-close dropdown on route change
   useEffect(() => {
@@ -146,39 +136,9 @@ function StoreNavbarContent() {
   useEffect(() => {
     let isCancelled = false;
 
-    const updateCounts = (prods: any[]) => {
+    const updateCounts = (prods: ProductDomainEntity[]) => {
       if (isCancelled || !Array.isArray(prods)) return;
-      const counts: Record<string, number> = {
-        VIDEO_GAME: 0,
-        FIGURE: 0,
-        COLLECTIBLE: 0,
-        BUNDLE: 0,
-        CONSOLE: 0,
-        HARDWARE: 0,
-        GAMING_ACCESSORY: 0,
-        APPAREL: 0,
-        BOOK: 0,
-        MERCH: 0,
-        AUDIO: 0,
-        OTHER: 0,
-        ALL: prods.length,
-      };
-      for (const p of prods) {
-        const catKey = getProductCategoryInfo(p).key;
-        if (counts[catKey] !== undefined) {
-          counts[catKey]++;
-        } else {
-          counts.OTHER++;
-        }
-
-        if (p.customCategoryLabel) {
-          counts[p.customCategoryLabel] = (counts[p.customCategoryLabel] || 0) + 1;
-        }
-        if (p.customSpecifications?.categoryType) {
-          counts[p.customSpecifications.categoryType] = (counts[p.customSpecifications.categoryType] || 0) + 1;
-        }
-      }
-      setCategoryCounts(counts);
+      setCatalogProducts(prods);
     };
 
     catalogClient.getCatalog()

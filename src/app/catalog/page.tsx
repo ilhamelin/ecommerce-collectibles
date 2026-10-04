@@ -38,6 +38,7 @@ import { PRICE_PRESETS } from "@/lib/constants/catalog";
 import { ProductDomainEntity, CustomCategoryEntity } from "@/lib/types/domain";
 import { VisualSearchModal } from "@/components/catalog/VisualSearchModal";
 import { getProductCategoryInfo } from "@/lib/utils/category";
+import { getCatalogCategoryCounts, matchesProductCategory } from "@/lib/services/catalogCategories";
 import { catalogClient } from "@/lib/services/catalogClient";
 import { categoryClient } from "@/lib/services/categoryClient";
 import { getCategoryIconComponent } from "@/lib/constants/categoryIcons";
@@ -218,51 +219,10 @@ function CatalogContent() {
     setCurrentPage(1);
   };
 
-  // Dynamic Category Counts
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      ALL: products.length,
-      VIDEO_GAME: 0,
-      FIGURE: 0,
-      COLLECTIBLE: 0,
-      BUNDLE: 0,
-      CONSOLE: 0,
-      HARDWARE: 0,
-      GAMING_ACCESSORY: 0,
-      APPAREL: 0,
-      BOOK: 0,
-      MERCH: 0,
-      AUDIO: 0,
-      OTHER: 0,
-    };
-    for (const p of products) {
-      const pType = (p as any).type;
-      if (pType === "VIDEO_GAME") counts.VIDEO_GAME++;
-      else if (pType === "FIGURE") counts.FIGURE++;
-      else if (pType === "COLLECTIBLE") counts.COLLECTIBLE++;
-      else if (pType === "BUNDLE") counts.BUNDLE++;
-      else if (pType === "CONSOLE") counts.CONSOLE++;
-      else if (pType === "HARDWARE") counts.HARDWARE++;
-      else if (pType === "OTHER") {
-        const catKey = getProductCustomCategoryKey(p);
-        if (catKey && counts[catKey] !== undefined) {
-          counts[catKey]++;
-        }
-        counts.OTHER++;
-      }
-
-      // Count custom categories by name and id
-      const cLabel = (p as any).customCategoryLabel;
-      const cType = (p as any).customSpecifications?.categoryType;
-      if (cLabel) {
-        counts[cLabel] = (counts[cLabel] || 0) + 1;
-      }
-      if (cType) {
-        counts[cType] = (counts[cType] || 0) + 1;
-      }
-    }
-    return counts;
-  }, [products]);
+  const categoryCounts = useMemo(
+    () => getCatalogCategoryCounts(products, customCategories),
+    [products, customCategories],
+  );
 
   const manufacturerOptions = useMemo(() => Array.from(new Set(products.flatMap(productManufacturers))).sort((a, b) => a.localeCompare(b)), [products]);
   const { manufacturerFilter, arrivalFrom, arrivalTo } = filters;
@@ -331,35 +291,7 @@ function CatalogContent() {
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (!matchesExtraFilters(product, filters)) return false;
-      // Category Filter (Standard and Custom Categories)
-      if (selectedCategory !== "ALL") {
-        if (selectedCategory === product.type) {
-          // Direct type match
-        } else if (product.type === "OTHER") {
-          const customKey = getProductCustomCategoryKey(product);
-          const pLabel = (product.customCategoryLabel || "").toLowerCase();
-          const pType = (product.customSpecifications?.categoryType || "").toLowerCase();
-          const targetLower = selectedCategory.toLowerCase();
-          const matchedEntity = customCategories.find(
-            (c) => c.id === selectedCategory || c.name.toLowerCase() === targetLower
-          );
-
-          if (selectedCategory === "OTHER") {
-            // Match any other category
-          } else if (
-            selectedCategory === customKey ||
-            pLabel === targetLower ||
-            pType === targetLower ||
-            (matchedEntity && (pLabel === matchedEntity.name.toLowerCase() || pType === matchedEntity.id.toLowerCase()))
-          ) {
-            // Match specific custom category
-          } else {
-            return false;
-          }
-        } else {
-          return false;
-        }
-      }
+      if (!matchesProductCategory(product, selectedCategory, customCategories)) return false;
 
       // Search Filter: comprehensive match for Name, SKU, Description, Genres, Tags, Custom Specs, Platform, Manufacturer
       if (searchQuery.trim()) {

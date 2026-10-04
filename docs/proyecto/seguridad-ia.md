@@ -47,3 +47,8 @@ Middleware filtra URL/user-agent, redirige HTTPS según header/entorno y limita 
 Solicitud normal en dominio registrado: token, respuesta y contador correctos. Repetir sin X-Firebase-AppCheck conservando sesión admin cuando corresponda: enforce debe devolver 403 sin ejecutar modelo. Probar foto/chat como visitante. Mocks/emuladores no prueban el estado del despliegue. Consultar limitaciones para pagos y endpoints públicos.
 
 Fuentes: [identidad](../../src/lib/auth/requestIdentity.ts), [sesión](../../src/lib/auth/adminSessionToken.ts), [pedido](../../src/lib/auth/orderAccess.ts), [App Check/cuotas](../../src/lib/services/aiProtection.ts), [reglas](../../firestore.rules).
+
+
+## Herramientas administrativas
+
+Consulta [Contenido y herramientas](contenido-y-herramientas.md) para las nuevas pantallas, contratos, colecciones privadas, confirmaciones y límites.

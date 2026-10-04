@@ -1,4 +1,5 @@
 "use client";
+import { MediaPicker } from "@/components/admin/tools/MediaPicker";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
@@ -2042,6 +2043,7 @@ export default function EditProductAdminPage() {
                 {images.length} imagen{images.length !== 1 ? "es" : ""} cargada{images.length !== 1 ? "s" : ""}
               </span>
             </div>
+            <MediaPicker onSelect={url => setImages(previous => [...new Set([...previous, url])])} />
 
             {/* Add Image Inputs */}
             <div className="space-y-3">

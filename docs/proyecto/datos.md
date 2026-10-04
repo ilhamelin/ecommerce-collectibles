@@ -84,3 +84,8 @@ payment_confirmations registra provider, paymentId, orderId, purpose (CHECKOUT/B
 ## Colecciones personales
 
 `collector_profiles/{hash-propietario}` conserva entradas privadas de colección/búsqueda y updatedAt; mutaciones transaccionales desde la API. Las reglas cliente existentes la deniegan. [Contrato y límites](coleccion-y-busqueda.md).
+
+
+## Datos privados de herramientas
+
+Consulta [Contenido y herramientas](contenido-y-herramientas.md) para las nuevas pantallas, contratos, colecciones privadas, confirmaciones y límites.

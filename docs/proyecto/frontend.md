@@ -81,3 +81,8 @@ Al extender la UI reutilizar stores/clientes, validar estados de carga/error y f
 ## Vitrina del coleccionista
 
 Mi cuenta incorpora Mi colección y Busco una pieza, con `CollectorCabinet`, formularios, filtros, edición, borrado confirmado y traslado entre listas. [Flujo completo](coleccion-y-busqueda.md). Las sugerencias se consultan al abrir/actualizar; no hay actividad simulada de IA.
+
+
+## Herramientas de contenido
+
+Consulta [Contenido y herramientas](contenido-y-herramientas.md) para las nuevas pantallas, contratos, colecciones privadas, confirmaciones y límites.

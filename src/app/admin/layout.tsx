@@ -66,6 +66,7 @@ export default function AdminLayout({
     pathname.startsWith("/admin/side-banners");
 
   const otherNavItems = [
+    { href: "/admin/tools", label: "Herramientas", icon: Layers, active: pathname.startsWith("/admin/tools") },
     {
       href: "/admin/users",
       label: "Usuarios & Clientes",
@@ -362,6 +363,7 @@ export default function AdminLayout({
                       </span>
                     </div>
 
+                    <Link href="/admin/tools?tab=lab" onClick={() => setIsVisualMenuOpen(false)} className="block rounded-xl p-3 text-sm font-bold text-[#1F3A5F] hover:bg-orange-50">Laboratorio de la tienda<span className="block text-xs font-normal text-slate-500 mt-1">Borradores, comparación y publicación de portada</span></Link>
                     <Link href="/admin/visual-versions" onClick={() => setIsVisualMenuOpen(false)} className="block rounded-xl p-3 text-sm font-bold text-[#1F3A5F] hover:bg-orange-50">Versiones y campañas<span className="block text-xs font-normal text-slate-500 mt-1">Guardar, revisar y recuperar diseños</span></Link>
                     <Link href="/admin/home-hero" onClick={() => setIsVisualMenuOpen(false)}
                       className={`flex items-start gap-2.5 p-2.5 rounded-xl transition ${pathname === "/admin/home-hero" ? "bg-orange-50 text-[#1F3A5F]" : "hover:bg-gray-50 text-[#333333]"}`}>
@@ -469,6 +471,7 @@ export default function AdminLayout({
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-label={item.label}
                     className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition ${
                       item.active
                         ? "bg-[#FF6B35] text-white shadow-sm"

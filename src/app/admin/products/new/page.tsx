@@ -1,4 +1,5 @@
 "use client";
+import { MediaPicker } from "@/components/admin/tools/MediaPicker";
 import { identityHeaders } from "@/lib/auth/clientIdentity";
 import { normalizeAutoFillSalePrice } from "@/lib/utils/autoFillPrice";
 import { readAutoFillResponse, type AutoFillEvent } from "@/lib/services/autoFillStream";
@@ -2104,6 +2105,7 @@ export default function NewProductAdminPage() {
               </span>
             </div>
 
+            <MediaPicker onSelect={url => setImages(previous => [...new Set([...previous, url])])} />
             {/* Input by URL and File Upload */}
             <div className="space-y-3">
               <div className="flex gap-2">

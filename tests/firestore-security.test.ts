@@ -24,7 +24,7 @@ describe.skipIf(!enabled)("Firestore rules · emulator", () => {
   });
   it("does not expose profiles, sessions, history, quotas or versions publicly", async () => {
     const db = env.unauthenticatedContext().firestore();
-    for (const name of ["users", "orders", "active_sessions", "admin_audit", "ai_quotas", "visual_versions", "collector_profiles"]) {
+    for (const name of ["users", "orders", "active_sessions", "admin_audit", "ai_quotas", "visual_versions", "collector_profiles", "import_jobs", "media_assets", "media_blobs", "media_control", "visual_drafts", "assistant_plans"]) {
       await assertFails(getDocs(collection(db, name))); await assertFails(getDoc(doc(db, name, "change")));
     }
   });

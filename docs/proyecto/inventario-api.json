@@ -1,5 +1,5 @@
 {
-  "reviewedAt": "2026-10-03",
+  "reviewedAt": "2026-10-04",
   "routes": [
     {
       "path": "/api/admin/alerts",
@@ -22,6 +22,17 @@
       "description": "Leer/guardar anuncios; POST audita.",
       "source": "src/app/api/admin/announcement/route.ts",
       "aiProtection": false
+    },
+    {
+      "path": "/api/admin/assistant",
+      "methods": [
+        "POST",
+        "PATCH"
+      ],
+      "access": "Sesión administrativa firmada; App Check en consultas IA",
+      "description": "Consulta IA y aplicación manual de descripciones.",
+      "source": "src/app/api/admin/assistant/route.ts",
+      "aiProtection": true
     },
     {
       "path": "/api/admin/auto-fill-product",
@@ -129,6 +140,39 @@
       "aiProtection": false
     },
     {
+      "path": "/api/admin/import",
+      "methods": [
+        "POST"
+      ],
+      "access": "Sesión administrativa firmada",
+      "description": "Vista previa y confirmación atómica de importación.",
+      "source": "src/app/api/admin/import/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/laboratory",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "access": "Sesión administrativa firmada",
+      "description": "Borradores y publicación de portada.",
+      "source": "src/app/api/admin/laboratory/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/media",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH"
+      ],
+      "access": "Sesión administrativa firmada",
+      "description": "Biblioteca de imágenes y metadatos.",
+      "source": "src/app/api/admin/media/route.ts",
+      "aiProtection": false
+    },
+    {
       "path": "/api/admin/predictive-stock",
       "methods": [
         "GET",
@@ -203,6 +247,16 @@
       "access": "Admin por middleware",
       "description": "GET timeframe=today/7d/30d/all; POST RESET/SIMULATE_CALL; SEED deshabilitado.",
       "source": "src/app/api/admin/telemetry/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/admin/tools/catalog",
+      "methods": [
+        "GET"
+      ],
+      "access": "Sesión administrativa firmada",
+      "description": "Catálogo privado para herramientas.",
+      "source": "src/app/api/admin/tools/catalog/route.ts",
       "aiProtection": false
     },
     {
@@ -348,6 +402,16 @@
       "access": "Público",
       "description": "Validación/honeypot y log; no envío SMTP aquí.",
       "source": "src/app/api/contact/route.ts",
+      "aiProtection": false
+    },
+    {
+      "path": "/api/media/[id]",
+      "methods": [
+        "GET"
+      ],
+      "access": "Público: solo binario",
+      "description": "Binario raster público por UUID.",
+      "source": "src/app/api/media/[id]/route.ts",
       "aiProtection": false
     },
     {

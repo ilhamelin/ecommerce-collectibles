@@ -13,6 +13,9 @@ import { POST as addCollector, PATCH as editCollector } from "@/app/api/users/co
 import { collectorInput, parseCollectorEntries } from "@/lib/collector/schema";
 import { collectorOwnerKey } from "@/lib/collector/storage";
 import { confirmVerifiedPayment } from "@/lib/payments/paymentConfirmation";
+import { POST as importProducts } from "@/app/api/admin/import/route";
+import { GET as readLaboratory, POST as writeLaboratory } from "@/app/api/admin/laboratory/route";
+import { importHeaders } from "@/lib/admin-tools/import";
 import { adminDb } from "@/lib/firebase/admin";
 import { withAdminHistory, writeAdminDocument } from "@/lib/services/adminHistory";
 import { reserveAiUsage, readAiProtectionStatus } from "@/lib/services/aiProtection";
@@ -86,6 +89,35 @@ describe.skipIf(!enabled)("Persistent security · real Firestore transactions", 
     await expect(confirmVerifiedPayment({ provider: "MERCADO_PAGO", id: "123", reference: "pay-one", amount: 100, currency: "CLP", approved: true, live: false })).rejects.toThrow();
     expect((await adminDb!.doc("orders/pay-one").get()).data()?.paymentStatus).toBe("PENDING");
     expect((await adminDb!.collection("payment_confirmations").get()).size).toBe(0);
+  }, 60000);
+
+  it("allows only one concurrent import of the same SKU", async () => {
+    const request = (body: unknown) => new NextRequest("http://localhost/api/admin/import", { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+    const matrix = [importHeaders, ["FIG-001", "Figura de prueba", "FIGURE", "54990", "42000", "8", "Figura para comprobar el importador.", ""]];
+    const previews = await Promise.all([0, 1].map(async () => (await (await importProducts(request({ action: "preview", mode: "CREATE", matrix }))).json()).data.jobId));
+    const replies = await Promise.all(previews.map(jobId => importProducts(request({ action: "commit", jobId, rows: [2] }))));
+    expect(replies.map(reply => reply.status).sort()).toEqual([200, 409]);
+    expect((await adminDb!.collection("products").get()).size).toBe(1);
+    expect((await adminDb!.collection("admin_audit").get()).size).toBe(1);
+  }, 60000);
+  it("rejects a stale import without overwriting the newer product", async () => {
+    await adminDb!.doc("products/piece").set({ sku: "FIG-001", name: "Original", type: "FIGURE", price: 100, stockReserved: 0 });
+    const request = (body: unknown) => new NextRequest("http://localhost/api/admin/import", { method: "POST", body: JSON.stringify(body) });
+    const preview = await (await importProducts(request({ action: "preview", mode: "UPDATE", matrix: [importHeaders, ["FIG-001", "Figura actualizada", "FIGURE", "54990", "42000", "8", "Descripción de prueba válida.", ""]] }))).json();
+    await adminDb!.doc("products/piece").update({ price: 200 });
+    expect((await importProducts(request({ action: "commit", jobId: preview.data.jobId, rows: [2] }))).status).toBe(409);
+    expect((await adminDb!.doc("products/piece").get()).data()?.price).toBe(200);
+    expect((await adminDb!.collection("admin_audit").get()).size).toBe(0);
+  }, 60000);
+  it("publishes the laboratory draft with its audit and saved version atomically", async () => {
+    const initial = await (await readLaboratory(new NextRequest("http://localhost/api/admin/laboratory"))).json();
+    const request = (body: unknown) => new NextRequest("http://localhost/api/admin/laboratory", { method: "POST", body: JSON.stringify(body) });
+    const saved = await (await writeLaboratory(request({ action: "save", name: "Prueba", settings: { ...initial.data.settings, heading: "Portada probada", featuredProductId: null }, baseHash: initial.data.baseHash }))).json();
+    expect((await adminDb!.doc("branding_settings/home_hero").get()).exists).toBe(false);
+    expect((await writeLaboratory(request({ action: "publish", id: saved.data.id }))).status).toBe(200);
+    expect((await adminDb!.doc("branding_settings/home_hero").get()).data()?.settings.heading).toBe("Portada probada");
+    expect((await adminDb!.collection("admin_audit").get()).size).toBe(1);
+    expect((await adminDb!.collection("visual_versions").get()).size).toBe(1);
   }, 60000);
 
 });

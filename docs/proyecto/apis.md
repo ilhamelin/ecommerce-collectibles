@@ -10,7 +10,7 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 
 ## Inventario
 
-49 rutas y 83 operaciones exportadas. [JSON estructurado](inventario-api.json).
+55 rutas y 93 operaciones exportadas. [JSON estructurado](inventario-api.json).
 
 | Ruta | Métodos | Acceso | Función y fuente |
 |---|---|---|---|
@@ -63,6 +63,19 @@ No hay error uniforme: algunos usan success/data/error; otros error/code/message
 | `/api/tracking/[id]` | GET, POST | GET propietario/recibo/admin; POST admin | GET exige acceso al pedido; consulta OT directa solo admin. POST registra AfterShip con sesión administrativa. [Código](../../src/app/api/tracking/[id]/route.ts) |
 | `/api/users/alerts` | GET, DELETE | Identidad: alcance propietario/admin según método | Listar/borrar suscripciones autorizadas. [Código](../../src/app/api/users/alerts/route.ts) |
 | `/api/users` | GET, PUT, PATCH, DELETE | Identidad: alcance propietario/admin según método | Perfil/lista; PUT perfil; PATCH rol admin; DELETE según identidad. [Código](../../src/app/api/users/route.ts) |
+
+### Herramientas de contenido
+
+| Ruta | Métodos | Acceso | Función y fuente |
+|---|---|---|---|
+| `/api/admin/tools/catalog` | GET | Sesión administrativa firmada | Catálogo privado para herramientas. [Código](../../src/app/api/admin/tools/catalog/route.ts) |
+| `/api/admin/import` | POST | Sesión administrativa firmada | Vista previa y confirmación atómica de importación. [Código](../../src/app/api/admin/import/route.ts) |
+| `/api/admin/media` | GET, POST, PATCH | Sesión administrativa firmada | Biblioteca de imágenes y metadatos. [Código](../../src/app/api/admin/media/route.ts) |
+| `/api/media/[id]` | GET | Público: binario | Binario raster público por UUID. [Código](../../src/app/api/media/[id]/route.ts) |
+| `/api/admin/laboratory` | GET, POST | Sesión administrativa firmada | Borradores y publicación de portada. [Código](../../src/app/api/admin/laboratory/route.ts) |
+| `/api/admin/assistant` | POST, PATCH | Sesión administrativa firmada | Consulta IA y aplicación manual de descripciones. [Código](../../src/app/api/admin/assistant/route.ts) |
+
+[Contratos, límites y flujo de confirmación](contenido-y-herramientas.md). El POST del asistente también exige App Check según modo y reserva cuota IA.
 
 ## Contratos principales
 

@@ -34,6 +34,8 @@ export const HomeHeroSettingsSchema = z.object({
   spotlightLabel: text(60),
   productLinkLabel: text(60),
   preorderLinkLabel: text(80),
+  primaryColor: z.string().regex(/^#[a-fA-F0-9]{6}$/).optional(),
+  accentColor: z.string().regex(/^#[a-fA-F0-9]{6}$/).optional(),
   featuredProductId: z.string().trim().min(1).max(128).regex(/^[^/\\\x00-\x1f]+$/).nullable(),
 }).strict();
 
